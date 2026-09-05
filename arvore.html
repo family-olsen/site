@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Árvore genealógica — Olsen · Belloto · Leal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<main id="main"><p class="empty-note" style="padding:60px 48px">Carregando…</p></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/site.js"></script>
+<script>
+let currentFocusId=null, zoomScale=.85, panX=0, panY=0, ALL_PEOPLE_COUNT=0, siblingIndex=0, spouseIndex=0, siblingHidden=false, spouseHidden=false;
+function hideToggleBtn(kind){
+  const label=kind==='sibling'?'irmão(ã)':'cônjuge';
+  return `<button type="button" class="fam-hide-btn" data-hide="${kind}" title="Ocultar ${label}" aria-label="Ocultar ${label}">×</button>`;
+}
+function showToggleBtn(kind){
+  const label=kind==='sibling'?'Irmão(ã)':'Cônjuge';
+  return `<button type="button" class="fam-show-btn" data-show="${kind}">+ ${label}</button>`;
+}
+
+function applyTreeTransform(){
+  const canvas=$('#treeCanvas'); if(!canvas) return;
+  canvas.style.transform=`translate(${panX}px,${panY}px) scale(${zoomScale})`;
+}
+function setZoom(z){ zoomScale=Math.min(1.6,Math.max(.3,z)); applyTreeTransform(); }
+
+async function loadTree(personId,opts={}){
+  if(!opts.keepExpand){ expandedUp=new Set(); expandedDown=new Set(); expandedSide=new Set(); }
+  if(!opts.keepPager){ siblingIndex=0; spouseIndex=0; siblingHidden=false; spouseHidden=false; }
+  currentFocusId=personId;
+  history.replaceState(null,'',`arvore.html?foco=${personId}`);
+  const {data:focus}=await sbClient.from('people').select(PERSON_FIELDS).eq('id',personId).maybeSingle();
+  if(!focus) return;
+  const [parents,children,spouses]=await Promise.all([fetchParents(personId),fetchChildren(personId),fetchSpouses(personId)]);
+  const siblings=await fetchSiblings(parents.map(p=>p.id),personId);
+  await renderPedigree(focus,parents,spouses,children,siblings);
+}
+
+async function renderPedigree(focus,parents,spouses,children,siblings){
+  const [p0,p1]=parents;
+  const [p0Branch,p1Branch]=await Promise.all([p0?buildAncestorBranch(p0):null,p1?buildAncestorBranch(p1):null]);
+
+  // irmãos e cônjuges: mostra um de cada vez com setas ‹ › pra navegar quando há mais de um
+  // (o botão de paginar sempre existe quando há pelo menos 1 — não depende de "caber" na tela)
+  siblingIndex=Math.min(siblingIndex,Math.max(0,siblings.length-1));
+  const sib=(!siblingHidden&&siblings.length)?siblings[siblingIndex]:null;
+  const sibBranch=sib?await buildDescendantBranch(sib):null;
+  spouseIndex=Math.min(spouseIndex,Math.max(0,spouses.length-1));
+  const sp=(!spouseHidden&&spouses.length)?spouses[spouseIndex]:null;
+  const spBranch=sp?(expandedUp.has(sp.id)?await buildAncestorBranch(sp):{person:sp,expanded:false,parents:null}):null;
+  const childBranches=await Promise.all(children.map(c=>buildDescendantBranch(c)));
+
+  // agora que já sabemos exatamente quem vai virar cartão nessa tela, confere numa passada só
+  // quem realmente tem mais pai/mãe, filho ou cônjuge pra mostrar — só aí decide quais setinhas
+  // desenhar. Sem isso, ficaria botão de expandir em pessoa que não tem mais nada (ex.: netos).
+  const allIds=new Set();
+  if(p0Branch) collectBranchIds(p0Branch,allIds);
+  if(p1Branch) collectBranchIds(p1Branch,allIds);
+  if(sibBranch) collectBranchIds(sibBranch,allIds);
+  if(spBranch) collectBranchIds(spBranch,allIds);
+  childBranches.forEach(cb=>collectBranchIds(cb,allIds));
+  const rel=await fetchHasRelations([...allIds]);
+  hasParentsSet=rel.parents; hasChildrenSet=rel.children; hasSpousesSet=rel.spouses;
+
+  const parentsRow=`<div class="fam-row" id="famParentsRow">
+    ${p0Branch?`<div class="fam-branch fam-branch-anc">${renderAncestorBranchHtml(p0Branch,focus.id)}</div>`:''}
+    ${p1Branch?`<div class="fam-branch fam-branch-anc">${renderAncestorBranchHtml(p1Branch,focus.id)}</div>`:''}
+  </div>`;
+  let siblingHtml='';
+  if(siblings.length&&siblingHidden){
+    siblingHtml=showToggleBtn('sibling');
+  } else if(sibBranch){
+    siblingHtml=famPagerHtml('sibling',siblingIndex,siblings.length,`<div class="fam-branch">${renderDescendantBranchHtml(sibBranch,focus.id,{blood:true})}</div>`,false,hideToggleBtn('sibling'));
+  }
+  let spouseHtml='';
+  if(spouses.length&&spouseHidden){
+    spouseHtml=showToggleBtn('spouse');
+  } else if(spBranch){
+    spouseHtml=famPagerHtml('spouse',spouseIndex,spouses.length,`<div class="fam-branch">${renderSpouseBranchHtml(spBranch,focus.id)}</div>`,true,hideToggleBtn('spouse'));
+  }
+  const midRow=`<div class="fam-row" id="famMidRow">${siblingHtml}${famCard(focus,focus.id)}${spouseHtml}</div>`;
+  const childrenRow=`<div class="fam-row" id="famChildrenRow">${childBranches.map(cb=>`<div class="fam-branch">${renderDescendantBranchHtml(cb,focus.id)}</div>`).join('')}</div>`;
+
+  $('#treeView').innerHTML=`<svg class="ped-lines" id="pedLines"></svg><div class="fam-tree">${parentsRow}${midRow}${childrenRow}</div>`;
+  $('#focoNome').textContent=focus.full_name;
+  $('#verPerfilLink').href=`pessoa.html?id=${focus.id}`;
+
+  document.querySelectorAll('[data-focus]').forEach(el=>{
+    if(el.dataset.focus===focus.id) return;
+    el.addEventListener('click',()=>loadTree(el.dataset.focus));
+  });
+  document.querySelectorAll('[data-expand]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const set=el.dataset.expand==='up'?expandedUp:expandedDown;
+      if(set.has(el.dataset.person)) set.delete(el.dataset.person); else set.add(el.dataset.person);
+      loadTree(currentFocusId,{keepExpand:true,keepPager:true});
+    });
+  });
+  document.querySelectorAll('[data-expand-side]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const pid=el.dataset.expandSide;
+      if(expandedSide.has(pid)) expandedSide.delete(pid); else expandedSide.add(pid);
+      loadTree(currentFocusId,{keepExpand:true,keepPager:true});
+    });
+  });
+  document.querySelectorAll('[data-hide]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      if(el.dataset.hide==='sibling') siblingHidden=true; else spouseHidden=true;
+      loadTree(currentFocusId,{keepExpand:true,keepPager:true});
+    });
+  });
+  document.querySelectorAll('[data-show]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      if(el.dataset.show==='sibling') siblingHidden=false; else spouseHidden=false;
+      loadTree(currentFocusId,{keepExpand:true,keepPager:true});
+    });
+  });
+  document.querySelectorAll('[data-pager]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      if(el.disabled) return;
+      const dir=Number(el.dataset.dir);
+      if(el.dataset.pager==='sibling') siblingIndex=Math.max(0,siblingIndex+dir); else spouseIndex=Math.max(0,spouseIndex+dir);
+      loadTree(currentFocusId,{keepExpand:true,keepPager:true});
+    });
+  });
+  requestAnimationFrame(()=>drawPedLines(zoomScale));
+  // recalcula as linhas quando as fotos terminarem de carregar (evita linhas desalinhadas por causa da mudança de altura do cartão)
+  document.querySelectorAll('#treeView img').forEach(img=>{
+    if(!img.complete) img.addEventListener('load',()=>drawPedLines(zoomScale));
+  });
+}
+
+async function boot(){
+  renderHeader(); renderFooter();
+  const {data:anyPerson,count}=await sbClient.from('people').select('id',{count:'exact'}).limit(1);
+  ALL_PEOPLE_COUNT=count||0;
+  if(!anyPerson||!anyPerson.length){
+    $('#main').innerHTML='<div class="empty-state-public"><h3>Nenhuma pessoa publicada ainda</h3></div>';
+    return;
+  }
+  const focoParam=new URLSearchParams(location.search).get('foco');
+  const startId=focoParam||anyPerson[0].id;
+
+  $('#main').innerHTML=`
+    <div class="tree-main">
+      <div class="tree-head">
+        <div><h1>Árvore genealógica</h1><p>${ALL_PEOPLE_COUNT} pessoas documentadas. Use as setinhas ▴▾ de cada cartão pra ver pais ou filhos, e ‹ › pra navegar entre irmãos ou cônjuges; clique numa pessoa pra recentralizar nela; arraste, use a roda do mouse ou ⛶ pra tela cheia.</p></div>
+        <a class="tree-view-link" id="verPerfilLink" href="#">Ver perfil de <span id="focoNome">—</span> →</a>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="tree-zoom-btn" id="zoomOutBtn" aria-label="Diminuir zoom">−</button>
+          <button type="button" class="tree-zoom-btn" id="zoomResetBtn" aria-label="Redefinir zoom">⊙</button>
+          <button type="button" class="tree-zoom-btn" id="zoomInBtn" aria-label="Aumentar zoom">+</button>
+          <button type="button" class="tree-zoom-btn" id="maximizeBtn" aria-label="Expandir para tela cheia" title="Expandir para tela cheia">⛶</button>
+        </div>
+      </div>
+      <div class="tree-viewport" id="treeViewport">
+        <div class="tree-canvas" id="treeCanvas"><div id="treeView"></div></div>
+      </div>
+    </div>`;
+
+  $('#zoomInBtn').addEventListener('click',()=>setZoom(zoomScale+.15));
+  $('#zoomOutBtn').addEventListener('click',()=>setZoom(zoomScale-.15));
+  $('#zoomResetBtn').addEventListener('click',()=>{zoomScale=.85; panX=0; panY=0; applyTreeTransform();});
+  $('#maximizeBtn').addEventListener('click',toggleMaximize);
+
+  const vp=$('#treeViewport');
+  vp.addEventListener('mousedown',(e)=>{
+    const ox=e.clientX, oy=e.clientY, sx=panX, sy=panY;
+    vp.classList.add('panning');
+    const move=(ev)=>{ panX=sx+(ev.clientX-ox); panY=sy+(ev.clientY-oy); applyTreeTransform(); };
+    const up=()=>{ vp.classList.remove('panning'); window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up); };
+    window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  });
+  // roda do mouse = zoom (sem precisar segurar Ctrl)
+  vp.addEventListener('wheel',(e)=>{
+    e.preventDefault();
+    setZoom(zoomScale+(e.deltaY<0?.08:-.08));
+  },{passive:false});
+
+  sizeTreeMain();
+  window.addEventListener('resize',()=>{ sizeTreeMain(); drawPedLines(zoomScale); });
+  document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'&&isMaximized) toggleMaximize(); });
+
+  applyTreeTransform();
+  await loadTree(startId);
+}
+let isMaximized=false;
+function toggleMaximize(){
+  isMaximized=!isMaximized;
+  const treeMain=$('.tree-main'), btn=$('#maximizeBtn');
+  treeMain.classList.toggle('maximized',isMaximized);
+  document.body.classList.toggle('tree-locked',isMaximized);
+  if(btn){ btn.textContent=isMaximized?'✕':'⛶'; btn.title=isMaximized?'Sair da tela cheia':'Expandir para tela cheia'; btn.setAttribute('aria-label',btn.title); }
+  sizeTreeMain();
+  requestAnimationFrame(()=>drawPedLines(zoomScale));
+}
+function sizeTreeMain(){
+  const header=document.querySelector('.site-header');
+  const treeMain=$('.tree-main');
+  if(!treeMain) return;
+  if(isMaximized){ treeMain.style.height='100vh'; return; }
+  if(header) treeMain.style.height=`calc(100vh - ${header.offsetHeight}px)`;
+}
+boot();
+</script>
+</body>
+</html>

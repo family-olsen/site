@@ -1,0 +1,207 @@
+<!doctype html><html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Família — Administração</title><link rel="stylesheet" href="css/admin.css">
+</head><body>
+<div id="loginView" class="auth-screen"><div class="auth-card">
+<div class="brand-mark">F</div><h1>Administração da Família</h1>
+<p>Entre para administrar pessoas, genealogia, livro, histórias e acervo.</p>
+<form id="loginForm" novalidate><label>E-mail<input id="email" type="email" autocomplete="username" required></label>
+<label>Senha<input id="password" type="password" autocomplete="current-password" required></label>
+<button class="primary full" type="submit">Entrar</button><div id="loginError" class="error"></div></form>
+</div></div>
+<div id="appView" class="app-shell hidden">
+<aside class="sidebar"><div class="brand"><div class="brand-mark">F</div><div class="brand-text"><strong>Família</strong><span>Administração</span></div><button id="sidebarCollapseBtn" class="sidebar-collapse-btn" type="button" aria-label="Recolher menu" aria-expanded="true" title="Recolher menu">‹</button></div>
+<nav><a class="nav-item active" href="#dashboard">Dashboard</a><a class="nav-item" href="#pessoas">Pessoas</a><a class="nav-item" href="#familias">Famílias</a><a class="nav-item" href="#genealogia">Genealogia</a><a class="nav-item" href="#livro">Livro</a><a class="nav-item" href="#historias">Histórias</a><a class="nav-item" href="#fotos">Fotos</a><a class="nav-item" href="#albuns">Álbuns</a><a class="nav-item" href="#eventos">Eventos</a><a class="nav-item" href="#documentos">Documentos</a><a class="nav-item" href="#fontes">Fontes</a><a class="nav-item" href="#lugares">Lugares</a><a class="nav-item" href="#configuracoes">Configurações</a></nav>
+<div class="sidebar-footer"><span id="roleBadge" class="footer-text">—</span><button id="logoutBtn" class="logout" title="Sair"><span class="logout-icon">⏻</span><span class="footer-text">Sair</span></button></div></aside>
+<div class="sidebar-scrim" id="sidebarScrim"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<main class="main"><header class="topbar"><button class="mobile-menu" id="mobileMenuBtn" aria-label="Abrir menu" aria-expanded="false">☰</button><h1>Gestão da História da Família</h1><div class="user-badge" id="userEmail">—</div></header>
+<section class="content" id="dashboard"><div class="hero-card"><div><span class="pill">Backoffice · Supabase</span><h2>Organize a memória da família.</h2><p>Cada pessoa, cada foto, cada história — reunidas num só lugar, para durar gerações.</p></div></div>
+<div class="stats-grid">
+<a class="stat-card" href="#pessoas"><span>Pessoas</span><strong id="peopleCount">0</strong><small>cadastros</small></a>
+<a class="stat-card" href="#familias"><span>Famílias</span><strong id="familiesCount">0</strong><small>uniões</small></a>
+<a class="stat-card" href="#livro"><span>Capítulos</span><strong id="chaptersCount">0</strong><small>no livro</small></a>
+<a class="stat-card" href="#historias"><span>Histórias</span><strong id="storiesCount">0</strong><small>relatos</small></a>
+<a class="stat-card" href="#fotos"><span>Fotos</span><strong id="photosCount">0</strong><small>no acervo</small></a>
+<a class="stat-card" href="#albuns"><span>Álbuns</span><strong id="albumsCount">0</strong><small>coleções</small></a>
+<a class="stat-card" href="#eventos"><span>Eventos</span><strong id="eventsCount">0</strong><small>na linha do tempo</small></a>
+<a class="stat-card" href="#documentos"><span>Documentos</span><strong id="documentsCount">0</strong><small>arquivos</small></a>
+<a class="stat-card" href="#fontes"><span>Fontes</span><strong id="sourcesCount">0</strong><small>referências</small></a>
+<a class="stat-card" href="#lugares"><span>Lugares</span><strong id="placesCount">0</strong><small>locais</small></a>
+</div>
+<section class="panel" id="pessoas"><div class="panel-header"><div><span class="eyebrow">PESSOAS</span><h3>Cadastro de pessoas</h3></div><div class="toolbar"><input id="searchPeople" placeholder="Buscar por nome..."><select id="peoplePageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshPeople">Atualizar</button><button class="primary" id="newPersonBtn">+ Nova pessoa</button></div></div>
+<div id="peopleTable" class="table-wrap"></div>
+<div class="pagination" id="peoplePagination"></div>
+</section>
+<section class="panel" id="familias"><div class="panel-header"><div><span class="eyebrow">FAMÍLIAS</span><h3>Uniões e relações de parentesco</h3></div><div class="toolbar"><input id="searchFamilies" placeholder="Buscar por nome..."><button class="secondary" id="refreshFamilies">Atualizar</button><button class="primary" id="newFamilyBtn">+ Nova união</button></div></div>
+<div id="familiesTable" class="table-wrap"></div></section>
+<section class="panel" id="genealogia"><div class="panel-header"><div><span class="eyebrow">GENEALOGIA</span><h3>Árvore da família</h3></div><div class="toolbar"><input list="peopleList" id="focusPersonSelect" autocomplete="off" placeholder="Buscar pessoa..."><button class="secondary" id="zoomOutBtn" type="button">−</button><button class="secondary" id="zoomResetBtn" type="button">100%</button><button class="secondary" id="zoomInBtn" type="button">+</button></div></div>
+<div class="tree-viewport" id="treeViewport"><div class="tree-zoom" id="treeZoomWrap"><div id="treeView"></div></div></div>
+<p class="hint">Pais em cima, irmãos ao lado, filhos embaixo. Clique em qualquer pessoa para recentralizar nela. Arraste para mover, use os botões ou a roda do mouse para zoom.</p>
+</section>
+<section class="panel" id="livro"><div class="panel-header"><div><span class="eyebrow">LIVRO</span><h3>Livros e capítulos</h3></div><div class="toolbar"><input id="searchBooks" placeholder="Buscar por título..."><button class="secondary" id="refreshBooks">Atualizar</button><button class="primary" id="newBookBtn">+ Novo livro</button></div></div>
+<div id="booksTable" class="table-wrap"></div></section>
+
+<section class="panel" id="historias"><div class="panel-header"><div><span class="eyebrow">HISTÓRIAS</span><h3>Relatos e memórias da família</h3></div><div class="toolbar"><input id="searchStories" placeholder="Buscar por título..."><select id="filterStoryStatus"><option value="">Todos os status</option><option value="published">Publicado</option><option value="draft">Rascunho</option></select><button class="secondary" id="refreshStories">Atualizar</button><button class="primary" id="newStoryBtn">+ Nova história</button></div></div>
+<div id="storiesTable" class="table-wrap"></div></section>
+
+<section class="panel" id="fotos"><div class="panel-header"><div><span class="eyebrow">FOTOS</span><h3>Acervo fotográfico</h3></div><div class="toolbar"><input id="searchPhotos" placeholder="Buscar por título..."><select id="filterPhotoStatus"><option value="">Todos os status</option><option value="published">Publicado</option><option value="draft">Rascunho</option></select><button class="secondary" id="refreshPhotos">Atualizar</button><button class="primary" id="newPhotoBtn">+ Nova foto</button></div></div>
+<div id="photosTable" class="table-wrap"></div></section>
+
+<section class="panel" id="albuns"><div class="panel-header"><div><span class="eyebrow">ÁLBUNS</span><h3>Coleções de fotos</h3></div><div class="toolbar"><input id="searchAlbums" placeholder="Buscar por título..."><button class="secondary" id="refreshAlbums">Atualizar</button><button class="primary" id="newAlbumBtn">+ Novo álbum</button></div></div>
+<div id="albumsTable" class="table-wrap"></div></section>
+
+<section class="panel" id="eventos"><div class="panel-header"><div><span class="eyebrow">EVENTOS</span><h3>Linha do tempo da família</h3></div><div class="toolbar"><input id="searchEvents" placeholder="Buscar por título..."><select id="filterEventType"><option value="">Todos os tipos</option><option value="birth">Nascimento</option><option value="marriage">Casamento</option><option value="death">Falecimento</option><option value="baptism">Batismo</option><option value="immigration">Imigração</option><option value="other">Outro</option></select><button class="secondary" id="refreshEvents">Atualizar</button><button class="primary" id="newEventBtn">+ Novo evento</button></div></div>
+<div id="eventsTable" class="table-wrap"></div></section>
+
+<section class="panel" id="documentos"><div class="panel-header"><div><span class="eyebrow">DOCUMENTOS</span><h3>Certidões, cartas e registros</h3></div><div class="toolbar"><input id="searchDocuments" placeholder="Buscar por título..."><select id="filterDocumentType"><option value="">Todos os tipos</option><option value="certificate">Certidão</option><option value="letter">Carta</option><option value="record">Registro</option><option value="photo">Foto de documento</option><option value="other">Outro</option></select><button class="secondary" id="refreshDocuments">Atualizar</button><button class="primary" id="newDocumentBtn">+ Novo documento</button></div></div>
+<div id="documentsTable" class="table-wrap"></div></section>
+
+<section class="panel" id="fontes"><div class="panel-header"><div><span class="eyebrow">FONTES</span><h3>Referências e procedência</h3></div><div class="toolbar"><input id="searchSources" placeholder="Buscar por título..."><button class="secondary" id="refreshSources">Atualizar</button><button class="primary" id="newSourceBtn">+ Nova fonte</button></div></div>
+<div id="sourcesTable" class="table-wrap"></div></section>
+
+<section class="panel" id="lugares"><div class="panel-header"><div><span class="eyebrow">LUGARES</span><h3>Cidades e locais de referência</h3></div><div class="toolbar"><input id="searchPlaces" placeholder="Buscar por nome..."><button class="secondary" id="refreshPlaces">Atualizar</button><button class="primary" id="newPlaceBtn">+ Novo lugar</button></div></div>
+<div id="placesTable" class="table-wrap"></div></section>
+
+<section class="panel" id="configuracoes"><div class="panel-header"><div><span class="eyebrow">CONFIGURAÇÕES</span><h3>Conta e ambiente</h3></div></div>
+<div class="config-grid">
+<article class="stat-card"><span>Usuário</span><strong id="cfgEmail">—</strong><small>sessão ativa</small></article>
+<article class="stat-card"><span>Papel</span><strong id="cfgRole">—</strong><small>permissão no painel</small></article>
+<article class="stat-card"><span>Projeto Supabase</span><strong id="cfgProject">—</strong><small>backend conectado</small></article>
+</div>
+<p class="hint">Os dados deste painel vêm diretamente do banco. Para alterar permissões, edite a tabela <code>admin_users</code> no Supabase.</p>
+</section>
+</section></main></div>
+<div class="modal" id="personModal"><div class="modal-card"><button class="modal-close" id="closeModal">×</button><span class="eyebrow">CADASTRO DE PESSOA</span><h2 id="formTitle">Nova pessoa</h2><form id="personForm" novalidate><input type="hidden" id="personId">
+<div class="form-grid"><label>Nome<input id="givenName" required></label><label>Sobrenome<input id="surname"></label><label>Apelido<input id="nickname"></label><label>Data de nascimento<input id="birthDate" type="date"></label><label>Data de falecimento<input id="deathDate" type="date"></label></div>
+<div class="form-grid"><label>Local de nascimento (opcional)<input list="placesList" id="personBirthPlace" autocomplete="off" placeholder="Buscar cidade..."></label><label>Local de falecimento (opcional)<input list="placesList" id="personDeathPlace" autocomplete="off" placeholder="Buscar cidade..."></label></div>
+<div class="form-grid"><label>Gênero (obrigatório)<select id="personGender" required><option value="">Selecione...</option><option value="female">Feminino</option><option value="male">Masculino</option></select></label><label>Vivo(a) ou falecido(a) (obrigatório)<select id="personLivingStatus" required><option value="">Selecione...</option><option value="alive">Vivo(a)</option><option value="deceased">Falecido(a)</option></select></label></div>
+<p class="hint" id="fullNamePreview">Nome completo: —</p>
+<div class="avatar-field"><div class="avatar-preview" id="personAvatarPreview"></div><div><label class="avatar-label">Foto de perfil<input id="personAvatarFile" type="file" accept="image/*"></label><p class="hint" id="personAvatarHint">Opcional — aparece na árvore genealógica e na listagem.</p></div></div>
+<label>Biografia<textarea id="biography" rows="5"></textarea></label><label class="check"><input id="isPublic" type="checkbox" checked> Publicar no site</label>
+<div class="form-actions"><button type="button" class="secondary" id="cancelForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="formError" class="error"></div></form></div></div>
+<div class="modal" id="familyModal"><div class="modal-card"><button class="modal-close" id="closeFamilyModal">×</button><span class="eyebrow">UNIÃO FAMILIAR</span><h2 id="familyFormTitle">Nova união</h2><form id="familyForm" novalidate><input type="hidden" id="familyId">
+<div class="form-grid"><label>Pessoa A<input list="peopleList" id="partnerA" autocomplete="off" required></label><label>Pessoa B<input list="peopleList" id="partnerB" autocomplete="off"></label><label>Tipo<select id="relationshipType"><option value="marriage">Casamento</option><option value="union">União estável</option><option value="other">Outro</option></select></label><label>Status<select id="familyStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label><label>Data de início<input id="unionStart" type="date"></label><label>Data de fim<input id="unionEnd" type="date"></label></div>
+<label>Observações<textarea id="familyNotes" rows="3"></textarea></label>
+<div class="form-actions"><button type="button" class="secondary" id="cancelFamilyForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="familyFormError" class="error"></div></form></div></div>
+<div class="modal" id="childrenModal"><div class="modal-card"><button class="modal-close" id="closeChildrenModal">×</button><span class="eyebrow">FILHOS</span><h2 id="childrenFamilyLabel">União</h2>
+<div id="childrenList" class="table-wrap"></div>
+<div class="form-grid" style="margin-top:16px"><label>Adicionar filho<input list="peopleList" id="childSelect" autocomplete="off"></label></div>
+<div class="form-actions"><button type="button" class="primary" id="addChildBtn">Adicionar</button></div><div id="childrenError" class="error"></div></div></div>
+<div class="modal" id="linkChildrenModal"><div class="modal-card"><button class="modal-close" id="closeLinkChildrenModal">×</button><span class="eyebrow">VÍNCULO DE FILIAÇÃO</span><h2 id="linkChildrenTitle">Vincular filhos já cadastrados?</h2>
+<p class="hint" id="linkChildrenHint">Uma dessas pessoas já tem filho(a) cadastrado(a). Marque só quem realmente também é filho(a) da outra pessoa nesta união — não marque quem não é. Isso pode ser desfeito depois em "Filhos".</p>
+<div id="linkChildrenList" class="table-wrap"></div>
+<div class="form-actions"><button type="button" class="secondary" id="linkChildrenSkip">Não vincular nenhum</button><button type="button" class="primary" id="linkChildrenConfirm">Vincular selecionados</button></div><div id="linkChildrenError" class="error"></div></div></div>
+<div class="modal" id="relModal"><div class="modal-card"><button class="modal-close" id="closeRelModal">×</button><span class="eyebrow">GENEALOGIA</span><h2 id="relModalTitle">Adicionar</h2>
+<div class="form-grid"><label>Pessoa<input list="peopleList" id="relPersonSelect" autocomplete="off"></label></div>
+<div class="form-grid hidden" id="relFamilyField"><label>A qual família este filho pertence?<select id="relFamilySelect"></select></label></div>
+<p class="hint">Não encontrou a pessoa? <a href="#" id="relNewPersonLink">Cadastre uma nova pessoa</a> e volte aqui.</p>
+<div class="form-actions"><button type="button" class="secondary" id="cancelRelModal">Cancelar</button><button type="button" class="primary" id="confirmRelBtn">Adicionar</button></div><div id="relModalError" class="error"></div></div></div>
+<div class="modal" id="storyModal"><div class="modal-card"><button class="modal-close" id="closeStoryModal">×</button><span class="eyebrow">HISTÓRIA</span><h2 id="storyFormTitle">Nova história</h2><form id="storyForm" novalidate><input type="hidden" id="storyId">
+<div class="form-grid"><label>Título<input id="storyTitle" required></label><label>Endereço (slug)<input id="storySlug" placeholder="gerado a partir do título"></label><label>Local (opcional)<input list="placesList" id="storyPlace" autocomplete="off" placeholder="Buscar cidade..."></label><label>Status<select id="storyStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label></div>
+<label>Resumo<textarea id="storySummary" rows="2"></textarea></label>
+<label>Texto da história
+<div class="rt-toolbar"><button type="button" class="rt-btn" data-cmd="bold" title="Negrito"><b>N</b></button><button type="button" class="rt-btn" data-cmd="italic" title="Itálico"><i>I</i></button></div>
+<div id="storyContent" class="rt-editor" contenteditable="true" data-placeholder="Escreva o texto da história..."></div>
+</label>
+<div class="chip-field"><label>Pessoas relacionadas</label><div class="chip-row"><input list="peopleList" id="storyQuickPerson" autocomplete="off" placeholder="Buscar pessoa..."><select id="storyQuickRole"><option value="main">Protagonista</option><option value="character">Personagem</option><option value="mentioned">Mencionado</option><option value="witness">Testemunha</option><option value="author">Narrador</option><option value="other">Outro</option></select><button type="button" class="secondary" id="storyQuickPersonAdd">Adicionar</button></div><div class="chip-list" id="storyPeopleChips"></div><p class="hint">Não encontrou a pessoa? <a href="#" id="storyQuickPersonNew">Cadastrar nova pessoa</a> — ao salvar, ela é vinculada aqui automaticamente.</p></div>
+<div class="chip-field"><label>Fotos relacionadas</label><div class="chip-row"><input list="photosList" id="storyQuickPhoto" autocomplete="off" placeholder="Buscar foto..."><button type="button" class="secondary" id="storyQuickPhotoAdd">Adicionar</button></div><div class="chip-list" id="storyPhotoChips"></div><p class="hint">Não encontrou a foto? <a href="#" id="storyQuickPhotoNew">Cadastrar nova foto</a> — ao salvar, ela é vinculada aqui automaticamente.</p></div>
+<div class="chip-field"><label>Fontes relacionadas</label><div class="chip-row"><input list="sourcesQuickList" id="storyQuickSource" autocomplete="off" placeholder="Buscar fonte..."><button type="button" class="secondary" id="storyQuickSourceAdd">Adicionar</button></div><div class="chip-list" id="storySourceChips"></div><p class="hint">Não encontrou a fonte? <a href="#" id="storyQuickSourceNew">Cadastrar nova fonte</a> — ao salvar, ela é vinculada aqui automaticamente.</p></div>
+<div class="form-actions"><button type="button" class="secondary" id="cancelStoryForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="storyFormError" class="error"></div></form></div></div>
+<div class="modal" id="storyPeopleModal"><div class="modal-card"><button class="modal-close" id="closeStoryPeopleModal">×</button><span class="eyebrow">PESSOAS NA HISTÓRIA</span><h2 id="storyPeopleLabel">História</h2>
+<div id="storyPeopleList" class="table-wrap"></div>
+<div class="form-grid" style="margin-top:16px"><label>Adicionar pessoa<input list="peopleList" id="storyPersonSelect" autocomplete="off"></label><label>Papel<select id="storyPersonRole"><option value="main">Protagonista</option><option value="character">Personagem</option><option value="mentioned">Mencionado</option><option value="witness">Testemunha</option><option value="author">Narrador</option><option value="other">Outro</option></select></label></div>
+<div class="form-actions"><button type="button" class="primary" id="addStoryPersonBtn">Adicionar</button></div><div id="storyPeopleError" class="error"></div></div></div>
+<div class="modal" id="bookModal"><div class="modal-card"><button class="modal-close" id="closeBookModal">×</button><span class="eyebrow">LIVRO</span><h2 id="bookFormTitle">Novo livro</h2><form id="bookForm" novalidate><input type="hidden" id="bookId">
+<div class="form-grid"><label>Título do livro<input id="bookTitle" required></label><label>Subtítulo do livro (opcional)<input id="bookSubtitle"></label><label>Endereço (slug)<input id="bookSlug" placeholder="gerado a partir do título"></label><label>Status<select id="bookStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label></div>
+<label>Descrição<textarea id="bookDescription" rows="4"></textarea></label>
+<p class="hint">Este é o título geral do livro. O texto em si fica nos capítulos — depois de salvar, você poderá adicionar o Capítulo 1 (com número, título, subtítulo e conteúdo próprios).</p>
+<div class="form-actions"><button type="button" class="secondary" id="cancelBookForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="bookFormError" class="error"></div></form></div></div>
+
+<div class="modal" id="chaptersModal"><div class="modal-card wide"><button class="modal-close" id="closeChaptersModal">×</button><span class="eyebrow">CAPÍTULOS</span><h2 id="chaptersBookLabel">Livro</h2>
+<div id="chaptersList" class="table-wrap"></div>
+<form id="chapterForm" class="inline-form" novalidate><input type="hidden" id="chapterId">
+<p class="hint">Cada envio aqui cria uma seção (subtítulo). Repita o mesmo Nº e Título para agrupar várias seções dentro do mesmo capítulo — os campos abaixo já vêm preenchidos com o último usado.</p>
+<div class="form-grid"><label>Nº do capítulo<input id="chapterNumber" type="number" min="1" step="1"></label><label>Título (repete entre seções do capítulo)<input id="chapterTitle" required></label><label>Subtítulo desta seção<input id="chapterSubtitle"></label><label>Status<select id="chapterStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label></div>
+<label>Resumo (opcional, para listagens)<textarea id="chapterSummary" rows="3"></textarea></label>
+<div class="chip-field"><label>Fotos desta seção (opcional)</label><div class="chip-row"><input list="photosList" id="chapterQuickPhoto" autocomplete="off" placeholder="Buscar foto..."><button type="button" class="secondary" id="chapterQuickPhotoAdd">Adicionar</button></div><div class="chip-list" id="chapterPhotoChips"></div><p class="hint">Não encontrou a foto? <a href="#" id="chapterQuickPhotoNew">Cadastrar nova foto</a> — ao salvar, ela é vinculada aqui automaticamente.</p></div>
+<div class="chip-field"><label>Fontes desta seção (opcional)</label><div class="chip-row"><input list="sourcesQuickList" id="chapterQuickSource" autocomplete="off" placeholder="Buscar fonte..."><button type="button" class="secondary" id="chapterQuickSourceAdd">Adicionar</button></div><div class="chip-list" id="chapterSourceChips"></div><p class="hint">Não encontrou a fonte? <a href="#" id="chapterQuickSourceNew">Cadastrar nova fonte</a> — ao salvar, ela é vinculada aqui automaticamente.</p></div>
+<label>Conteúdo do capítulo
+<div class="rt-toolbar"><button type="button" class="rt-btn" data-cmd="bold" title="Negrito"><b>N</b></button><button type="button" class="rt-btn" data-cmd="italic" title="Itálico"><i>I</i></button></div>
+<div id="chapterContent" class="rt-editor" contenteditable="true" data-placeholder="Cole ou escreva aqui o texto completo do capítulo."></div>
+</label>
+<div class="form-actions"><button type="button" class="secondary" id="cancelChapterEdit">Limpar</button><button type="submit" class="primary" id="saveChapterBtn">Adicionar capítulo</button></div><div id="chaptersError" class="error"></div></form></div></div>
+
+<div class="modal" id="photoModal"><div class="modal-card"><button class="modal-close" id="closePhotoModal">×</button><span class="eyebrow">FOTO</span><h2 id="photoFormTitle">Nova foto</h2><form id="photoForm" novalidate><input type="hidden" id="photoId">
+<div class="form-grid"><label>Título<input id="photoTitle" required></label><label>Data da foto<input id="photoDate" type="date"></label><label>Local<input list="placesList" id="photoPlace" autocomplete="off"></label><label>Status<select id="photoStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label></div>
+<label>Legenda<input id="photoCaption"></label>
+<label>Descrição<textarea id="photoDescription" rows="3"></textarea></label>
+<label>Imagem<input id="photoFile" type="file" accept="image/*"></label>
+<div id="photoPreview" class="photo-preview"></div>
+<p class="hint" id="photoUploadHint">Selecione uma imagem — ela será otimizada e uma miniatura será gerada automaticamente no navegador.</p>
+<div class="chip-field"><label>Coleções (obrigatório ao menos 1 — pode adicionar mais de uma)</label><div class="chip-row"><input list="albumsQuickList" id="photoQuickAlbum" autocomplete="off" placeholder="Buscar álbum..."><button type="button" class="secondary" id="photoQuickAlbumAdd">Adicionar</button></div><div class="chip-list" id="photoAlbumChips"></div><p class="hint">Toda foto do acervo precisa pertencer a pelo menos uma coleção — e pode pertencer a várias ao mesmo tempo. Digite o nome do álbum e clique em Adicionar (ou Enter) pra cada uma. Não encontrou o álbum? Cadastre em Álbuns.</p></div>
+<div class="chip-field"><label>Pessoas na foto</label><div class="chip-row"><input list="peopleList" id="photoQuickPerson" autocomplete="off" placeholder="Buscar pessoa..."><button type="button" class="secondary" id="photoQuickPersonAdd">Adicionar</button></div><div class="chip-list" id="photoPeopleChips"></div></div>
+<div class="chip-field"><label>Histórias relacionadas</label><div class="chip-row"><input list="storiesQuickList" id="photoQuickStory" autocomplete="off" placeholder="Buscar história..."><button type="button" class="secondary" id="photoQuickStoryAdd">Adicionar</button></div><div class="chip-list" id="photoStoryChips"></div></div>
+<div class="form-actions"><button type="button" class="secondary" id="cancelPhotoForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="photoFormError" class="error"></div></form></div></div>
+
+<div class="modal" id="photoPeopleModal"><div class="modal-card"><button class="modal-close" id="closePhotoPeopleModal">×</button><span class="eyebrow">PESSOAS NA FOTO</span><h2 id="photoPeopleLabel">Foto</h2>
+<div id="photoPeopleList" class="table-wrap"></div>
+<div class="form-grid" style="margin-top:16px"><label>Adicionar pessoa<input list="peopleList" id="photoPersonSelect" autocomplete="off"></label><label>Papel<select id="photoPersonRole"><option value="subject">Retratado</option><option value="photographer">Fotógrafo</option><option value="mentioned">Mencionado</option></select></label></div>
+<div class="form-actions"><button type="button" class="primary" id="addPhotoPersonBtn">Adicionar</button></div><div id="photoPeopleError" class="error"></div></div></div>
+
+<div class="modal" id="albumModal"><div class="modal-card"><button class="modal-close" id="closeAlbumModal">×</button><span class="eyebrow">ÁLBUM</span><h2 id="albumFormTitle">Novo álbum</h2><form id="albumForm" novalidate><input type="hidden" id="albumId">
+<div class="form-grid"><label>Título<input id="albumTitle" required></label><label>Data do álbum<input id="albumDate" type="date"></label><label>Local<input list="placesList" id="albumPlace" autocomplete="off"></label><label>Status<select id="albumStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label></div>
+<label>Descrição<textarea id="albumDescription" rows="3"></textarea></label>
+<div class="form-actions"><button type="button" class="secondary" id="cancelAlbumForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="albumFormError" class="error"></div></form></div></div>
+
+<div class="modal" id="albumPhotosModal"><div class="modal-card"><button class="modal-close" id="closeAlbumPhotosModal">×</button><span class="eyebrow">FOTOS DO ÁLBUM</span><h2 id="albumPhotosLabel">Álbum</h2>
+<div id="albumPhotosList" class="table-wrap"></div>
+<div class="form-grid" style="margin-top:16px"><label>Adicionar foto<input list="photosList" id="albumPhotoSelect" autocomplete="off"></label></div>
+<div class="form-actions"><button type="button" class="primary" id="addAlbumPhotoBtn">Adicionar</button></div><div id="albumPhotosError" class="error"></div></div></div>
+
+<div class="modal" id="eventModal"><div class="modal-card"><button class="modal-close" id="closeEventModal">×</button><span class="eyebrow">EVENTO</span><h2 id="eventFormTitle">Novo evento</h2><form id="eventForm" novalidate><input type="hidden" id="eventId">
+<div class="form-grid"><label>Título<input id="eventTitle" required></label><label>Tipo<select id="eventType"><option value="birth">Nascimento</option><option value="marriage">Casamento</option><option value="death">Falecimento</option><option value="baptism">Batismo</option><option value="immigration">Imigração</option><option value="other">Outro</option></select></label><label>Data<input id="eventDate" type="date"></label><label>Precisão da data<select id="eventPrecision"><option value="exact">Exata</option><option value="about">Aproximada</option><option value="year">Somente ano</option></select></label><label>Início<input id="eventStart" type="date"></label><label>Fim<input id="eventEnd" type="date"></label><label>Local<input list="placesList" id="eventPlace" autocomplete="off" placeholder="Buscar cidade..."></label><label>Status<select id="eventStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label></div>
+<p class="hint">Não encontrou o local? <a href="#" id="eventQuickPlaceNew">Cadastrar novo lugar</a> — ao salvar, ele já preenche o campo Local.</p>
+<label>Descrição<textarea id="eventDescription" rows="3"></textarea></label>
+<div class="chip-field"><label>Pessoas no evento</label><div class="chip-row"><input list="peopleList" id="eventQuickPerson" autocomplete="off" placeholder="Buscar pessoa..."><select id="eventQuickRole"><option value="subject">Principal</option><option value="participant">Presente</option><option value="witness">Testemunha</option><option value="organizer">Organizador</option><option value="parent">Pai/Mãe</option><option value="spouse">Cônjuge</option><option value="child">Filho(a)</option><option value="other">Outro</option></select><button type="button" class="secondary" id="eventQuickPersonAdd">Adicionar</button></div><div class="chip-list" id="eventPeopleChips"></div><p class="hint">Não encontrou a pessoa? <a href="#" id="eventQuickPersonNew">Cadastrar nova pessoa</a> — ao salvar, ela é vinculada aqui automaticamente.</p></div>
+<label>Foto relacionada (opcional)<input list="photosList" id="eventPhotoSelect" autocomplete="off" placeholder="Buscar foto..."></label>
+<p class="hint">Não encontrou a foto? <a href="#" id="eventQuickPhotoNew">Cadastrar nova foto</a> — ao salvar, ela já preenche este campo.</p>
+<div class="chip-field"><label>Fontes relacionadas</label><div class="chip-row"><input list="sourcesQuickList" id="eventQuickSource" autocomplete="off" placeholder="Buscar fonte..."><button type="button" class="secondary" id="eventQuickSourceAdd">Adicionar</button></div><div class="chip-list" id="eventSourceChips"></div><p class="hint">Não encontrou a fonte? <a href="#" id="eventQuickSourceNew">Cadastrar nova fonte</a> — ao salvar, ela é vinculada aqui automaticamente.</p></div>
+<div class="form-actions"><button type="button" class="secondary" id="cancelEventForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="eventFormError" class="error"></div></form></div></div>
+
+<div class="modal" id="eventPeopleModal"><div class="modal-card"><button class="modal-close" id="closeEventPeopleModal">×</button><span class="eyebrow">PESSOAS NO EVENTO</span><h2 id="eventPeopleLabel">Evento</h2>
+<div id="eventPeopleList" class="table-wrap"></div>
+<div class="form-grid" style="margin-top:16px"><label>Adicionar pessoa<input list="peopleList" id="eventPersonSelect" autocomplete="off"></label><label>Papel<select id="eventPersonRole"><option value="subject">Principal</option><option value="participant">Presente</option><option value="witness">Testemunha</option><option value="organizer">Organizador</option><option value="parent">Pai/Mãe</option><option value="spouse">Cônjuge</option><option value="child">Filho(a)</option><option value="other">Outro</option></select></label></div>
+<div class="form-actions"><button type="button" class="primary" id="addEventPersonBtn">Adicionar</button></div><div id="eventPeopleError" class="error"></div></div></div>
+
+<div class="modal" id="documentModal"><div class="modal-card"><button class="modal-close" id="closeDocumentModal">×</button><span class="eyebrow">DOCUMENTO</span><h2 id="documentFormTitle">Novo documento</h2><form id="documentForm" novalidate><input type="hidden" id="documentId">
+<div class="form-grid"><label>Título<input id="documentTitle" required></label><label>Tipo<select id="documentType"><option value="certificate">Certidão</option><option value="letter">Carta</option><option value="record">Registro</option><option value="photo">Foto de documento</option><option value="other">Outro</option></select></label><label>Data do documento<input id="documentDate" type="date"></label><label>Precisão da data<select id="documentPrecision"><option value="exact">Exata</option><option value="about">Aproximada</option><option value="year">Somente ano</option></select></label><label>Local<input list="placesList" id="documentPlace" autocomplete="off" placeholder="Buscar cidade..."></label><label>Status<select id="documentStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label></div>
+<label>Descrição<textarea id="documentDescription" rows="3"></textarea></label>
+<label>Arquivo (PDF ou imagem)<input id="documentFile" type="file" accept="application/pdf,image/*"></label>
+<div id="documentPreview" class="photo-preview"></div>
+<p class="hint" id="documentUploadHint">Selecione um PDF ou uma imagem — imagens são otimizadas automaticamente para economizar espaço.</p>
+<div class="chip-field"><label>Pessoas relacionadas</label><div class="chip-row"><input list="peopleList" id="documentQuickPerson" autocomplete="off" placeholder="Buscar pessoa..."><button type="button" class="secondary" id="documentQuickPersonAdd">Adicionar</button></div><div class="chip-list" id="documentPeopleChips"></div><p class="hint">Não encontrou a pessoa? <a href="#" id="documentQuickPersonNew">Cadastrar nova pessoa</a> — ao salvar, ela é vinculada aqui automaticamente.</p></div>
+<div class="chip-field"><label>Histórias relacionadas</label><div class="chip-row"><input list="storiesQuickList" id="documentQuickStory" autocomplete="off" placeholder="Buscar história..."><button type="button" class="secondary" id="documentQuickStoryAdd">Adicionar</button></div><div class="chip-list" id="documentStoryChips"></div></div>
+<div class="chip-field"><label>Capítulos do livro relacionados</label><div class="chip-row"><input list="chaptersQuickList" id="documentQuickChapter" autocomplete="off" placeholder="Buscar capítulo..."><button type="button" class="secondary" id="documentQuickChapterAdd">Adicionar</button></div><div class="chip-list" id="documentChapterChips"></div></div>
+<div class="chip-field"><label>Eventos relacionados (linha do tempo)</label><div class="chip-row"><input list="eventsQuickList" id="documentQuickEvent" autocomplete="off" placeholder="Buscar evento..."><button type="button" class="secondary" id="documentQuickEventAdd">Adicionar</button></div><div class="chip-list" id="documentEventChips"></div></div>
+<div class="form-actions"><button type="button" class="secondary" id="cancelDocumentForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="documentFormError" class="error"></div></form></div></div>
+
+<div class="modal" id="sourceModal"><div class="modal-card"><button class="modal-close" id="closeSourceModal">×</button><span class="eyebrow">FONTE</span><h2 id="sourceFormTitle">Nova fonte</h2><form id="sourceForm" novalidate><input type="hidden" id="sourceId">
+<div class="form-grid"><label>Título<input id="sourceTitle" required></label><label>Tipo<select id="sourceType"><option value="document">Documento</option><option value="book">Livro</option><option value="interview">Entrevista</option><option value="website">Site</option><option value="video">Vídeo</option><option value="photo">Foto</option><option value="oral_history">História oral</option><option value="family_memory">Memória de família</option><option value="archive">Arquivo público</option><option value="unverified">Não verificado</option><option value="other">Outro</option></select></label><label>Endereço (URL)<input id="sourceUrl" type="url" placeholder="https://..."></label><label>Documento vinculado (opcional)<input list="documentsList" id="sourceDocument" autocomplete="off" placeholder="Só se já existir em Documentos"></label></div>
+<p class="hint">Uma fonte pode ser só um link externo (vídeo, site, referência) — preencha o Endereço (URL) e deixe "Documento vinculado" em branco. Só preencha esse campo se o arquivo já estiver cadastrado em Documentos.</p>
+<label>Descrição<textarea id="sourceDescription" rows="3"></textarea></label>
+<label>Observações<textarea id="sourceNotes" rows="2"></textarea></label>
+<div class="form-actions"><button type="button" class="secondary" id="cancelSourceForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="sourceFormError" class="error"></div></form></div></div>
+
+<div class="modal" id="placeModal"><div class="modal-card"><button class="modal-close" id="closePlaceModal">×</button><span class="eyebrow">LUGAR</span><h2 id="placeFormTitle">Novo lugar</h2><form id="placeForm" novalidate><input type="hidden" id="placeId">
+<div class="form-grid"><label>Nome<input id="placeName" required></label><label>Tipo<select id="placeType"><option value="city">Cidade</option><option value="church">Igreja</option><option value="cemetery">Cemitério</option><option value="farm">Fazenda/sítio</option><option value="address">Endereço</option><option value="other">Outro</option></select></label><label>Cidade<input id="placeCity"></label><label>País<input id="placeCountry"></label><label>Latitude<input id="placeLat" type="number" step="any"></label><label>Longitude<input id="placeLng" type="number" step="any"></label></div>
+<label>Descrição<textarea id="placeDescription" rows="3"></textarea></label>
+<div class="form-actions"><button type="button" class="secondary" id="cancelPlaceForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="placeFormError" class="error"></div></form></div></div>
+
+<div class="modal" id="confirmDeleteModal"><div class="modal-card" style="width:min(440px,100%)"><button class="modal-close" id="closeConfirmDeleteModal">×</button><span class="eyebrow">CONFIRMAR EXCLUSÃO</span><h2 id="confirmDeleteTitle">Excluir registro?</h2>
+<p id="confirmDeleteMessage" class="hint"></p>
+<div class="form-actions"><button type="button" class="secondary" id="cancelConfirmDelete">Cancelar</button><button type="button" class="primary danger-btn" id="confirmDeleteBtn">Excluir</button></div></div></div>
+<datalist id="placesList"></datalist><datalist id="photosList"></datalist><datalist id="documentsList"></datalist><datalist id="storiesQuickList"></datalist><datalist id="albumsQuickList"></datalist><datalist id="sourcesQuickList"></datalist><datalist id="chaptersQuickList"></datalist><datalist id="eventsQuickList"></datalist>
+<datalist id="peopleList"></datalist>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/config.js"></script><script src="js/admin.js"></script>
+</body></html>

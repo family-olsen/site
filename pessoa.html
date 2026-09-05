@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pessoa — Olsen · Belloto · Leal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<main style="padding-bottom:80px" id="main">
+  <p class="empty-note" id="loadingNote" style="padding:60px 48px">Carregando…</p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/site.js"></script>
+<script>
+function pillHtml(p){
+  return `<a class="pill-person" href="pessoa.html?id=${p.id}">
+    <span class="pill-avatar" style="${p.avatar_path?`background-image:url('${photoUrl(p.avatar_path)}')`:''}">${p.avatar_path?'':escapeHtml(initials(p.full_name))}</span>
+    <span>${escapeHtml(p.full_name)}</span>
+  </a>`;
+}
+
+async function boot(){
+  renderHeader(); renderFooter();
+  const id=new URLSearchParams(location.search).get('id');
+  const {data:person,error}=await sbClient.from('people').select('id,full_name,birth_date,death_date,avatar_path,biography,birth_place_id,death_place_id').eq('id',id).maybeSingle();
+  if(error||!person){
+    $('#main').innerHTML='<div class="empty-state-public"><h3>Pessoa não encontrada</h3><p>Ela pode não existir ou ainda não ter sido publicada.</p><p><a href="pessoas.html">← Ver todas as pessoas</a></p></div>';
+    return;
+  }
+  document.title=person.full_name+' — Olsen · Belloto · Leal';
+
+  const [parents,children,spouses,{data:storyRows},{data:photoRows},{data:eventRows},{data:sourceRows},{data:places}]=await Promise.all([
+    fetchParents(id), fetchChildren(id), fetchSpouses(id),
+    sbClient.from('story_people').select('role,story_id,stories(id,slug,title,summary,status)').eq('person_id',id),
+    sbClient.from('photo_people').select('photo_id,photos(id,title,caption,thumbnail_path,photo_date)').eq('person_id',id),
+    sbClient.from('event_people').select('role,event_id,events(id,title,event_type,event_date,start_date,description)').eq('person_id',id),
+    sbClient.from('person_sources').select('source_id,sources(id,title,url,source_type)').eq('person_id',id),
+    sbClient.from('places').select('id,name')
+  ]);
+  const siblings=await fetchSiblings(parents.map(p=>p.id),id);
+  const placeName=(pid)=>places?.find(pl=>pl.id===pid)?.name||'';
+
+  const stories=(storyRows||[]).filter(r=>r.stories).map(r=>r.stories);
+  const photos=(photoRows||[]).filter(r=>r.photos).map(r=>r.photos);
+  const events=(eventRows||[]).filter(r=>r.events).map(r=>({...r.events,role:r.role}));
+  const sources=(sourceRows||[]).filter(r=>r.sources).map(r=>r.sources);
+
+  $('#main').innerHTML=`
+    <section class="profile-hero">
+      <div class="profile-hero-bg">${person.avatar_path?`<img src="${photoUrl(person.avatar_path)}" alt="">`:''}<div class="profile-hero-bg-fade"></div></div>
+      <div class="profile-grid">
+        <div>
+          <div class="profile-portrait">${person.avatar_path?`<img src="${photoUrl(person.avatar_path)}" alt="Retrato de ${escapeHtml(person.full_name)}">`:`<div class="profile-portrait-fallback">${escapeHtml(initials(person.full_name))}</div>`}</div>
+          ${person.birth_place_id||person.death_place_id?`<p class="profile-caption">${escapeHtml([placeName(person.birth_place_id)&&('Nasceu em '+placeName(person.birth_place_id)),placeName(person.death_place_id)&&('Faleceu em '+placeName(person.death_place_id))].filter(Boolean).join(' · '))}</p>`:''}
+        </div>
+        <div>
+          <p class="eyebrow-gold">Pessoa</p>
+          <h1 class="profile-name">${escapeHtml(person.full_name)}</h1>
+          <p class="profile-dates">${escapeHtml(yearsLabel(person)||'Datas não registradas')}</p>
+          ${person.biography?`<p class="profile-bio">${escapeHtml(person.biography)}</p>`:''}
+        </div>
+      </div>
+    </section>
+
+    <section class="section-tight">
+      <div class="profile-cols">
+        <div>
+          <h2 class="col-heading">Família</h2>
+          ${[['Pais',parents],['Cônjuge',spouses],['Filhos',children],['Irmãos',siblings]].map(([label,list])=>list.length?`
+            <div class="rel-group"><p class="papel">${label}</p><div class="rel-people">${list.map(pillHtml).join('')}</div></div>`:'').join('')}
+          <a class="btn-outline-gold" href="arvore.html?foco=${id}" style="display:inline-block;margin-top:6px">Ver na árvore →</a>
+        </div>
+        <div style="grid-column:span 2;min-width:0">
+          <div class="profile-tabs" id="profileTabs"></div>
+          <div id="profileTabContent"></div>
+        </div>
+      </div>
+    </section>`;
+
+  const tabs=[
+    {id:'historias',label:'Histórias',n:stories.length,items:stories.map(s=>({meta:'História',titulo:s.title,resumo:s.summary||'',go:`historia.html?slug=${s.slug||s.id}`}))},
+    {id:'fotos',label:'Fotos',n:photos.length,items:photos.map(p=>({meta:dateCell(p.photo_date)||'Foto',titulo:p.title,resumo:p.caption||'',bg:p.thumbnail_path?photoUrl(p.thumbnail_path):'',go:`galeria.html?foto=${p.id}`}))},
+    {id:'eventos',label:'Eventos',n:events.length,items:events.map(e=>({meta:dateCell(e.event_date||e.start_date)||'Evento',titulo:e.title,resumo:e.description||'',go:`timeline.html?evento=${e.id}`}))},
+    {id:'fontes',label:'Fontes',n:sources.length,items:sources.map(s=>({meta:s.source_type||'Fonte',titulo:s.title,resumo:s.url||'',go:s.url||'#'}))}
+  ];
+  let activeTab=tabs.find(t=>t.n>0)?.id||'historias';
+  function renderTabs(){
+    $('#profileTabs').innerHTML=tabs.map(t=>`<button type="button" class="profile-tab ${t.id===activeTab?'active':''}" data-tab="${t.id}">${escapeHtml(t.label)} <span>${t.n}</span></button>`).join('');
+    document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{activeTab=b.dataset.tab; renderTabs();}));
+    const cur=tabs.find(t=>t.id===activeTab);
+    $('#profileTabContent').innerHTML=cur.items.length?cur.items.map(it=>`
+      <a class="list-item" href="${it.go}">
+        <span class="list-thumb" style="${it.bg?`background-image:url('${it.bg}')`:''}"></span>
+        <span><span class="list-meta">${escapeHtml(it.meta)}</span><span class="list-title">${escapeHtml(it.titulo||'—')}</span><span class="list-resumo">${escapeHtml((it.resumo||'').slice(0,140))}</span></span>
+      </a>`).join(''):'<p class="empty-note">Nada publicado ainda nesta categoria.</p>';
+  }
+  renderTabs();
+}
+boot();
+</script>
+</body>
+</html>

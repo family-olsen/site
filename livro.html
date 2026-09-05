@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Livro — Olsen · Belloto · Leal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css">
+<style>.section-title{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--reader-muted);margin:0 0 8px}</style>
+</head>
+<body>
+<main id="main"><p class="empty-note" style="padding:60px 48px;color:#98A2B0">Carregando…</p></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/site.js"></script>
+<script>
+let CAP_GROUPS=[], capIndex=0, BOOK=null;
+
+function renderChapter(){
+  const grupo=CAP_GROUPS[capIndex];
+  $('#readerProgress').style.width=Math.round(((capIndex+1)/CAP_GROUPS.length)*100)+'%';
+  document.querySelectorAll('.chapter-nav-item').forEach((el,i)=>el.classList.toggle('active',i===capIndex));
+  $('#chapterKicker').textContent=`Capítulo ${grupo.num}`;
+  $('#chapterTitle').textContent=grupo.titulo;
+  $('#chapterBody').innerHTML=grupo.secoes.map(s=>`
+    ${s.subtitle?`<p class="section-title">${escapeHtml(s.subtitle)}</p>`:''}
+    <div>${s.content||''}</div>`).join('<hr style="border:0;border-top:1px solid rgba(26,31,38,.12);margin:36px 0">');
+  $('#prevChapterBtn').disabled=capIndex<=0;
+  $('#nextChapterBtn').disabled=capIndex>=CAP_GROUPS.length-1;
+  window.scrollTo(0,0);
+}
+
+async function boot(){
+  renderHeader(); renderFooter();
+  const {data:book}=await sbClient.from('books').select('id,title,subtitle,description').order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  if(!book){
+    $('#main').innerHTML='<div class="empty-state-public"><h3>Nenhum livro publicado ainda</h3></div>';
+    return;
+  }
+  BOOK=book;
+  const {data:chapters}=await sbClient.from('chapters').select('chapter_number,title,subtitle,content,created_at').eq('book_id',book.id).order('chapter_number',{ascending:true}).order('created_at',{ascending:true});
+  if(!chapters||!chapters.length){
+    $('#main').innerHTML='<div class="empty-state-public"><h3>Este livro ainda não tem capítulos publicados</h3></div>';
+    return;
+  }
+  const groups=new Map();
+  chapters.forEach(c=>{
+    if(!groups.has(c.chapter_number)) groups.set(c.chapter_number,{num:c.chapter_number,titulo:c.title,secoes:[]});
+    groups.get(c.chapter_number).secoes.push({subtitle:c.subtitle,content:c.content});
+  });
+  CAP_GROUPS=[...groups.values()].sort((a,b)=>a.num-b.num);
+
+  $('#main').innerHTML=`
+  <div class="reader-main">
+    <div class="reader-progress"><div class="reader-progress-bar" id="readerProgress" style="width:0%"></div></div>
+    <div class="reader-grid">
+      <aside class="reader-aside">
+        <p class="kicker">Livro da família</p>
+        <h2>${escapeHtml(book.title)}</h2>
+        <p class="sub">${escapeHtml(book.subtitle||book.description||'')}</p>
+        <nav class="chapter-nav" id="chapterNav">
+          ${CAP_GROUPS.map((g,i)=>`<button type="button" class="chapter-nav-item" data-i="${i}"><span class="num">${escapeHtml(String(g.num))}</span><span><span class="titulo">${escapeHtml(g.titulo)}</span></span></button>`).join('')}
+        </nav>
+      </aside>
+      <article class="reader-article">
+        <p class="kicker" id="chapterKicker"></p>
+        <h1 id="chapterTitle"></h1>
+        <div class="reader-body" id="chapterBody"></div>
+        <div class="reader-nav-buttons">
+          <button type="button" class="btn-sm" id="prevChapterBtn">← Anterior</button>
+          <button type="button" class="btn-dark" id="nextChapterBtn">Próximo capítulo →</button>
+        </div>
+      </article>
+    </div>
+  </div>`;
+
+  document.querySelectorAll('.chapter-nav-item').forEach(b=>b.addEventListener('click',()=>{capIndex=Number(b.dataset.i); renderChapter();}));
+  $('#prevChapterBtn').addEventListener('click',()=>{ if(capIndex>0){capIndex--; renderChapter();} });
+  $('#nextChapterBtn').addEventListener('click',()=>{ if(capIndex<CAP_GROUPS.length-1){capIndex++; renderChapter();} });
+  renderChapter();
+}
+boot();
+</script>
+</body>
+</html>

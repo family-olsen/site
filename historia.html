@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>História — Olsen · Belloto · Leal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<main style="padding-bottom:90px" id="main"><p class="empty-note" style="padding:60px 48px">Carregando…</p></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/site.js"></script>
+<script>
+async function boot(){
+  renderHeader(); renderFooter();
+  const key=new URLSearchParams(location.search).get('slug');
+  let query=sbClient.from('stories').select('id,slug,title,summary,content,place_id,story_people(role,people(id,full_name)),story_photos(photos(id,thumbnail_path,optimized_path,title,caption)),story_sources(sources(id,title,url,source_type))');
+  query=/^[0-9a-f-]{36}$/i.test(key||'')?query.eq('id',key):query.eq('slug',key);
+  const {data:story,error}=await query.maybeSingle();
+  if(error||!story){
+    $('#main').innerHTML='<div class="empty-state-public"><h3>História não encontrada</h3><p><a href="historias.html">← Ver todas as histórias</a></p></div>';
+    return;
+  }
+  document.title=story.title+' — Olsen · Belloto · Leal';
+  const heroPhoto=story.story_photos?.[0]?.photos;
+  const pessoas=(story.story_people||[]).filter(r=>r.people);
+  const fontes=(story.story_sources||[]).filter(r=>r.sources).map(r=>r.sources);
+  const roleLabel={main:'protagonista',character:'personagem',mentioned:'mencionado(a)',witness:'testemunha',author:'narrador(a)',other:'presente'};
+
+  $('#main').innerHTML=`
+    <section class="story-hero ${heroPhoto?'':'no-photo'}">
+      ${heroPhoto?`<img src="${photoUrl(heroPhoto.optimized_path||heroPhoto.thumbnail_path)}" alt="">`:''}
+      <div class="story-hero-fade"></div>
+      <div class="story-hero-content">
+        <p class="eyebrow-gold">História da família</p>
+        <h1>${escapeHtml(story.title)}</h1>
+      </div>
+    </section>
+    <section class="section-tight">
+      <div class="wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:clamp(24px,4vw,56px)">
+        <div style="grid-column:span 2;min-width:0;max-width:680px" class="story-body">
+          ${story.content||`<p>${escapeHtml(story.summary||'')}</p>`}
+        </div>
+        <aside>
+          <h2 class="col-heading">Pessoas nesta história</h2>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:36px">
+            ${pessoas.length?pessoas.map(r=>`
+              <a class="pill-person" style="width:100%" href="pessoa.html?id=${r.people.id}">
+                <span class="pill-avatar">${escapeHtml(initials(r.people.full_name))}</span>
+                <span><span style="display:block">${escapeHtml(r.people.full_name)}</span><span style="display:block;font-size:11px;color:var(--muted)">${escapeHtml(roleLabel[r.role]||r.role||'')}</span></span>
+              </a>`).join(''):'<p class="empty-note">Ninguém marcado ainda.</p>'}
+          </div>
+          <h2 class="col-heading">Fontes</h2>
+          ${fontes.length?fontes.map(f=>f.url?`<p class="story-fonte"><a href="${escapeHtml(f.url)}" target="_blank" rel="noopener">${escapeHtml(f.title)}</a></p>`:`<p class="story-fonte">${escapeHtml(f.title)}</p>`).join(''):'<p class="empty-note">Nenhuma fonte registrada ainda.</p>'}
+        </aside>
+      </div>
+    </section>`;
+}
+boot();
+</script>
+</body>
+</html>

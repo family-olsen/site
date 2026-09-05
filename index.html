@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Olsen · Belloto · Leal — acervo da família</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<main>
+  <section class="hero" id="heroSection">
+    <div class="hero-img no-photo" id="heroImgWrap"></div>
+    <div class="hero-fade"></div>
+    <div class="hero-vignette"></div>
+    <div class="hero-content">
+      <p class="eyebrow-gold">O acervo da nossa família</p>
+      <h1>A história que <span style="display:block"><em>atravessou gerações</em></span></h1>
+      <p class="hero-lede" id="heroLede">Pessoas, histórias, fotografias e as fontes que provam cada uma delas — reunidas em um só lugar, para durar.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="livro.html">Ler o livro</a>
+        <a class="btn btn-ghost" href="arvore.html">Abrir a árvore</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section border-bottom">
+    <div class="wrap linhagens-grid" id="linhagensGrid"></div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head"><h2>Comece por aqui</h2><span class="rule"></span></div>
+      <div class="portas-grid" id="portasGrid"></div>
+    </div>
+  </section>
+
+  <section class="quote-section hidden" id="quoteSection">
+    <blockquote>
+      <p id="quoteText"></p>
+      <footer id="quoteFooter"></footer>
+    </blockquote>
+  </section>
+
+  <section class="section">
+    <div class="wrap numeros-grid" id="numerosGrid"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/site.js"></script>
+<script>
+async function boot(){
+  renderHeader(); renderFooter();
+
+  const [{data:people},{data:photos},{data:stories},{data:events},{data:sources},{data:books}]=await Promise.all([
+    sbClient.from('people').select('id,birth_date,death_date').then(r=>r),
+    sbClient.from('photos').select('id,title,thumbnail_path,photo_date,updated_at').order('updated_at',{ascending:false}),
+    sbClient.from('stories').select('id,slug,title,summary,content').order('updated_at',{ascending:false}),
+    sbClient.from('events').select('id'),
+    sbClient.from('sources').select('id'),
+    sbClient.from('chapters').select('id,book_id')
+  ]);
+
+  // Hero: usa a foto publicada mais recente, se houver
+  const heroPhoto=(photos||[])[0];
+  if(heroPhoto?.thumbnail_path){
+    $('#heroImgWrap').classList.remove('no-photo');
+    $('#heroImgWrap').innerHTML=`<img src="${photoUrl(heroPhoto.thumbnail_path)}" alt="">`;
+  }
+
+  // Linhagens (calculadas a partir da árvore)
+  const linhagens=await computeLinhagens();
+  $('#linhagensGrid').innerHTML=linhagens.length?linhagens.map(l=>`
+    <a class="linhagem-card" href="pessoas.html?sobrenome=${encodeURIComponent(l.nome)}">
+      <p class="periodo">${escapeHtml(l.periodo)}</p>
+      <h3>${escapeHtml(l.nome)}</h3>
+      <p class="texto">Clique para ver quem são.</p>
+      <p class="contagem">${escapeHtml(l.contagem)}</p>
+    </a>`).join(''):'<p class="empty-note">Ainda não há pessoas públicas suficientes para mostrar os ramos da família.</p>';
+
+  // Portas de entrada
+  const portas=[
+    {kicker:'O livro',titulo:'Capítulos do livro',texto:(books||[]).length+' capítulos publicados até agora.',href:'livro.html'},
+    {kicker:'A árvore',titulo:'Árvore genealógica',texto:'Navegue por pais, cônjuges e filhos.',href:'arvore.html'},
+    {kicker:'As pessoas',titulo:(people||[]).length+' pessoas',texto:'Cada pessoa reúne biografia, família, fotos e histórias.',href:'pessoas.html'},
+    {kicker:'O arquivo',titulo:(photos||[]).length+' fotografias',texto:'Digitalizadas e organizadas por data e pessoa.',href:'galeria.html'}
+  ];
+  $('#portasGrid').innerHTML=portas.map(p=>`
+    <a class="porta-card" href="${p.href}">
+      <span class="porta-img"></span>
+      <span class="porta-body">
+        <span class="porta-kicker">${escapeHtml(p.kicker)}</span>
+        <span class="porta-title">${escapeHtml(p.titulo)}</span>
+        <span class="porta-text">${escapeHtml(p.texto)}</span>
+      </span>
+    </a>`).join('');
+
+  // Destaque (resumo de uma história, como citação)
+  const storyWithSummary=(stories||[]).find(s=>s.summary);
+  if(storyWithSummary){
+    $('#quoteSection').classList.remove('hidden');
+    $('#quoteText').textContent='"'+storyWithSummary.summary+'"';
+    $('#quoteFooter').textContent=storyWithSummary.title;
+  }
+
+  // Números
+  const anosBirths=(people||[]).map(p=>p.birth_date).filter(Boolean).map(d=>Number(d.slice(0,4)));
+  const anosCobertos=anosBirths.length?(new Date().getFullYear()-Math.min(...anosBirths)):0;
+  const numeros=[
+    {v:(people||[]).length,k:'pessoas'},
+    {v:(photos||[]).length,k:'fotografias'},
+    {v:anosCobertos||'—',k:'anos cobertos'},
+    {v:(sources||[]).length,k:'fontes citadas'},
+    {v:linhagens.length,k:'linhagens'}
+  ];
+  $('#numerosGrid').innerHTML=numeros.map(n=>`<div class="numero-item"><p class="v">${escapeHtml(String(n.v))}</p><p class="k">${escapeHtml(n.k)}</p></div>`).join('');
+}
+boot();
+</script>
+</body>
+</html>

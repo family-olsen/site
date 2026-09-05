@@ -1,0 +1,18 @@
+TESTE DA V2.1
+
+1. Abra a pasta pelo VS Code e use Live Server, ou rode:
+   python -m http.server 5500
+
+2. Acesse:
+   http://localhost:5500
+
+3. Não é recomendado testar abrindo o HTML diretamente como file:///...
+
+4. Confira js/config.js:
+   - SUPABASE_URL correta
+   - SUPABASE_PUBLISHABLE_KEY preenchida
+
+5. Usuário:
+   olsen.leal.belloto@gmail.com
+
+6. Se houver problema, a própria tela agora mostra o erro de autenticação/JavaScript.
