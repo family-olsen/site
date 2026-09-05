@@ -90,14 +90,14 @@ async function boot(){
 
   // Portas de entrada
   const portas=[
-    {kicker:'O livro',titulo:'Capítulos do livro',texto:(books||[]).length+' capítulos publicados até agora.',href:'livro.html'},
-    {kicker:'A árvore',titulo:'Árvore genealógica',texto:'Navegue por pais, cônjuges e filhos.',href:'arvore.html'},
-    {kicker:'As pessoas',titulo:(people||[]).length+' pessoas',texto:'Cada pessoa reúne biografia, família, fotos e histórias.',href:'pessoas.html'},
-    {kicker:'O arquivo',titulo:(photos||[]).length+' fotografias',texto:'Digitalizadas e organizadas por data e pessoa.',href:'galeria.html'}
+    {kicker:'O livro',titulo:'Capítulos do livro',texto:(books||[]).length+' capítulos publicados até agora.',href:'livro.html',img:'Assents/inicio-web/livro.webp'},
+    {kicker:'A árvore',titulo:'Árvore genealógica',texto:'Navegue por pais, cônjuges e filhos.',href:'arvore.html',img:'Assents/inicio-web/arvore.webp'},
+    {kicker:'As pessoas',titulo:(people||[]).length+' pessoas',texto:'Cada pessoa reúne biografia, família, fotos e histórias.',href:'pessoas.html',img:'Assents/inicio-web/pessoas.webp'},
+    {kicker:'O arquivo',titulo:(photos||[]).length+' fotografias',texto:'Digitalizadas e organizadas por data e pessoa.',href:'galeria.html',img:'Assents/inicio-web/fotos.webp'}
   ];
   $('#portasGrid').innerHTML=portas.map(p=>`
     <a class="porta-card" href="${p.href}">
-      <span class="porta-img"></span>
+      <span class="porta-img" style="background-image:url('${p.img}')"></span>
       <span class="porta-body">
         <span class="porta-kicker">${escapeHtml(p.kicker)}</span>
         <span class="porta-title">${escapeHtml(p.titulo)}</span>

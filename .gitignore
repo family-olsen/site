@@ -1,6 +1,7 @@
-# Frames originais do hero (não usados pelo site — só a versão comprimida em
-# Assents/hero-frames-web é referenciada). 85MB não precisa ir pro repositório.
+# Fotos originais (não usadas pelo site — só as versões comprimidas em
+# Assents/hero-frames-web e Assents/inicio-web são referenciadas).
 Assents/hero-frames/
+Assents/Inicio/
 
 node_modules/
 .DS_Store
