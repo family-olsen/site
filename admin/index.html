@@ -136,6 +136,7 @@
 <div class="form-grid"><label>Título<input id="photoTitle" required></label><label>Data da foto<input id="photoDate" type="date"></label><label>Local<input list="placesList" id="photoPlace" autocomplete="off"></label><label>Status<select id="photoStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label></div>
 <label>Legenda<input id="photoCaption"></label>
 <label>Descrição<textarea id="photoDescription" rows="3"></textarea></label>
+<label class="check"><input id="photoHideFromGallery" type="checkbox"> Ocultar da galeria de fotos (fica desativado por padrão — a foto continua podendo aparecer em histórias, álbuns, perfis etc.; só não entra no carrossel da Galeria pública)</label>
 <label>Imagem<input id="photoFile" type="file" accept="image/*"></label>
 <div id="photoPreview" class="photo-preview"></div>
 <p class="hint" id="photoUploadHint">Selecione uma imagem — ela será otimizada e uma miniatura será gerada automaticamente no navegador.</p>

@@ -17,6 +17,12 @@
 <script src="js/site.js"></script>
 <script>
 let currentFocusId=null, zoomScale=.85, panX=0, panY=0, ALL_PEOPLE_COUNT=0, siblingIndex=0, spouseIndex=0, siblingHidden=false, spouseHidden=false;
+// primeira vez que alguém abre a árvore (sem nada salvo, sem link direto), começa centralizada
+// no Everton — depois disso, sempre lembra da última pessoa que a pessoa visualizou por último.
+const DEFAULT_FOCUS_ID='bf01bfa2-d67d-4462-985a-5e573e631a43';
+const LAST_FOCUS_KEY='arvoreUltimoFoco';
+function lembrarFoco(id){ try{ localStorage.setItem(LAST_FOCUS_KEY,id); }catch(e){} }
+function lerUltimoFoco(){ try{ return localStorage.getItem(LAST_FOCUS_KEY); }catch(e){ return null; } }
 function hideToggleBtn(kind){
   const label=kind==='sibling'?'irmão(ã)':'cônjuge';
   return `<button type="button" class="fam-hide-btn" data-hide="${kind}" title="Ocultar ${label}" aria-label="Ocultar ${label}">×</button>`;
@@ -39,6 +45,7 @@ async function loadTree(personId,opts={}){
   history.replaceState(null,'',`arvore.html?foco=${personId}`);
   const {data:focus}=await sbClient.from('people').select(PERSON_FIELDS).eq('id',personId).maybeSingle();
   if(!focus) return;
+  lembrarFoco(personId);
   const [parents,children,spouses]=await Promise.all([fetchParents(personId),fetchChildren(personId),fetchSpouses(personId)]);
   const siblings=await fetchSiblings(parents.map(p=>p.id),personId);
   await renderPedigree(focus,parents,spouses,children,siblings);
@@ -147,12 +154,16 @@ async function boot(){
     return;
   }
   const focoParam=new URLSearchParams(location.search).get('foco');
-  const startId=focoParam||anyPerson[0].id;
+  // prioridade: link direto (?foco=) > última pessoa vista nessa árvore (localStorage) >
+  // Everton (padrão só na primeiríssima vez, sem nada salvo ainda).
+  let startId=focoParam||lerUltimoFoco()||DEFAULT_FOCUS_ID;
+  const {data:startExiste}=await sbClient.from('people').select('id').eq('id',startId).maybeSingle();
+  if(!startExiste) startId=anyPerson[0].id; // id salvo/padrão não existe mais — evita árvore vazia
 
   $('#main').innerHTML=`
     <div class="tree-main">
       <div class="tree-head">
-        <div><h1>Árvore genealógica</h1><p>${ALL_PEOPLE_COUNT} pessoas documentadas. Use as setinhas ▴▾ de cada cartão pra ver pais ou filhos, e ‹ › pra navegar entre irmãos ou cônjuges; clique numa pessoa pra recentralizar nela; arraste, use a roda do mouse ou ⛶ pra tela cheia.</p></div>
+        <div><h1>Árvore genealógica</h1><p>${ALL_PEOPLE_COUNT} pessoas documentadas.</p></div>
         <a class="tree-view-link" id="verPerfilLink" href="#">Ver perfil de <span id="focoNome">—</span> →</a>
         <div style="display:flex;gap:8px">
           <button type="button" class="tree-zoom-btn" id="zoomOutBtn" aria-label="Diminuir zoom">−</button>

@@ -37,7 +37,7 @@ async function boot(){
 
   const [parents,children,spouses,{data:storyRows},{data:photoRows},{data:eventRows},{data:sourceRows},{data:places}]=await Promise.all([
     fetchParents(id), fetchChildren(id), fetchSpouses(id),
-    sbClient.from('story_people').select('role,story_id,stories(id,slug,title,summary,status)').eq('person_id',id),
+    sbClient.from('story_people').select('role,story_id,stories(id,slug,title,summary,status,story_photos(photos(thumbnail_path)))').eq('person_id',id),
     sbClient.from('photo_people').select('photo_id,photos(id,title,caption,thumbnail_path,photo_date)').eq('person_id',id),
     sbClient.from('event_people').select('role,event_id,events(id,title,event_type,event_date,start_date,description)').eq('person_id',id),
     sbClient.from('person_sources').select('source_id,sources(id,title,url,source_type)').eq('person_id',id),
@@ -84,7 +84,7 @@ async function boot(){
     </section>`;
 
   const tabs=[
-    {id:'historias',label:'Histórias',n:stories.length,items:stories.map(s=>({meta:'História',titulo:s.title,resumo:s.summary||'',go:`historia.html?slug=${s.slug||s.id}`}))},
+    {id:'historias',label:'Histórias',n:stories.length,items:stories.map(s=>({meta:'História',titulo:s.title,resumo:s.summary||'',bg:s.story_photos?.find(sp=>sp.photos?.thumbnail_path)?.photos?.thumbnail_path?photoUrl(s.story_photos.find(sp=>sp.photos?.thumbnail_path).photos.thumbnail_path):'',go:`historia.html?slug=${s.slug||s.id}`}))},
     {id:'fotos',label:'Fotos',n:photos.length,items:photos.map(p=>({meta:dateCell(p.photo_date)||'Foto',titulo:p.title,resumo:p.caption||'',bg:p.thumbnail_path?photoUrl(p.thumbnail_path):'',go:`galeria.html?foto=${p.id}`}))},
     {id:'eventos',label:'Eventos',n:events.length,items:events.map(e=>({meta:dateCell(e.event_date||e.start_date)||'Evento',titulo:e.title,resumo:e.description||'',go:`timeline.html?evento=${e.id}`}))},
     {id:'fontes',label:'Fontes',n:sources.length,items:sources.map(s=>({meta:s.source_type||'Fonte',titulo:s.title,resumo:s.url||'',go:s.url||'#'}))}

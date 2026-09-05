@@ -1294,7 +1294,7 @@ async function processImageFile(file){
   return {optimizedBlob:opt.blob,thumbBlob:thumb.blob,width:opt.w,height:opt.h};
 }
 async function loadPhotos(){
-  const {data,error}=await client.from('photos').select('id,title,caption,description,status,place_id,optimized_path,thumbnail_path,mime_type,width,height,file_size_bytes,photo_date,updated_at,photo_people(role,person_id,people(id,full_name)),story_photos(story_id,order_index,stories(id,title)),album_photos(album_id,order_index,albums(id,title))').order('updated_at',{ascending:false});
+  const {data,error}=await client.from('photos').select('id,title,caption,description,status,hide_from_gallery,place_id,optimized_path,thumbnail_path,mime_type,width,height,file_size_bytes,photo_date,updated_at,photo_people(role,person_id,people(id,full_name)),story_photos(story_id,order_index,stories(id,title)),album_photos(album_id,order_index,albums(id,title))').order('updated_at',{ascending:false});
   if(error){$('#photosTable').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   photos=data||[]; $('#photosCount').textContent=photos.length;
   fillDatalist('#photosList',photos,'title',photosLabelMap); renderPhotos();
@@ -1308,7 +1308,7 @@ function renderPhotos(){
     const names=(p.photo_people||[]).map(m=>m.people?.full_name).filter(Boolean);
     const shown=names.slice(0,2).join(', ')+(names.length>2?` +${names.length-2}`:'');
     const thumb=p.thumbnail_path?`<img src="${photoPublicUrl(p.thumbnail_path)}" alt="">`:'<div class="thumb-empty"></div>';
-    return `<tr><td><div class="thumb-cell">${thumb}<div><strong>${escapeHtml(p.title||'—')}</strong>${p.caption?`<br><small>${escapeHtml(p.caption.slice(0,80))}</small>`:''}</div></div></td><td>${escapeHtml(shown||'—')}</td><td>${dateCell(p.photo_date)}</td><td>${statusCell(p.status)}</td><td class="actions"><button data-photo-people="${p.id}">Pessoas</button><button data-edit-photo="${p.id}">Editar</button><button data-delete-photo="${p.id}" class="danger-text">Excluir</button></td></tr>`;
+    return `<tr><td><div class="thumb-cell">${thumb}<div><strong>${escapeHtml(p.title||'—')}</strong>${p.caption?`<br><small>${escapeHtml(p.caption.slice(0,80))}</small>`:''}</div></div></td><td>${escapeHtml(shown||'—')}</td><td>${dateCell(p.photo_date)}</td><td>${statusCell(p.status)}${p.hide_from_gallery?' <span class="status" title="Não aparece no carrossel da Galeria pública">oculta da galeria</span>':''}</td><td class="actions"><button data-photo-people="${p.id}">Pessoas</button><button data-edit-photo="${p.id}">Editar</button><button data-delete-photo="${p.id}" class="danger-text">Excluir</button></td></tr>`;
   }).join('')+'</tbody></table>';
   document.querySelectorAll('[data-photo-people]').forEach(b=>b.onclick=()=>openPhotoPeopleModal(b.dataset.photoPeople));
   document.querySelectorAll('[data-edit-photo]').forEach(b=>b.onclick=()=>openPhotoModal(photos.find(p=>p.id===b.dataset.editPhoto)));
@@ -1324,6 +1324,7 @@ function openPhotoModal(photo=null){
   $('#photoStatus').value=photo?.status||'published';
   $('#photoCaption').value=photo?.caption||'';
   $('#photoDescription').value=photo?.description||'';
+  $('#photoHideFromGallery').checked=photo?.hide_from_gallery||false;
   pendingPhotoUpload=null; $('#photoFile').value='';
   $('#photoPreview').innerHTML=photo?.thumbnail_path?`<img src="${photoPublicUrl(photo.thumbnail_path)}" alt="">`:'';
   $('#photoUploadHint').textContent=photo?'Selecione uma imagem só se quiser substituir a atual.':'Selecione uma imagem — ela será otimizada e uma miniatura será gerada automaticamente no navegador.';
@@ -1420,7 +1421,7 @@ async function savePhoto(e){
   const placeRaw=$('#photoPlace').value.trim();
   const placeId=placeRaw?await resolveOrCreatePlace($('#photoPlace')):'';
   if(placeRaw&&!placeId){showError($('#photoFormError'),'Lugar não encontrado — selecione um da lista ou cadastre em Lugares.');return}
-  const payload={title,caption:nn($('#photoCaption').value),description:nn($('#photoDescription').value),status:$('#photoStatus').value,photo_date:nn($('#photoDate').value),place_id:placeId||null};
+  const payload={title,caption:nn($('#photoCaption').value),description:nn($('#photoDescription').value),status:$('#photoStatus').value,photo_date:nn($('#photoDate').value),place_id:placeId||null,hide_from_gallery:$('#photoHideFromGallery').checked};
   const existing=id?photos.find(p=>p.id===id):null;
   let oldPaths=null;
   if(pendingPhotoUpload){

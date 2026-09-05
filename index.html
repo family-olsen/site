@@ -11,20 +11,22 @@
 </head>
 <body>
 <main>
-  <section class="hero" id="heroSection">
-    <div class="hero-img no-photo" id="heroImgWrap"></div>
-    <div class="hero-fade"></div>
-    <div class="hero-vignette"></div>
-    <div class="hero-content">
-      <p class="eyebrow-gold">O acervo da nossa família</p>
-      <h1>A história que <span style="display:block"><em>atravessou gerações</em></span></h1>
-      <p class="hero-lede" id="heroLede">Pessoas, histórias, fotografias e as fontes que provam cada uma delas — reunidas em um só lugar, para durar.</p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="livro.html">Ler o livro</a>
-        <a class="btn btn-ghost" href="arvore.html">Abrir a árvore</a>
+  <div class="hero-scrub" id="heroScrub">
+    <section class="hero" id="heroSection">
+      <div class="hero-img" id="heroImgWrap"><canvas id="heroCanvas"></canvas></div>
+      <div class="hero-fade"></div>
+      <div class="hero-vignette"></div>
+      <div class="hero-content">
+        <p class="eyebrow-gold">O acervo da nossa família</p>
+        <h1>A história que <span style="display:block"><em>atravessou gerações</em></span></h1>
+        <p class="hero-lede" id="heroLede">Pessoas, histórias, fotografias e as fontes que provam cada uma delas — reunidas em um só lugar, para durar.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="livro.html">Ler o livro</a>
+          <a class="btn btn-ghost" href="arvore.html">Abrir a árvore</a>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </div>
 
   <section class="section border-bottom">
     <div class="wrap linhagens-grid" id="linhagensGrid"></div>
@@ -55,6 +57,17 @@
 <script>
 async function boot(){
   renderHeader(); renderFooter();
+  initHeroScrub();
+
+  // Textos da Hero entram palavra por palavra, desfocados -> em foco, assim que a
+  // página carrega (não espera os dados do banco). Eyebrow primeiro, depois o
+  // título (palavra por palavra), depois o parágrafo e os botões (em bloco).
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    revealWords(document.querySelector('#heroSection .eyebrow-gold'),{baseDelay:0,stagger:25});
+    revealWords(document.querySelector('#heroSection h1'),{baseDelay:220,stagger:45});
+    revealBlock($('#heroLede'),880);
+    revealBlock(document.querySelector('.hero-actions'),1150);
+  }
 
   const [{data:people},{data:photos},{data:stories},{data:events},{data:sources},{data:books}]=await Promise.all([
     sbClient.from('people').select('id,birth_date,death_date').then(r=>r),
@@ -64,13 +77,6 @@ async function boot(){
     sbClient.from('sources').select('id'),
     sbClient.from('chapters').select('id,book_id')
   ]);
-
-  // Hero: usa a foto publicada mais recente, se houver
-  const heroPhoto=(photos||[])[0];
-  if(heroPhoto?.thumbnail_path){
-    $('#heroImgWrap').classList.remove('no-photo');
-    $('#heroImgWrap').innerHTML=`<img src="${photoUrl(heroPhoto.thumbnail_path)}" alt="">`;
-  }
 
   // Linhagens (calculadas a partir da árvore)
   const linhagens=await computeLinhagens();

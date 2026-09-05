@@ -1,0 +1,7 @@
+# Frames originais do hero (não usados pelo site — só a versão comprimida em
+# Assents/hero-frames-web é referenciada). 85MB não precisa ir pro repositório.
+Assents/hero-frames/
+
+node_modules/
+.DS_Store
+Thumbs.db

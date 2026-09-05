@@ -95,11 +95,11 @@ document.addEventListener('keydown',(e)=>{
 });
 
 /* ---------- Lightbox ---------- */
-function openLightbox(src,alt,meta){
+function openLightbox(src,alt,meta,desc){
   closeLightbox();
   const div=document.createElement('div');
   div.className='lightbox'; div.id='activeLightbox';
-  div.innerHTML=`<button type="button" class="lightbox-close" aria-label="Fechar">×</button><img src="${escapeHtml(src)}" alt="${escapeHtml(alt||'')}"><p class="lightbox-caption"><span class="alt">${escapeHtml(alt||'')}</span><span class="meta">${escapeHtml(meta||'')}</span></p>`;
+  div.innerHTML=`<button type="button" class="lightbox-close" aria-label="Fechar">×</button><img src="${escapeHtml(src)}" alt="${escapeHtml(alt||'')}"><p class="lightbox-caption"><span class="alt">${escapeHtml(alt||'')}</span><span class="meta">${escapeHtml(meta||'')}</span>${desc?`<span class="desc">${escapeHtml(desc)}</span>`:''}</p>`;
   // só fecha clicando no fundo (fora da foto/legenda) ou no ×  — clicar na foto em si não fecha.
   div.addEventListener('click',(e)=>{ if(e.target===div) closeLightbox(); });
   div.querySelector('.lightbox-close').addEventListener('click',closeLightbox);
@@ -369,12 +369,17 @@ function initCoverflow(root,slides,opts={}){
         ${showNavigation?`<button type="button" class="cf-nav prev" aria-label="Anterior">‹</button><button type="button" class="cf-nav next" aria-label="Próxima">›</button>`:''}
       </div>
       ${showCaption?`<div class="cf-caption" id="cfCaption"></div>`:''}
+      ${onCardClick?`<button type="button" class="cf-expand-btn" id="cfExpandBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>Ampliar foto</button>`:''}
       ${showPagination?`<div class="cf-dots" id="cfDots">${slides.map((_,i)=>`<button type="button" class="cf-dot" data-dot="${i}" aria-label="Ir para foto ${i+1}"></button>`).join('')}</div>`:''}
     </div>`;
 
   const frame=root.querySelector('.cf-frame'), stage=root.querySelector('.cf-stage');
   const cards=[...root.querySelectorAll('.cf-card')];
   const captionEl=root.querySelector('#cfCaption'), dots=[...root.querySelectorAll('[data-dot]')];
+  const expandBtn=root.querySelector('#cfExpandBtn');
+  // botão explícito, fora do carrossel arrastável — não depende de clique/duplo-clique
+  // em cima do cartão, que às vezes não é reconhecido igual em todo mouse/touchpad.
+  expandBtn?.addEventListener('click',()=>onCardClick(slides[selected],selected));
   frame.style.perspective=`calc(var(--cf-card) * ${perspective})`;
   stage.style.transformStyle='preserve-3d';
 
@@ -398,7 +403,7 @@ function initCoverflow(root,slides,opts={}){
   }
   function renderCaption(){
     const s=slides[selected];
-    if(captionEl) captionEl.innerHTML=s.title?`<div class="title">${escapeHtml(s.title)}</div>${s.subtitle?`<div class="subtitle">${escapeHtml(s.subtitle)}</div>`:''}`:'';
+    if(captionEl) captionEl.innerHTML=s.title?`<div class="title">${escapeHtml(s.title)}</div>${s.subtitle?`<div class="subtitle">${escapeHtml(s.subtitle)}</div>`:''}${s.legenda?`<div class="legenda">${escapeHtml(s.legenda)}</div>`:''}`:'';
     dots.forEach((d,i)=>d.setAttribute('aria-current',String(i===selected)));
   }
   function settle(t){
@@ -448,16 +453,274 @@ function initCoverflow(root,slides,opts={}){
   root.querySelector('.cf-nav.prev')?.addEventListener('click',()=>nudge(-1));
   root.querySelector('.cf-nav.next')?.addEventListener('click',()=>nudge(1));
   dots.forEach(d=>d.addEventListener('click',()=>goTo(Number(d.dataset.dot))));
-  // 1 clique só navega até o cartão (não abre nada — evita a sensação de "ficar preso" na
-  // foto); 2 cliques rápidos é que ampliam, do jeito que o usuário já espera de uma galeria.
-  cards.forEach((card,i)=>{
-    card.addEventListener('click',()=>{ if(moved) return; goTo(i); });
-    card.addEventListener('dblclick',()=>{ goTo(i); if(onCardClick) onCardClick(slides[i],i); });
+  // 1 clique já resolve: se a foto clicada já é a do centro, abre direto; se é uma foto do
+  // lado, primeiro traz ela pro centro (aí um novo clique nela abre).
+  // Importante: o clique é ouvido no frame (não em cada card) porque o pointer capture do
+  // drag "sequestra" o alvo do evento de clique pro próprio frame — mesmo bug já visto nos
+  // botões ‹ ›. Por isso descobrimos o card real por coordenada (elementFromPoint).
+  frame.addEventListener('click',e=>{
+    if(moved) return;
+    if(e.target.closest('.cf-nav')) return;
+    const hit=document.elementFromPoint(e.clientX,e.clientY)?.closest('.cf-card');
+    if(!hit) return;
+    const i=Number(hit.dataset.i);
+    if(i===selected){ if(onCardClick) onCardClick(slides[i],i); }
+    else goTo(i);
   });
+  // roda do mouse também gira o carrossel — um "clique" da roda passa uma foto por vez.
+  let wheelCooldown=false;
+  frame.addEventListener('wheel',e=>{
+    e.preventDefault();
+    if(wheelCooldown) return;
+    wheelCooldown=true;
+    setTimeout(()=>{ wheelCooldown=false; },220);
+    nudge((e.deltaY||e.deltaX)>0?1:-1);
+  },{passive:false});
 
   const measure=()=>{ width=cards[0]?.offsetWidth||0; paint(); };
   measure();
   new ResizeObserver(measure).observe(frame);
   renderCaption();
   return {goTo, nudge};
+}
+
+/* ---------- Carrossel empilhado (baralho de cartas, arrastável) ---------- */
+function initStackedCarousel(root,slides,opts={}){
+  const {onCardClick=null}=opts;
+  const count=slides.length;
+  if(!count){ root.innerHTML='<p class="empty-note">Nenhuma foto publicada ainda.</p>'; return null; }
+
+  root.innerHTML=`<div class="cs-wrap"><div class="cs-stage">
+    <div class="cs-drag"></div>
+    ${slides.map((s,i)=>{
+      const genderCls=s.gender==='male'?'gender-m':s.gender==='female'?'gender-f':'';
+      const statusDot=s.isLiving===false?`<span class="cs-status deceased" title="Falecido(a)">✝</span>`:s.isLiving===true?`<span class="cs-status alive" title="Vivo(a)">●</span>`:'';
+      return `<div class="cs-card ${genderCls}" data-i="${i}">
+      ${s.src?`<img class="cs-img" src="${s.src}" alt="${escapeHtml(s.alt||'')}" draggable="false">`:`<div class="cs-fallback">${escapeHtml(initials(s.title||s.alt||'?'))}</div>`}
+      <div class="cs-shade"></div>
+      <div class="cs-gradient"></div>
+      ${statusDot}
+      ${s.badge?`<div class="cs-badge">${escapeHtml(s.badge)}</div>`:''}
+      <div class="cs-text"><p class="cs-title">${escapeHtml(s.title||'')}</p>${s.nickname?`<p class="cs-nickname">"${escapeHtml(s.nickname)}"</p>`:''}${s.description?`<p class="cs-desc">${escapeHtml(s.description)}</p>`:''}</div>
+    </div>`;
+    }).join('')}
+  </div></div>`;
+
+  const dragEl=root.querySelector('.cs-drag');
+  const cards=[...root.querySelectorAll('.cs-card')];
+
+  function getConfig(){
+    const w=window.innerWidth;
+    if(w<640) return {xMul:90,yMul:20,rotMul:8,scaleRed:.06,sensitivity:180,distDiv:120,velDiv:500};
+    if(w<1024) return {xMul:130,yMul:30,rotMul:10,scaleRed:.09,sensitivity:220,distDiv:160,velDiv:650};
+    return {xMul:170,yMul:40,rotMul:12,scaleRed:.12,sensitivity:250,distDiv:200,velDiv:800};
+  }
+  let config=getConfig();
+  window.addEventListener('resize',()=>{ config=getConfig(); paint(); });
+
+  let progress=0, target=0, raf=null;
+
+  function offsetFor(i){
+    let diff=(i-progress)%count;
+    if(diff>count/2) diff-=count;
+    if(diff<-count/2) diff+=count;
+    return diff;
+  }
+  // interpolação linear por trechos (equivalente ao useTransform([...pontos],[...valores]) do Motion)
+  function lerpBreaks(v,xs,ys){
+    if(v<=xs[0]) return ys[0];
+    if(v>=xs[xs.length-1]) return ys[ys.length-1];
+    for(let i=0;i<xs.length-1;i++){
+      if(v>=xs[i]&&v<=xs[i+1]){ const t=(v-xs[i])/(xs[i+1]-xs[i]); return ys[i]+t*(ys[i+1]-ys[i]); }
+    }
+    return ys[ys.length-1];
+  }
+
+  function paint(){
+    const half=count/2;
+    cards.forEach((card,i)=>{
+      const o=offsetFor(i), absO=Math.abs(o);
+      const x=o*config.xMul;
+      const rot=absO<0.05?0:o*config.rotMul;
+      const y=absO<0.05?0:absO*config.yMul;
+      const scale=1-absO*config.scaleRed;
+      const opacity=lerpBreaks(o,[-half,-half+0.5,0,half-0.5,half],[0,1,1,1,0]);
+      const shade=lerpBreaks(Math.max(-2,Math.min(2,o)),[-2,-0.5,0,0.5,2],[.5,.2,0,.2,.5]);
+      const textOp=lerpBreaks(o,[-0.5,0,0.5],[0,1,0]);
+      const z=Math.round(100-absO*10);
+      card.style.transform=`translate(-50%,-50%) translate(${x}px,${y}px) rotate(${rot}deg) scale(${scale})`;
+      card.style.opacity=String(Math.max(0,Math.min(1,opacity)));
+      card.style.zIndex=String(z);
+      card.querySelector('.cs-shade').style.opacity=String(Math.max(0,Math.min(1,shade)));
+      card.querySelector('.cs-text').style.opacity=String(Math.max(0,Math.min(1,textOp)));
+    });
+  }
+  paint();
+
+  function settle(t){
+    if(raf!==null) cancelAnimationFrame(raf);
+    target=t;
+    const step=()=>{
+      const remaining=target-progress;
+      if(Math.abs(remaining)<.001){ progress=target; paint(); raf=null; return; }
+      progress+=remaining*.18;
+      paint();
+      raf=requestAnimationFrame(step);
+    };
+    raf=requestAnimationFrame(step);
+  }
+  // acha o cartão visualmente na frente naquele ponto — os cartões têm pointer-events:none (a
+  // camada de arrastar cobre tudo), então um clique precisa achar "na mão" quem está por baixo.
+  function cardAtPoint(x,y){
+    const sorted=[...cards].sort((a,b)=>Number(b.style.zIndex)-Number(a.style.zIndex));
+    for(const card of sorted){
+      const r=card.getBoundingClientRect();
+      if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom) return card;
+    }
+    return null;
+  }
+
+  let dragState=null;
+  dragEl.addEventListener('pointerdown',e=>{
+    if(raf!==null){ cancelAnimationFrame(raf); raf=null; }
+    dragEl.setPointerCapture(e.pointerId);
+    dragState={id:e.pointerId,startX:e.clientX,startY:e.clientY,lastX:e.clientX,startProgress:progress,v:0,t:performance.now()};
+  });
+  dragEl.addEventListener('pointermove',e=>{
+    if(!dragState||dragState.id!==e.pointerId) return;
+    const now=performance.now();
+    const deltaX=e.clientX-dragState.lastX;
+    progress+=(-deltaX)/config.sensitivity;
+    const dt=Math.max(now-dragState.t,1);
+    dragState.v=(deltaX/dt)*1000;
+    dragState.lastX=e.clientX; dragState.t=now;
+    paint();
+  });
+  const endDrag=e=>{
+    if(!dragState||dragState.id!==e.pointerId) return;
+    const dragDistance=e.clientX-dragState.startX;
+    const totalMoved=Math.hypot(e.clientX-dragState.startX,e.clientY-dragState.startY);
+    const velocity=dragState.v;
+    const distanceShift=-dragDistance/config.distDiv;
+    const velocityShift=-velocity/config.velDiv;
+    let totalShift=Math.round(distanceShift+velocityShift);
+    totalShift=Math.max(-3,Math.min(3,totalShift));
+    const startRounded=Math.round(dragState.startProgress);
+    dragState=null;
+    settle(startRounded+totalShift);
+    // clique de verdade (quase sem arrastar) num cartão específico — vai direto pra ele.
+    if(onCardClick&&totalMoved<6){
+      const card=cardAtPoint(e.clientX,e.clientY);
+      if(card){ const i=Number(card.dataset.i); onCardClick(slides[i],i); }
+    }
+  };
+  dragEl.addEventListener('pointerup',endDrag);
+  dragEl.addEventListener('pointercancel',endDrag);
+  // roda do mouse também gira o baralho — um "clique" da roda passa uma pessoa por vez.
+  let wheelCooldown=false;
+  dragEl.addEventListener('wheel',e=>{
+    e.preventDefault();
+    if(wheelCooldown) return;
+    wheelCooldown=true;
+    setTimeout(()=>{ wheelCooldown=false; },220);
+    const dir=(e.deltaY||e.deltaX)>0?1:-1;
+    settle(Math.round(target)+dir);
+  },{passive:false});
+
+  return {settle,goTo:i=>settle(i)};
+}
+
+/* ---------- Hero com sequência de frames controlada pelo scroll ---------- */
+// A seção .hero fica "grudada" (position:sticky) dentro de um wrapper mais alto
+// (.hero-scrub). Enquanto o usuário rola por esse wrapper, calculamos o progresso
+// (0 a 1) e desenhamos o frame correspondente num <canvas>. Quando o progresso
+// chega a 1, o wrapper acaba, o sticky solta e a página passa a rolar normalmente.
+function initHeroScrub(opts={}){
+  const {frameCount=120,frameUrl=i=>`Assents/hero-frames-web/f${String(i).padStart(3,'0')}.webp`,
+    scrubId='heroScrub',heroId='heroSection',canvasId='heroCanvas'}=opts;
+  const scrub=document.getElementById(scrubId), hero=document.getElementById(heroId), canvas=document.getElementById(canvasId);
+  if(!scrub||!hero||!canvas) return;
+  const ctx=canvas.getContext('2d');
+
+  // o cabeçalho também é sticky top:0 — o hero precisa grudar logo abaixo dele
+  // (senão os dois disputam o topo da tela assim que a rolagem começa).
+  const hdrEl=document.querySelector('.site-header');
+  function syncHeaderH(){ document.documentElement.style.setProperty('--hdr-h',(hdrEl?.offsetHeight||0)+'px'); }
+  syncHeaderH();
+
+  const images=[];
+  for(let i=1;i<=frameCount;i++){ const img=new Image(); img.src=frameUrl(i); images.push(img); }
+
+  function draw(i){
+    const img=images[i];
+    if(!img||!img.complete||!img.naturalWidth) return;
+    if(canvas.width!==img.naturalWidth||canvas.height!==img.naturalHeight){ canvas.width=img.naturalWidth; canvas.height=img.naturalHeight; }
+    ctx.drawImage(img,0,0);
+  }
+  images[0].addEventListener('load',()=>draw(0));
+  if(images[0].complete) draw(0);
+
+  let current=-1,ticking=false;
+  function update(){
+    ticking=false;
+    // o hero é a primeiríssima coisa da página (logo abaixo do cabeçalho), então o
+    // scroll começa a "prender" nele a partir do topo — dá pra usar window.scrollY
+    // direto: o trilho acaba quando a rolagem atinge (altura do wrapper - altura do hero).
+    const total=scrub.offsetHeight-hero.offsetHeight;
+    const progress=total>0?Math.min(1,Math.max(0,window.scrollY/total)):0;
+    const idx=Math.min(frameCount-1,Math.floor(progress*(frameCount-1)+1e-6));
+    if(idx!==current){ current=idx; draw(idx); }
+  }
+  window.addEventListener('scroll',()=>{ if(!ticking){ ticking=true; requestAnimationFrame(update); } },{passive:true});
+  window.addEventListener('resize',()=>{ syncHeaderH(); update(); });
+  update();
+}
+
+/* ---------- Revelação de texto ao carregar (palavra por palavra, com blur) ---------- */
+// Quebra o texto de dentro de `el` em <span class="reveal-word"> por palavra, sem
+// mexer em tags que já existam ali dentro (ex.: <em>) — só as caixas de texto puro
+// são percorridas e substituídas. Cada span começa desfocado/invisível/deslocado e
+// a classe .in (aplicada por revealWords) dispara a transição via CSS.
+function wrapRevealWords(el){
+  if(!el||el.dataset.revealWrapped) return [];
+  el.dataset.revealWrapped='1';
+  const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,null);
+  const textNodes=[]; let n;
+  while(n=walker.nextNode()) textNodes.push(n);
+  const words=[];
+  textNodes.forEach(tn=>{
+    if(!tn.textContent.trim()) return;
+    const frag=document.createDocumentFragment();
+    tn.textContent.split(/(\s+)/).forEach(part=>{
+      if(part==='') return;
+      if(/^\s+$/.test(part)){ frag.appendChild(document.createTextNode(part)); return; }
+      const span=document.createElement('span');
+      span.className='reveal-word';
+      span.textContent=part;
+      frag.appendChild(span);
+      words.push(span);
+    });
+    tn.parentNode.replaceChild(frag,tn);
+  });
+  return words;
+}
+function revealWords(el,opts={}){
+  if(!el) return [];
+  const {baseDelay=0,stagger=35}=opts;
+  const words=wrapRevealWords(el);
+  words.forEach((w,i)=>{ w.style.transitionDelay=(baseDelay+i*stagger)+'ms'; });
+  // força o navegador a "commitar" o estado inicial (desfocado/invisível) antes de
+  // ligar a classe que dispara a transição — sem isso as duas mudanças colapsam no
+  // mesmo frame e a transição não roda. Mais confiável que requestAnimationFrame
+  // duplo (que pode atrasar bastante numa aba fora de foco).
+  void el.offsetHeight;
+  words.forEach(w=>w.classList.add('in'));
+  return words;
+}
+function revealBlock(el,delay=0){
+  if(!el) return;
+  el.classList.add('reveal-block');
+  el.style.transitionDelay=delay+'ms';
+  void el.offsetHeight;
+  el.classList.add('in');
 }
