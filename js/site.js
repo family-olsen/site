@@ -99,8 +99,10 @@ function openLightbox(src,alt,meta){
   closeLightbox();
   const div=document.createElement('div');
   div.className='lightbox'; div.id='activeLightbox';
-  div.innerHTML=`<img src="${escapeHtml(src)}" alt="${escapeHtml(alt||'')}"><p class="lightbox-caption"><span class="alt">${escapeHtml(alt||'')}</span><span class="meta">${escapeHtml(meta||'')}</span></p>`;
-  div.addEventListener('click',closeLightbox);
+  div.innerHTML=`<button type="button" class="lightbox-close" aria-label="Fechar">×</button><img src="${escapeHtml(src)}" alt="${escapeHtml(alt||'')}"><p class="lightbox-caption"><span class="alt">${escapeHtml(alt||'')}</span><span class="meta">${escapeHtml(meta||'')}</span></p>`;
+  // só fecha clicando no fundo (fora da foto/legenda) ou no ×  — clicar na foto em si não fecha.
+  div.addEventListener('click',(e)=>{ if(e.target===div) closeLightbox(); });
+  div.querySelector('.lightbox-close').addEventListener('click',closeLightbox);
   document.body.appendChild(div);
 }
 function closeLightbox(){ $('#activeLightbox')?.remove(); }
@@ -413,6 +415,9 @@ function initCoverflow(root,slides,opts={}){
   function nudge(by){ settle(clamp(Math.round(target)+by)) }
 
   frame.addEventListener('pointerdown',e=>{
+    // clique nos botões ‹ › não pode virar arraste — senão o pointer capture do frame
+    // "sequestra" o clique e o botão nunca recebe o evento.
+    if(e.target.closest('.cf-nav')) return;
     if(raf!==null){ cancelAnimationFrame(raf); raf=null }
     frame.setPointerCapture(e.pointerId);
     target=pos; moved=false;
@@ -443,11 +448,12 @@ function initCoverflow(root,slides,opts={}){
   root.querySelector('.cf-nav.prev')?.addEventListener('click',()=>nudge(-1));
   root.querySelector('.cf-nav.next')?.addEventListener('click',()=>nudge(1));
   dots.forEach(d=>d.addEventListener('click',()=>goTo(Number(d.dataset.dot))));
-  cards.forEach((card,i)=>card.addEventListener('click',()=>{
-    if(moved) return; // foi um arraste, não um clique
-    if(i===selected){ if(onCardClick) onCardClick(slides[i],i); }
-    else goTo(i);
-  }));
+  // 1 clique só navega até o cartão (não abre nada — evita a sensação de "ficar preso" na
+  // foto); 2 cliques rápidos é que ampliam, do jeito que o usuário já espera de uma galeria.
+  cards.forEach((card,i)=>{
+    card.addEventListener('click',()=>{ if(moved) return; goTo(i); });
+    card.addEventListener('dblclick',()=>{ goTo(i); if(onCardClick) onCardClick(slides[i],i); });
+  });
 
   const measure=()=>{ width=cards[0]?.offsetWidth||0; paint(); };
   measure();

@@ -8,15 +8,19 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/site.css">
+<style>
+  .filtros-grupo{margin-bottom:14px}
+  .filtros-grupo .rotulo{display:block;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-4);margin-bottom:8px}
+</style>
 </head>
 <body>
 <main>
-  <div class="section" style="padding-bottom:90px">
+  <div class="section-tight" style="padding-bottom:90px;padding-top:clamp(20px,3vw,40px)">
     <div class="wrap">
       <h1 style="font-family:var(--serif);font-weight:300;font-size:clamp(34px,6vw,64px);margin:0 0 14px;letter-spacing:-.02em">Arquivo de fotos</h1>
-      <p style="font-size:15px;line-height:1.7;color:var(--muted-2);max-width:560px;margin:0 0 34px" id="gallerySummary">Carregando…</p>
-      <div class="galeria-filtros" id="filtrosRow"></div>
-      <p style="font-size:12.5px;color:var(--muted);text-align:center;margin:8px 0 0" id="cfHint">Arraste, use as setas ou o teclado pra navegar. Clique na foto do meio pra ampliar.</p>
+      <p style="font-size:15px;line-height:1.7;color:var(--muted-2);max-width:560px;margin:0 0 28px" id="gallerySummary">Carregando…</p>
+      <div id="filtrosWrap"></div>
+      <p style="font-size:12.5px;color:var(--muted);text-align:center;margin:8px 0 0" id="cfHint">Arraste, use as setas ou o teclado pra navegar. Clique duas vezes na foto pra ampliar.</p>
       <div id="cfRoot"></div>
     </div>
   </div>
@@ -26,14 +30,22 @@
 <script src="js/config.js"></script>
 <script src="js/site.js"></script>
 <script>
-let ALL_PHOTOS=[], filtro='Tudo';
+let ALL_PHOTOS=[], filtroDecada='Tudo', filtroColecao='Tudo', filtroPessoa='Tudo';
 
 function openPhotoLightbox(p){
   openLightbox(photoUrl(p.optimized_path||p.thumbnail_path),p.title,(p.photo_date?p.photo_date.slice(0,4)+' · ':'')+(p.caption||''));
 }
 
+function filteredPhotos(){
+  return ALL_PHOTOS.filter(p=>
+    (filtroDecada==='Tudo'||p.decada===filtroDecada) &&
+    (filtroColecao==='Tudo'||p.colecoes.includes(filtroColecao)) &&
+    (filtroPessoa==='Tudo'||p.pessoas.includes(filtroPessoa))
+  );
+}
+
 function renderCarousel(startId){
-  const list=filtro==='Tudo'?ALL_PHOTOS:ALL_PHOTOS.filter(p=>p.decada===filtro);
+  const list=filteredPhotos();
   $('#cfHint').classList.toggle('hidden',!list.length);
   if(!list.length){ $('#cfRoot').innerHTML='<p class="empty-note">Nenhuma foto nesse filtro ainda.</p>'; return; }
   const slides=list.map(p=>({
@@ -49,25 +61,46 @@ function renderCarousel(startId){
   });
 }
 
-function renderFiltros(decadas){
-  const items=['Tudo',...decadas];
-  $('#filtrosRow').innerHTML=items.map(f=>`<button type="button" class="filtro-btn ${f===filtro?'active':''}" data-f="${f}">${escapeHtml(f)}</button>`).join('');
-  document.querySelectorAll('.filtro-btn').forEach(b=>b.addEventListener('click',()=>{filtro=b.dataset.f; renderFiltros(decadas); renderCarousel();}));
+function filtroGrupoHtml(rotulo,items,valorAtual,grupo){
+  return `<div class="filtros-grupo"><span class="rotulo">${escapeHtml(rotulo)}</span><div class="galeria-filtros">
+    ${['Tudo',...items].map(f=>`<button type="button" class="filtro-btn ${f===valorAtual?'active':''}" data-grupo="${grupo}" data-f="${escapeHtml(f)}">${escapeHtml(f)}</button>`).join('')}
+  </div></div>`;
+}
+
+function renderFiltros(decadas,colecoes,pessoas){
+  const parts=[filtroGrupoHtml('Década',decadas,filtroDecada,'decada')];
+  if(colecoes.length) parts.push(filtroGrupoHtml('Coleção',colecoes,filtroColecao,'colecao'));
+  if(pessoas.length) parts.push(filtroGrupoHtml('Pessoa',pessoas,filtroPessoa,'pessoa'));
+  $('#filtrosWrap').innerHTML=parts.join('');
+  document.querySelectorAll('.filtro-btn').forEach(b=>b.addEventListener('click',()=>{
+    if(b.dataset.grupo==='decada') filtroDecada=b.dataset.f;
+    else if(b.dataset.grupo==='colecao') filtroColecao=b.dataset.f;
+    else filtroPessoa=b.dataset.f;
+    renderFiltros(decadas,colecoes,pessoas);
+    renderCarousel();
+  }));
 }
 
 async function boot(){
   renderHeader(); renderFooter();
-  const {data:photos}=await sbClient.from('photos').select('id,title,caption,thumbnail_path,optimized_path,photo_date').order('photo_date',{ascending:false,nullsFirst:false});
+  const {data:photos}=await sbClient.from('photos').select('id,title,caption,thumbnail_path,optimized_path,photo_date,album_photos(albums(title)),photo_people(people(full_name))').order('photo_date',{ascending:false,nullsFirst:false});
   if(!photos||!photos.length){
     $('#gallerySummary').textContent='';
     $('#cfHint').classList.add('hidden');
     $('#cfRoot').innerHTML='<p class="empty-note">Nenhuma foto publicada ainda.</p>';
     return;
   }
-  ALL_PHOTOS=photos.map(p=>({...p,decada:p.photo_date?(Math.floor(Number(p.photo_date.slice(0,4))/10)*10)+'s':'Sem data'}));
+  ALL_PHOTOS=photos.map(p=>({
+    ...p,
+    decada:p.photo_date?(Math.floor(Number(p.photo_date.slice(0,4))/10)*10)+'s':'Sem data',
+    colecoes:(p.album_photos||[]).map(ap=>ap.albums?.title).filter(Boolean),
+    pessoas:(p.photo_people||[]).map(pp=>pp.people?.full_name).filter(Boolean)
+  }));
   $('#gallerySummary').textContent=`${photos.length} ${photos.length===1?'imagem digitalizada':'imagens digitalizadas'} neste acervo.`;
   const decadas=[...new Set(ALL_PHOTOS.map(p=>p.decada))].sort();
-  renderFiltros(decadas);
+  const colecoes=[...new Set(ALL_PHOTOS.flatMap(p=>p.colecoes))].sort();
+  const pessoas=[...new Set(ALL_PHOTOS.flatMap(p=>p.pessoas))].sort();
+  renderFiltros(decadas,colecoes,pessoas);
 
   const focoFoto=new URLSearchParams(location.search).get('foto');
   renderCarousel(focoFoto);
