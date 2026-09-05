@@ -353,3 +353,105 @@ function drawPedLines(scale){
   svg.setAttribute('width',container.scrollWidth); svg.setAttribute('height',container.scrollHeight);
   svg.innerHTML=paths;
 }
+
+/* ---------- Carrossel coverflow (arraste, teclado, legenda) ---------- */
+function initCoverflow(root,slides,opts={}){
+  const {rotate=44,depth=.6,perspective=3,falloff=.56,fade=.1,gap=.05,loop=true,
+    showCaption=true,showPagination=true,showNavigation=true,onCardClick=null,startIndex=0}=opts;
+  const count=slides.length;
+  if(!count){root.innerHTML='<p class="empty-note">Nenhuma foto publicada ainda.</p>';return null}
+
+  root.innerHTML=`<div class="cf">
+      <div class="cf-frame" tabindex="0">
+        <div class="cf-stage">${slides.map((s,i)=>`<div class="cf-card" data-i="${i}"><img src="${s.src}" alt="${escapeHtml(s.alt||'')}" draggable="false"></div>`).join('')}</div>
+        ${showNavigation?`<button type="button" class="cf-nav prev" aria-label="Anterior">‹</button><button type="button" class="cf-nav next" aria-label="Próxima">›</button>`:''}
+      </div>
+      ${showCaption?`<div class="cf-caption" id="cfCaption"></div>`:''}
+      ${showPagination?`<div class="cf-dots" id="cfDots">${slides.map((_,i)=>`<button type="button" class="cf-dot" data-dot="${i}" aria-label="Ir para foto ${i+1}"></button>`).join('')}</div>`:''}
+    </div>`;
+
+  const frame=root.querySelector('.cf-frame'), stage=root.querySelector('.cf-stage');
+  const cards=[...root.querySelectorAll('.cf-card')];
+  const captionEl=root.querySelector('#cfCaption'), dots=[...root.querySelectorAll('[data-dot]')];
+  frame.style.perspective=`calc(var(--cf-card) * ${perspective})`;
+  stage.style.transformStyle='preserve-3d';
+
+  let pos=startIndex,target=startIndex,width=0,raf=null,drag=null,selected=startIndex,moved=false;
+  const indexAt=p=>((Math.round(p)%count)+count)%count;
+  const clamp=p=>(loop?p:Math.max(0,Math.min(count-1,p)));
+
+  function paint(){
+    if(!width) return;
+    const pitch=width*(1+gap);
+    cards.forEach((card,i)=>{
+      let offset=i-pos;
+      if(loop){ offset=((offset%count)+count)%count; if(offset>count/2) offset-=count; }
+      const distance=Math.abs(offset), ramp=Math.pow(distance,falloff);
+      const tilt=Math.min(rotate*ramp,82)*Math.sign(offset);
+      card.style.transform=`translateX(calc(-50% + ${offset*pitch}px)) translateZ(${-depth*width*ramp}px) rotateY(${-tilt}deg)`;
+      const edge=loop?Math.min(1,Math.max(0,count/2-distance)):1;
+      card.style.opacity=String(Math.max(0,1-fade*distance)*edge);
+      card.style.zIndex=String(100-Math.round(distance));
+    });
+  }
+  function renderCaption(){
+    const s=slides[selected];
+    if(captionEl) captionEl.innerHTML=s.title?`<div class="title">${escapeHtml(s.title)}</div>${s.subtitle?`<div class="subtitle">${escapeHtml(s.subtitle)}</div>`:''}`:'';
+    dots.forEach((d,i)=>d.setAttribute('aria-current',String(i===selected)));
+  }
+  function settle(t){
+    if(raf!==null) cancelAnimationFrame(raf);
+    target=t; selected=indexAt(t); renderCaption();
+    const step=()=>{
+      const remaining=target-pos;
+      if(Math.abs(remaining)<.0004){ pos=target; paint(); raf=null; return }
+      pos+=remaining*.16; paint(); raf=requestAnimationFrame(step);
+    };
+    raf=requestAnimationFrame(step);
+  }
+  function goTo(i){ settle(clamp(loop?i+Math.round((target-i)/count)*count:i)) }
+  function nudge(by){ settle(clamp(Math.round(target)+by)) }
+
+  frame.addEventListener('pointerdown',e=>{
+    if(raf!==null){ cancelAnimationFrame(raf); raf=null }
+    frame.setPointerCapture(e.pointerId);
+    target=pos; moved=false;
+    drag={id:e.pointerId,x:e.clientX,pos,v:0,t:performance.now()};
+  });
+  frame.addEventListener('pointermove',e=>{
+    if(!drag||drag.id!==e.pointerId) return;
+    const pitch=width*(1+gap); if(!pitch) return;
+    if(Math.abs(e.clientX-drag.x)>4) moved=true;
+    const now=performance.now(), prev=pos;
+    pos=clamp(drag.pos-(e.clientX-drag.x)/pitch);
+    drag.v=((pos-prev)/Math.max(now-drag.t,1))*1000; drag.t=now;
+    const i=indexAt(pos); if(i!==selected){ selected=i; renderCaption(); }
+    paint();
+  });
+  const endDrag=e=>{
+    if(!drag||drag.id!==e.pointerId) return;
+    const carried=Math.max(-2,Math.min(2,drag.v*.18));
+    drag=null;
+    settle(clamp(Math.round(pos+carried)));
+  };
+  frame.addEventListener('pointerup',endDrag);
+  frame.addEventListener('pointercancel',endDrag);
+  frame.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'){ e.preventDefault(); nudge(-1); }
+    else if(e.key==='ArrowRight'){ e.preventDefault(); nudge(1); }
+  });
+  root.querySelector('.cf-nav.prev')?.addEventListener('click',()=>nudge(-1));
+  root.querySelector('.cf-nav.next')?.addEventListener('click',()=>nudge(1));
+  dots.forEach(d=>d.addEventListener('click',()=>goTo(Number(d.dataset.dot))));
+  cards.forEach((card,i)=>card.addEventListener('click',()=>{
+    if(moved) return; // foi um arraste, não um clique
+    if(i===selected){ if(onCardClick) onCardClick(slides[i],i); }
+    else goTo(i);
+  }));
+
+  const measure=()=>{ width=cards[0]?.offsetWidth||0; paint(); };
+  measure();
+  new ResizeObserver(measure).observe(frame);
+  renderCaption();
+  return {goTo, nudge};
+}
