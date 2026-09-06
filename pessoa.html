@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pessoa — Olsen · Belloto · Leal</title>
+<meta name="description" content="Perfil de uma pessoa das famílias Olsen, Belloto e Leal: biografia, família, fotos e histórias.">
+<link rel="canonical" href="https://family-olsen.github.io/site/pessoa.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Olsen · Belloto · Leal">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Pessoa — Olsen · Belloto · Leal">
+<meta property="og:description" content="Perfil de uma pessoa das famílias Olsen, Belloto e Leal: biografia, família, fotos e histórias.">
+<meta property="og:url" content="https://family-olsen.github.io/site/pessoa.html">
+<meta property="og:image" content="https://family-olsen.github.io/site/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pessoa — Olsen · Belloto · Leal">
+<meta name="twitter:description" content="Perfil de uma pessoa das famílias Olsen, Belloto e Leal: biografia, família, fotos e histórias.">
+<meta name="twitter:image" content="https://family-olsen.github.io/site/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
@@ -82,6 +97,12 @@ async function boot(){
         </div>
       </div>
     </section>`;
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    revealWords($('.eyebrow-gold'),{baseDelay:0,stagger:30});
+    revealWords($('.profile-name'),{baseDelay:150,stagger:35});
+    revealBlock($('.profile-dates'),650);
+    revealBlock($('.profile-bio'),780);
+  }
 
   const tabs=[
     {id:'historias',label:'Histórias',n:stories.length,items:stories.map(s=>({meta:'História',titulo:s.title,resumo:s.summary||'',bg:s.story_photos?.find(sp=>sp.photos?.thumbnail_path)?.photos?.thumbnail_path?photoUrl(s.story_photos.find(sp=>sp.photos?.thumbnail_path).photos.thumbnail_path):'',go:`historia.html?slug=${s.slug||s.id}`}))},

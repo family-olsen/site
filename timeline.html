@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Linha do tempo — Olsen · Belloto · Leal</title>
+<meta name="description" content="Linha do tempo com os principais acontecimentos da história das famílias Olsen, Belloto e Leal.">
+<link rel="canonical" href="https://family-olsen.github.io/site/timeline.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Olsen · Belloto · Leal">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Linha do tempo — Olsen · Belloto · Leal">
+<meta property="og:description" content="Linha do tempo com os principais acontecimentos da história das famílias Olsen, Belloto e Leal.">
+<meta property="og:url" content="https://family-olsen.github.io/site/timeline.html">
+<meta property="og:image" content="https://family-olsen.github.io/site/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Linha do tempo — Olsen · Belloto · Leal">
+<meta name="twitter:description" content="Linha do tempo com os principais acontecimentos da história das famílias Olsen, Belloto e Leal.">
+<meta name="twitter:image" content="https://family-olsen.github.io/site/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
@@ -26,6 +41,8 @@
 const TYPE_LABEL={birth:'nascimento',marriage:'casamento',death:'falecimento',baptism:'batismo',immigration:'imigração',other:'evento'};
 async function boot(){
   renderHeader(); renderFooter();
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduceMotion) revealWords($('main h1'),{stagger:35});
   const {data:events}=await sbClient.from('events').select('id,title,description,event_type,event_date,start_date,event_people(person_id)').order('event_date',{ascending:true,nullsFirst:false}).order('start_date',{ascending:true,nullsFirst:false});
   if(!events||!events.length){
     $('#summary').textContent='';
@@ -33,6 +50,7 @@ async function boot(){
     return;
   }
   $('#summary').textContent=`${events.length} ${events.length===1?'marco documentado':'marcos documentados'}, do mais antigo ao mais recente.`;
+  if(!reduceMotion) revealBlock($('#summary'));
   $('#timelineList').innerHTML=`<span class="timeline-rule"></span>`+events.map(e=>{
     const ano=(e.event_date||e.start_date||'').slice(0,4)||'—';
     const subjectId=e.event_people?.[0]?.person_id;

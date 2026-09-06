@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pessoas — Olsen · Belloto · Leal</title>
+<meta name="description" content="Conheça as pessoas que fazem parte da história das famílias Olsen, Belloto e Leal, com biografia, fotos e histórias de cada uma.">
+<link rel="canonical" href="https://family-olsen.github.io/site/pessoas.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Olsen · Belloto · Leal">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Pessoas — Olsen · Belloto · Leal">
+<meta property="og:description" content="Conheça as pessoas que fazem parte da história das famílias Olsen, Belloto e Leal, com biografia, fotos e histórias de cada uma.">
+<meta property="og:url" content="https://family-olsen.github.io/site/pessoas.html">
+<meta property="og:image" content="https://family-olsen.github.io/site/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pessoas — Olsen · Belloto · Leal">
+<meta name="twitter:description" content="Conheça as pessoas que fazem parte da história das famílias Olsen, Belloto e Leal, com biografia, fotos e histórias de cada uma.">
+<meta name="twitter:image" content="https://family-olsen.github.io/site/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
@@ -12,7 +27,7 @@
   .pessoas-head{display:flex;justify-content:space-between;align-items:flex-start;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:8px}
   .pessoas-head-left{flex:1 1 260px;min-width:0}
   .pessoas-head-right{flex:0 1 auto;min-width:0}
-  .pessoas-head-right .rotulo{display:block;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-4);margin-bottom:8px;text-align:right}
+  .pessoas-head-right .rotulo{display:block;font-size:var(--fs-micro);letter-spacing:.18em;text-transform:uppercase;color:var(--muted-4);margin-bottom:8px;text-align:right}
   .pessoas-head-right .galeria-filtros{justify-content:flex-end}
 </style>
 </head>
@@ -62,6 +77,8 @@ function renderFiltroSobrenome(allPeople,sobrenomeAtivo){
 
 async function boot(){
   renderHeader(); renderFooter();
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduceMotion) revealWords($('#pageTitle'),{stagger:35});
   const {data:allPeople,error}=await sbClient.from('people').select('id,full_name,surname,nickname,birth_date,death_date,avatar_path,gender,is_living').order('full_name',{ascending:true});
   if(error||!allPeople||!allPeople.length){
     $('#peopleSummary').textContent='';
@@ -72,6 +89,7 @@ async function boot(){
   const people=sobrenome?allPeople.filter(p=>surnameTokens(p).includes(sobrenome)):allPeople;
 
   renderFiltroSobrenome(allPeople,sobrenome);
+  if(!reduceMotion) revealBlock($('.pessoas-head-right'),100);
 
   if(sobrenome){
     $('#pageTitle').textContent=sobrenome;
@@ -80,6 +98,7 @@ async function boot(){
   } else {
     $('#peopleSummary').textContent=people.length+(people.length===1?' pessoa documentada neste acervo.':' pessoas documentadas neste acervo.');
   }
+  if(!reduceMotion) revealBlock($('#peopleSummary'),60);
 
   if(!people.length){
     $('#csRoot').innerHTML='<p class="empty-note">Ninguém encontrado com esse sobrenome.</p>';

@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Olsen · Belloto · Leal — acervo da família</title>
+<meta name="description" content="Acervo genealógico das famílias Olsen, Belloto e Leal: árvore genealógica, histórias, fotografias e fontes documentais reunidas em um só lugar.">
+<link rel="canonical" href="https://family-olsen.github.io/site/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Olsen · Belloto · Leal">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Olsen · Belloto · Leal — acervo da família">
+<meta property="og:description" content="Árvore genealógica, histórias, fotografias e fontes documentais das famílias Olsen, Belloto e Leal, reunidas em um só lugar, para durar.">
+<meta property="og:url" content="https://family-olsen.github.io/site/">
+<meta property="og:image" content="https://family-olsen.github.io/site/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Olsen · Belloto · Leal — acervo da família">
+<meta name="twitter:description" content="Árvore genealógica, histórias, fotografias e fontes documentais das famílias Olsen, Belloto e Leal, reunidas em um só lugar, para durar.">
+<meta name="twitter:image" content="https://family-olsen.github.io/site/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
@@ -46,7 +61,7 @@
     </blockquote>
   </section>
 
-  <section class="section">
+  <section class="section-numeros">
     <div class="wrap numeros-grid" id="numerosGrid"></div>
   </section>
 </main>
@@ -63,11 +78,18 @@ async function boot(){
   // página carrega (não espera os dados do banco). Eyebrow primeiro, depois o
   // título (palavra por palavra), depois o parágrafo e os botões (em bloco).
   if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    // texto e rolagem acontecem em paralelo — não trava a página esperando o texto
+    // terminar de aparecer.
     revealWords(document.querySelector('#heroSection .eyebrow-gold'),{baseDelay:0,stagger:25});
     revealWords(document.querySelector('#heroSection h1'),{baseDelay:220,stagger:45});
     revealBlock($('#heroLede'),880);
+    $('#heroLede').classList.add('rise-strong');
     revealBlock(document.querySelector('.hero-actions'),1150);
+    document.querySelector('.hero-actions').classList.add('rise-strong');
   }
+  // Título "Comece por aqui" também entra ao rolar até ele (já existe no HTML,
+  // não depende dos dados do banco).
+  initScrollReveal('.section-head');
 
   const [{data:people},{data:photos},{data:stories},{data:events},{data:sources},{data:books}]=await Promise.all([
     sbClient.from('people').select('id,birth_date,death_date').then(r=>r),
@@ -87,6 +109,8 @@ async function boot(){
       <p class="texto">Clique para ver quem são.</p>
       <p class="contagem">${escapeHtml(l.contagem)}</p>
     </a>`).join(''):'<p class="empty-note">Ainda não há pessoas públicas suficientes para mostrar os ramos da família.</p>';
+  initScrollReveal('.linhagem-card',{stagger:60});
+  initCardTilt('.linhagem-card',{max:5,shadow:10});
 
   // Portas de entrada
   const portas=[
@@ -104,6 +128,8 @@ async function boot(){
         <span class="porta-text">${escapeHtml(p.texto)}</span>
       </span>
     </a>`).join('');
+  initScrollReveal('.porta-card',{stagger:70});
+  initCardTilt('.porta-card',{max:8,shadow:16});
 
   // Destaque (resumo de uma história, como citação)
   const storyWithSummary=(stories||[]).find(s=>s.summary);
@@ -111,6 +137,7 @@ async function boot(){
     $('#quoteSection').classList.remove('hidden');
     $('#quoteText').textContent='"'+storyWithSummary.summary+'"';
     $('#quoteFooter').textContent=storyWithSummary.title;
+    initScrollReveal('#quoteSection blockquote');
   }
 
   // Números
@@ -124,6 +151,8 @@ async function boot(){
     {v:linhagens.length,k:'linhagens'}
   ];
   $('#numerosGrid').innerHTML=numeros.map(n=>`<div class="numero-item"><p class="v">${escapeHtml(String(n.v))}</p><p class="k">${escapeHtml(n.k)}</p></div>`).join('');
+  initScrollReveal('.numero-item',{stagger:50});
+  initCountUp('.numero-item p.v');
 }
 boot();
 </script>

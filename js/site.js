@@ -76,9 +76,27 @@ function renderHeader(){
   document.body.insertAdjacentHTML('afterbegin',`
     <header class="site-header">
       <a href="index.html" class="site-brand"><strong>Olsen · Belloto · Leal</strong><span>acervo da família</span></a>
-      <nav class="site-nav">${nav}<button type="button" class="search-btn" id="openSearchBtn"><span class="search-dot"></span><span>Buscar</span></button></nav>
+      <button type="button" class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="siteNav"><span></span><span></span><span></span></button>
+      <nav class="site-nav" id="siteNav">${nav}<button type="button" class="search-btn" id="openSearchBtn"><span class="search-dot"></span><span>Buscar</span></button></nav>
     </header>`);
-  $('#openSearchBtn').addEventListener('click',openSearch);
+  $('#openSearchBtn').addEventListener('click',()=>{closeMobileMenu(); openSearch();});
+  // menu hambúrguer — só aparece no mobile (CSS), aqui só liga o clique.
+  const toggle=$('#menuToggle'), navEl=$('#siteNav');
+  function closeMobileMenu(){ navEl.classList.remove('open'); toggle.classList.remove('open'); toggle.setAttribute('aria-expanded','false'); }
+  toggle.addEventListener('click',()=>{
+    const open=navEl.classList.toggle('open');
+    toggle.classList.toggle('open',open);
+    toggle.setAttribute('aria-expanded',String(open));
+  });
+  navEl.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMobileMenu));
+  window.addEventListener('resize',()=>{ if(window.innerWidth>760) closeMobileMenu(); });
+  // marca do cabeçalho entra deslizando da esquerda (mesma linguagem de blur/subida
+  // dos títulos, só que na horizontal) — roda em toda página, é aqui que o cabeçalho
+  // é montado.
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    revealWords($('.site-brand strong'),{baseDelay:0,stagger:20,dir:'left'});
+    revealBlock($('.site-brand > span'),260,{dir:'left'});
+  }
 }
 function renderFooter(){
   document.body.insertAdjacentHTML('beforeend',`
@@ -706,8 +724,9 @@ function wrapRevealWords(el){
 }
 function revealWords(el,opts={}){
   if(!el) return [];
-  const {baseDelay=0,stagger=35}=opts;
+  const {baseDelay=0,stagger=35,dir=''}=opts;
   const words=wrapRevealWords(el);
+  if(dir==='left') words.forEach(w=>w.classList.add('dir-left'));
   words.forEach((w,i)=>{ w.style.transitionDelay=(baseDelay+i*stagger)+'ms'; });
   // força o navegador a "commitar" o estado inicial (desfocado/invisível) antes de
   // ligar a classe que dispara a transição — sem isso as duas mudanças colapsam no
@@ -717,10 +736,106 @@ function revealWords(el,opts={}){
   words.forEach(w=>w.classList.add('in'));
   return words;
 }
-function revealBlock(el,delay=0){
+function revealBlock(el,delay=0,opts={}){
   if(!el) return;
   el.classList.add('reveal-block');
+  if(opts.dir==='left') el.classList.add('dir-left');
   el.style.transitionDelay=delay+'ms';
   void el.offsetHeight;
   el.classList.add('in');
+}
+
+// Revela um grupo de elementos (blocos inteiros, sem quebrar em palavras) conforme
+// eles entram na tela ao rolar — mesma linguagem visual (desfoca/sobe/foca) da Hero,
+// só que disparada por scroll em vez de no carregamento. Usa IntersectionObserver:
+// cada elemento só anima uma vez, na primeira vez que aparece.
+function initScrollReveal(selector,opts={}){
+  const els=[...document.querySelectorAll(selector)];
+  if(!els.length||window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const {stagger=70,maxStagger=3}=opts;
+  els.forEach(el=>el.classList.add('reveal-block'));
+  void document.body.offsetHeight; // commita o estado escondido antes de observar
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(!entry.isIntersecting) return;
+      const i=els.indexOf(entry.target);
+      entry.target.style.transitionDelay=(Math.min(i,maxStagger)*stagger)+'ms';
+      entry.target.classList.add('in');
+      io.unobserve(entry.target);
+    });
+  },{threshold:.15,rootMargin:'0px 0px -8% 0px'});
+  els.forEach(el=>io.observe(el));
+}
+
+// Números que "contam" de 0 até o valor final quando entram na tela (uma vez só,
+// via IntersectionObserver — mesma ideia do initScrollReveal). Zera o texto na hora
+// (antes do primeiro paint) pra ninguém ver o valor final piscando antes de contar.
+// Elementos com texto não-numérico (ex.: "—") ou valor 0 ficam como estão.
+function initCountUp(selector,opts={}){
+  const els=[...document.querySelectorAll(selector)];
+  if(!els.length||window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const {duration=1400}=opts;
+  const targets=new Map();
+  els.forEach(el=>{
+    const target=Number(el.textContent.replace(/\D/g,''));
+    if(!target) return;
+    targets.set(el,target);
+    el.textContent='0';
+  });
+  if(!targets.size) return;
+  function animate(el){
+    const target=targets.get(el);
+    const start=performance.now();
+    function step(now){
+      const t=Math.min(1,(now-start)/duration);
+      const eased=1-Math.pow(1-t,3); // ease-out cúbico — acelera rápido, chega devagar
+      el.textContent=String(Math.round(target*eased));
+      if(t<1) requestAnimationFrame(step); else el.textContent=String(target);
+    }
+    requestAnimationFrame(step);
+  }
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(!entry.isIntersecting) return;
+      animate(entry.target);
+      io.unobserve(entry.target);
+    });
+  },{threshold:.4});
+  targets.forEach((_,el)=>io.observe(el));
+}
+
+// Cartão que inclina levemente seguindo o cursor, com um brilho suave por baixo do
+// mouse — só liga em dispositivos com mouse de verdade (a CSS de .tilt-card já fica
+// inerte sem hover:hover+pointer:fine; aqui a gente nem registra os listeners).
+function initCardTilt(selector,opts={}){
+  if(!window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+  const {max=8,shadow=16}=opts;
+  document.querySelectorAll(selector).forEach(card=>{
+    card.classList.add('tilt-card');
+    let raf=null;
+    card.addEventListener('pointermove',e=>{
+      const r=card.getBoundingClientRect();
+      const px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
+      card.classList.add('tilting');
+      if(raf) cancelAnimationFrame(raf);
+      raf=requestAnimationFrame(()=>{
+        card.style.setProperty('--tilt-rx',((px-.5)*max*2).toFixed(2)+'deg');
+        card.style.setProperty('--tilt-ry',(-(py-.5)*max*2).toFixed(2)+'deg');
+        card.style.setProperty('--tilt-mx',(px*100).toFixed(1)+'%');
+        card.style.setProperty('--tilt-my',(py*100).toFixed(1)+'%');
+        // sombra foge pro lado oposto do cursor — reforça a leitura de profundidade
+        // mesmo em imagens "planas" (capturas de tela), onde a rotação sozinha
+        // quase não se nota.
+        card.style.setProperty('--tilt-sx',(-(px-.5)*shadow*2).toFixed(1)+'px');
+        card.style.setProperty('--tilt-sy',(-(py-.5)*shadow*2).toFixed(1)+'px');
+      });
+    });
+    card.addEventListener('pointerleave',()=>{
+      card.classList.remove('tilting');
+      card.style.setProperty('--tilt-rx','0deg');
+      card.style.setProperty('--tilt-ry','0deg');
+      card.style.setProperty('--tilt-sx','0px');
+      card.style.setProperty('--tilt-sy','0px');
+    });
+  });
 }

@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Histórias — Olsen · Belloto · Leal</title>
+<meta name="description" content="Histórias de vida e memórias das famílias Olsen, Belloto e Leal — os momentos que atravessaram gerações.">
+<link rel="canonical" href="https://family-olsen.github.io/site/historias.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Olsen · Belloto · Leal">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Histórias — Olsen · Belloto · Leal">
+<meta property="og:description" content="Histórias de vida e memórias das famílias Olsen, Belloto e Leal — os momentos que atravessaram gerações.">
+<meta property="og:url" content="https://family-olsen.github.io/site/historias.html">
+<meta property="og:image" content="https://family-olsen.github.io/site/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Histórias — Olsen · Belloto · Leal">
+<meta name="twitter:description" content="Histórias de vida e memórias das famílias Olsen, Belloto e Leal — os momentos que atravessaram gerações.">
+<meta name="twitter:image" content="https://family-olsen.github.io/site/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
@@ -12,6 +27,13 @@
   .story-row{display:grid;grid-template-columns:220px 1fr;gap:26px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:26px 0;cursor:pointer;color:inherit;font-family:inherit;transition:background .3s}
   .story-row:hover{background:rgba(237,231,220,.04)}
   .story-row .thumb{height:140px;border-radius:14px;background:var(--bg-3);background-size:cover;background-position:center;filter:saturate(.6) brightness(.85)}
+  /* no mobile a coluna fixa de 220px sobrava quase a tela toda e espremia o texto
+     numa faixa estreitíssima (título/resumo quebrando em várias linhas curtas) —
+     aqui a foto vira uma faixa larga em cima, texto embaixo ocupando a largura toda. */
+  @media (max-width:600px){
+    .story-row{grid-template-columns:1fr;gap:14px}
+    .story-row .thumb{height:52vw;max-height:220px}
+  }
 </style>
 </head>
 <body>
@@ -30,8 +52,9 @@
 <script>
 async function boot(){
   renderHeader(); renderFooter();
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches) revealWords($('main h1'),{stagger:35});
   const {data:stories}=await sbClient.from('stories').select('id,slug,title,summary,story_photos(photos(thumbnail_path))').order('updated_at',{ascending:false});
-  if(!stories||!stories.length){ $('#summary').textContent=''; $('#list').innerHTML='<p class="empty-note">Nenhuma história publicada ainda.</p>'; return; }
+  if(!stories||!stories.length){ $('#summary').textContent=''; $('#list').innerHTML='<p class="empty-note">Nenhuma história publicada ainda.</p>'; revealBlock($('#list')); return; }
   $('#summary').textContent=`${stories.length} ${stories.length===1?'relato guardado':'relatos guardados'} neste acervo.`;
   $('#list').innerHTML=stories.map(s=>{
     const thumb=s.story_photos?.find(sp=>sp.photos?.thumbnail_path)?.photos?.thumbnail_path;
@@ -40,6 +63,8 @@ async function boot(){
       <span><span class="list-title" style="font-size:26px">${escapeHtml(s.title)}</span><span class="list-resumo">${escapeHtml(s.summary||'')}</span></span>
     </a>`;
   }).join('');
+  revealBlock($('#summary'));
+  revealBlock($('#list'),120);
 }
 boot();
 </script>

@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fotos — Olsen · Belloto · Leal</title>
+<meta name="description" content="Arquivo de fotografias históricas das famílias Olsen, Belloto e Leal, digitalizadas e organizadas por data e pessoa.">
+<link rel="canonical" href="https://family-olsen.github.io/site/galeria.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Olsen · Belloto · Leal">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Fotos — Olsen · Belloto · Leal">
+<meta property="og:description" content="Arquivo de fotografias históricas das famílias Olsen, Belloto e Leal, digitalizadas e organizadas por data e pessoa.">
+<meta property="og:url" content="https://family-olsen.github.io/site/galeria.html">
+<meta property="og:image" content="https://family-olsen.github.io/site/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fotos — Olsen · Belloto · Leal">
+<meta name="twitter:description" content="Arquivo de fotografias históricas das famílias Olsen, Belloto e Leal, digitalizadas e organizadas por data e pessoa.">
+<meta name="twitter:image" content="https://family-olsen.github.io/site/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
@@ -14,7 +29,7 @@
   .galeria-head-right{flex:1 1 260px;min-width:0}
   .filtros-grupo{margin-bottom:12px}
   .filtros-grupo:last-child{margin-bottom:0}
-  .filtros-grupo .rotulo{display:block;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-4);margin-bottom:8px}
+  .filtros-grupo .rotulo{display:block;font-size:var(--fs-micro);letter-spacing:.18em;text-transform:uppercase;color:var(--muted-4);margin-bottom:8px}
   .galeria-filtros{margin-bottom:0}
 </style>
 </head>
@@ -93,6 +108,8 @@ function renderFiltros(decadas,colecoes,pessoas){
 
 async function boot(){
   renderHeader(); renderFooter();
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduceMotion) revealWords($('main h1'),{stagger:35});
   const {data:photos}=await sbClient.from('photos').select('id,title,caption,description,thumbnail_path,optimized_path,photo_date,places(name),album_photos(albums(title)),photo_people(people(full_name))').eq('hide_from_gallery',false).order('photo_date',{ascending:false,nullsFirst:false});
   if(!photos||!photos.length){
     $('#gallerySummary').textContent='';
@@ -110,6 +127,7 @@ async function boot(){
   const colecoes=[...new Set(ALL_PHOTOS.flatMap(p=>p.colecoes))].sort();
   const pessoas=[...new Set(ALL_PHOTOS.flatMap(p=>p.pessoas))].sort();
   renderFiltros(decadas,colecoes,pessoas);
+  if(!reduceMotion){ revealBlock($('#gallerySummary')); revealBlock($('#filtrosWrap'),100); }
 
   const focoFoto=new URLSearchParams(location.search).get('foto');
   renderCarousel(focoFoto);
