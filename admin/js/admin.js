@@ -33,6 +33,10 @@ async function onPersonAvatarChange(e){
   const file=e.target.files[0];
   if(!file) return;
   pendingAvatarUpload=null;
+  if(file.size>MAX_IMAGE_SOURCE_BYTES){
+    $('#personAvatarHint').textContent=`Arquivo muito grande (máx. ${humanSize(MAX_IMAGE_SOURCE_BYTES)}).`;
+    e.target.value=''; return;
+  }
   $('#personAvatarHint').textContent='Processando imagem...';
   try{
     const blob=await processAvatarFile(file);
@@ -649,9 +653,18 @@ let zoomScale=1, panX=0, panY=0, isPanning=false, panOrigin={x:0,y:0}, panStartO
 function applyZoom(){$('#treeZoomWrap').style.transform=`translate(${panX}px,${panY}px) scale(${zoomScale})`; $('#zoomResetBtn').textContent=Math.round(zoomScale*100)+'%';}
 function setZoom(delta){zoomScale=Math.min(1.6,Math.max(0.5,+(zoomScale+delta).toFixed(2))); applyZoom();}
 function resetZoom(){zoomScale=1; panX=0; panY=0; applyZoom();}
+// Proteção contra tentativas repetidas de login em sequência (bot/força bruta
+// batendo direto na API). A defesa de verdade é o rate limit do próprio
+// Supabase Auth no servidor — isso aqui só cria fricção no navegador.
+let loginFailStreak=0, loginBlockedUntil=0;
 async function login(e){
   if(e) e.preventDefault();
   showError($('#loginError'),'');
+  const agora=Date.now();
+  if(agora<loginBlockedUntil){
+    showError($('#loginError'),`Muitas tentativas — aguarde ${Math.ceil((loginBlockedUntil-agora)/1000)}s.`);
+    return;
+  }
   const email=$('#email').value.trim();
   const password=$('#password').value;
   if(!email || !password){showError($('#loginError'),'Informe e-mail e senha.');return}
@@ -659,7 +672,11 @@ async function login(e){
   button.disabled=true; button.textContent='Entrando...';
   try{
     const {data,error}=await client.auth.signInWithPassword({email,password});
-    if(error){showError($('#loginError'),`Falha no login: ${error.message}`);return}
+    if(error){
+      loginFailStreak++;
+      if(loginFailStreak>=3) loginBlockedUntil=Date.now()+Math.min(30000,2000*2**(loginFailStreak-3));
+      showError($('#loginError'),`Falha no login: ${error.message}`);return}
+    loginFailStreak=0;
     if(!data?.session){showError($('#loginError'),'O Supabase não retornou uma sessão. Verifique o usuário e a configuração do Auth.');return}
     await ensureAdmin();
     loginView.classList.add('hidden');
@@ -1279,6 +1296,15 @@ async function deletePlace(id){
 let pendingPhotoUpload=null;
 function photoPublicUrl(path){return path?client.storage.from('photos').getPublicUrl(path).data.publicUrl:''}
 function documentPublicUrl(path){return path?client.storage.from('documents').getPublicUrl(path).data.publicUrl:''}
+// Limites de upload — fotos/avatares são recomprimidos em webp de qualquer forma,
+// mas um arquivo-origem gigante ainda trava o navegador ao decodificar; PDFs não
+// passam por nenhuma compressão, então o teto vale pro arquivo final também.
+const MAX_IMAGE_SOURCE_BYTES=25*1024*1024, MAX_DOCUMENT_BYTES=20*1024*1024;
+function humanSize(bytes){return (bytes/1024/1024).toFixed(0)+'MB'}
+async function looksLikePdf(file){
+  const bytes=new Uint8Array(await file.slice(0,5).arrayBuffer());
+  return String.fromCharCode(...bytes)==='%PDF-';
+}
 function scaledSize(w,h,max){if(w<=max&&h<=max) return {w,h}; const scale=w>h?max/w:max/h; return {w:Math.round(w*scale),h:Math.round(h*scale)}}
 function drawToBlob(bitmap,maxDim,quality){
   const {w,h}=scaledSize(bitmap.width,bitmap.height,maxDim);
@@ -1389,6 +1415,10 @@ async function onPhotoFileChange(e){
   const file=e.target.files[0];
   if(!file) return;
   pendingPhotoUpload=null;
+  if(file.size>MAX_IMAGE_SOURCE_BYTES){
+    $('#photoUploadHint').textContent=`Arquivo muito grande (máx. ${humanSize(MAX_IMAGE_SOURCE_BYTES)}).`;
+    e.target.value=''; return;
+  }
   $('#photoUploadHint').textContent='Processando imagem...';
   try{
     const result=await processImageFile(file);
@@ -1896,6 +1926,20 @@ async function onDocumentFileChange(e){
   const isPdf=file.type==='application/pdf', isImage=file.type.startsWith('image/');
   if(!isPdf&&!isImage){
     $('#documentUploadHint').textContent='Envie um arquivo PDF ou uma imagem (jpg, png, webp).';
+    e.target.value='';
+    return;
+  }
+  if(file.size>(isImage?MAX_IMAGE_SOURCE_BYTES:MAX_DOCUMENT_BYTES)){
+    $('#documentUploadHint').textContent=`Arquivo muito grande (máx. ${humanSize(isImage?MAX_IMAGE_SOURCE_BYTES:MAX_DOCUMENT_BYTES)}).`;
+    e.target.value='';
+    return;
+  }
+  // A extensão/MIME que o navegador reporta é só um rótulo — quem escolhe o
+  // arquivo pode renomear qualquer coisa pra .pdf. Confere a assinatura real
+  // dos primeiros bytes antes de aceitar, pra não guardar lixo com Content-Type
+  // de PDF que na verdade é outro tipo de arquivo.
+  if(isPdf && !(await looksLikePdf(file))){
+    $('#documentUploadHint').textContent='Arquivo não parece ser um PDF válido.';
     e.target.value='';
     return;
   }
