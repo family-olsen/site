@@ -2,7 +2,7 @@ const { createClient } = supabase;
 const client = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY);
 const $ = s => document.querySelector(s);
 const loginView=$('#loginView'), appView=$('#appView'), modal=$('#personModal'), familyModal=$('#familyModal'), childrenModal=$('#childrenModal'), linkChildrenModal=$('#linkChildrenModal'), relModal=$('#relModal'), storyModal=$('#storyModal'), storyPeopleModal=$('#storyPeopleModal'), bookModal=$('#bookModal'), chaptersModal=$('#chaptersModal'), photoModal=$('#photoModal'), photoPeopleModal=$('#photoPeopleModal'), albumModal=$('#albumModal'), albumPhotosModal=$('#albumPhotosModal'), eventModal=$('#eventModal'), eventPeopleModal=$('#eventPeopleModal'), documentModal=$('#documentModal'), sourceModal=$('#sourceModal'), placeModal=$('#placeModal'), confirmDeleteModal=$('#confirmDeleteModal');
-let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null, familiesPage=1, booksPage=1, storiesPage=1, photosPage=1, albumsPage=1, eventsPage=1, documentsPage=1, sourcesPage=1, placesPage=1;
+let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], sourceQuickPeople=[], reopenSourceAfterPersonSave=false, reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null, familiesPage=1, booksPage=1, storiesPage=1, photosPage=1, albumsPage=1, eventsPage=1, documentsPage=1, sourcesPage=1, placesPage=1;
 
 /* ---------- Pré-visualização da biografia automática ----------
    Mesmo gerador de texto usado em pessoa.html (js/site.js) — duplicado aqui de
@@ -269,6 +269,7 @@ function closeModal(){
   if(reopenStoryAfterPersonSave){reopenStoryAfterPersonSave=false; storyModal.classList.add('open');}
   if(reopenEventAfterPersonSave){reopenEventAfterPersonSave=false; eventModal.classList.add('open');}
   if(reopenDocumentAfterPersonSave){reopenDocumentAfterPersonSave=false; documentModal.classList.add('open');}
+  if(reopenSourceAfterPersonSave){reopenSourceAfterPersonSave=false; sourceModal.classList.add('open');}
 }
 
 async function ensureAdmin(){
@@ -354,6 +355,10 @@ async function savePerson(e){
   if(!id&&newId&&reopenDocumentAfterPersonSave){
     documentQuickPeople.push({id:newId,full_name:payload.full_name});
     renderDocumentChips();
+  }
+  if(!id&&newId&&reopenSourceAfterPersonSave){
+    sourceQuickPeople.push({id:newId,full_name:payload.full_name});
+    renderSourceChips();
   }
   closeModal(); showToast(id?'Pessoa atualizada.':'Pessoa cadastrada.'); await loadPeople(); await loadPeopleOptions(); fillFocusSelect();
   if(reopenRelModeAfterPersonSave){
@@ -981,6 +986,9 @@ $('#sourceQuickStoryAdd').onclick=addSourceQuickStory;
 $('#sourceQuickStory').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addSourceQuickStory();}});
 $('#sourceQuickChapterAdd').onclick=addSourceQuickChapter;
 $('#sourceQuickChapter').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addSourceQuickChapter();}});
+$('#sourceQuickPersonAdd').onclick=addSourceQuickPerson;
+$('#sourceQuickPerson').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addSourceQuickPerson();}});
+$('#sourceQuickPersonNew').addEventListener('click',(e)=>{e.preventDefault(); reopenSourceAfterPersonSave=true; sourceModal.classList.remove('open'); openModal();});
 $('#searchEvents').addEventListener('input',()=>{eventsPage=1; renderEvents();});$('#filterEventType').addEventListener('change',()=>{eventsPage=1; renderEvents();});
 $('#eventsPageSize').addEventListener('change',()=>{eventsPage=1; renderEvents();});
 $('#newDocumentBtn').onclick=()=>openDocumentModal();$('#closeDocumentModal').onclick=closeDocumentModal;$('#cancelDocumentForm').onclick=closeDocumentModal;$('#refreshDocuments').onclick=loadDocuments;
@@ -2350,7 +2358,7 @@ async function deleteDocument(id){
 /* ---------- Fontes ---------- */
 function sourceTypeLabel(t){return ({document:'Documento',book:'Livro',interview:'Entrevista',website:'Site',video:'Vídeo',photo:'Foto',oral_history:'História oral',family_memory:'Memória de família',archive:'Arquivo público',unverified:'Não verificado',reconstruction:'Reconstrução',other:'Outro'})[t]||t||'—'}
 async function loadSources(){
-  const {data,error}=await client.from('sources').select('id,title,description,notes,source_type,url,document_id,place_id,updated_at,documents(title),story_sources(story_id,stories(title)),chapter_sources(chapter_id,chapters(chapter_number,title,subtitle))').order('updated_at',{ascending:false});
+  const {data,error}=await client.from('sources').select('id,title,description,notes,source_type,url,document_id,place_id,updated_at,documents(title),story_sources(story_id,stories(title)),chapter_sources(chapter_id,chapters(chapter_number,title,subtitle)),person_sources(person_id,people(id,full_name))').order('updated_at',{ascending:false});
   if(error){$('#sourcesTable').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   sources=data||[]; $('#sourcesCount').textContent=sources.length; fillDatalist('#sourcesQuickList',sources,'title',sourcesQuickLabelMap); renderSources();
 }
@@ -2387,15 +2395,31 @@ function openSourceModal(src=null){
   $('#sourceNotes').value=src?.notes||'';
   sourceQuickStories=(src?.story_sources||[]).map(ss=>({id:ss.story_id,title:ss.stories?.title||''}));
   sourceQuickChapters=(src?.chapter_sources||[]).map(cs=>({id:cs.chapter_id,title:cs.chapters?chapterQuickLabel(cs.chapters):''}));
-  $('#sourceQuickStory').value=''; $('#sourceQuickChapter').value='';
+  sourceQuickPeople=(src?.person_sources||[]).map(ps=>({id:ps.person_id,full_name:ps.people?.full_name||''}));
+  $('#sourceQuickStory').value=''; $('#sourceQuickChapter').value=''; $('#sourceQuickPerson').value='';
+  fillPeopleDatalist();
   renderSourceChips();
   sourceModal.classList.add('open');
 }
 function renderSourceChips(){
   $('#sourceStoryChips').innerHTML=sourceQuickStories.map(s=>`<span class="chip">${escapeHtml(s.title)}<button type="button" data-remove-sqs="${s.id}">×</button></span>`).join('');
   $('#sourceChapterChips').innerHTML=sourceQuickChapters.map(c=>`<span class="chip">${escapeHtml(c.title)}<button type="button" data-remove-sqc="${c.id}">×</button></span>`).join('');
+  $('#sourcePeopleChips').innerHTML=sourceQuickPeople.map(p=>`<span class="chip">${escapeHtml(p.full_name)}<button type="button" data-remove-sqp="${p.id}">×</button></span>`).join('');
   document.querySelectorAll('[data-remove-sqs]').forEach(b=>b.onclick=()=>{sourceQuickStories=sourceQuickStories.filter(s=>s.id!==b.dataset.removeSqs); renderSourceChips();});
   document.querySelectorAll('[data-remove-sqc]').forEach(b=>b.onclick=()=>{sourceQuickChapters=sourceQuickChapters.filter(c=>c.id!==b.dataset.removeSqc); renderSourceChips();});
+  document.querySelectorAll('[data-remove-sqp]').forEach(b=>b.onclick=()=>{sourceQuickPeople=sourceQuickPeople.filter(p=>p.id!==b.dataset.removeSqp); renderSourceChips();});
+}
+function addSourceQuickPerson(){
+  const raw=$('#sourceQuickPerson').value.trim();
+  if(!raw) return;
+  const id=resolvePersonId($('#sourceQuickPerson'));
+  if(!id){showError($('#sourceFormError'),'Pessoa não encontrada — selecione uma da lista.');return}
+  showError($('#sourceFormError'),'');
+  if(!sourceQuickPeople.some(p=>p.id===id)){
+    sourceQuickPeople.push({id,full_name:peopleOptions.find(p=>p.id===id)?.full_name||labelForId(id)});
+    renderSourceChips();
+  }
+  $('#sourceQuickPerson').value='';
 }
 function addSourceQuickStory(){
   const raw=$('#sourceQuickStory').value.trim();
@@ -2458,6 +2482,12 @@ async function saveSource(e){
     const addChapters=sourceQuickChapters.filter(c=>!origChapters.has(c.id));
     if(removeChapters.length) await client.from('chapter_sources').delete().eq('source_id',sourceRowId).in('chapter_id',removeChapters);
     if(addChapters.length) await client.from('chapter_sources').insert(addChapters.map(c=>({source_id:sourceRowId,chapter_id:c.id})));
+    const origPeople=new Set((existing?.person_sources||[]).map(ps=>ps.person_id));
+    const curPeople=new Set(sourceQuickPeople.map(p=>p.id));
+    const removePeople=[...origPeople].filter(pid=>!curPeople.has(pid));
+    const addPeople=sourceQuickPeople.filter(p=>!origPeople.has(p.id));
+    if(removePeople.length) await client.from('person_sources').delete().eq('source_id',sourceRowId).in('person_id',removePeople);
+    if(addPeople.length) await client.from('person_sources').insert(addPeople.map(p=>({source_id:sourceRowId,person_id:p.id})));
   }
   if(!id&&newSourceId){
     if(reopenStoryAfterSourceSave){storyQuickSources.push({id:newSourceId,title}); renderStoryChips();}
