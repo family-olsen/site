@@ -472,6 +472,8 @@ figcaption{font-size:var(--fs-label);color:var(--muted);margin-top:12px;line-hei
 .lightbox-caption .alt{display:block;font-family:var(--serif);font-size:21px;margin-bottom:8px}
 .lightbox-caption .meta{display:block;font-size:var(--fs-label);letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
 .lightbox-caption .desc{display:block;font-size:var(--fs-caption);line-height:1.7;color:var(--muted-2);margin-top:14px;text-align:left}
+.lightbox-pessoas{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
+.lightbox-pessoas .pill-person{background:var(--bg-4)}
 .lightbox-close{position:fixed;top:clamp(14px,3vw,28px);right:clamp(14px,3vw,28px);width:42px;height:42px;border-radius:50%;border:1px solid var(--line-3);background:rgba(19,29,43,.8);color:var(--text);font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;transition:background .25s,border-color .25s}
 .lightbox-close:hover{background:var(--bg-4);border-color:var(--gold-dark);color:var(--gold)}
 

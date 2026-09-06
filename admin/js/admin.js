@@ -175,6 +175,28 @@ async function processAvatarFile(file){
   bitmap.close?.();
   return blob;
 }
+// Ferramenta de manutenção: sobe a foto de uma pessoa sem passar pelo formulário
+// (usada pra importar retratos do FamilySearch em lote). Mesmo pipeline do
+// upload manual — processa (320px, webp), envia, atualiza avatar_path e apaga
+// a foto antiga se já existisse. Uso no console do admin, já logado:
+//   await subirFotoPessoa('<id-da-pessoa>', '<base64 do jpg>')
+async function subirFotoPessoa(personId, base64, mime){
+  const bin=atob(base64);
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  const file=new File([bytes],'foto.jpg',{type:mime||'image/jpeg'});
+  const blob=await processAvatarFile(file);
+  const {data:existing}=await client.from('people').select('avatar_path').eq('id',personId).maybeSingle();
+  const uid=crypto.randomUUID();
+  const avPath=`avatars/${uid}.webp`;
+  const up=await client.storage.from('photos').upload(avPath,blob,{contentType:'image/webp'});
+  if(up.error) throw new Error('upload: '+up.error.message);
+  const {error}=await client.from('people').update({avatar_path:avPath}).eq('id',personId);
+  if(error) throw new Error('update: '+error.message);
+  if(existing?.avatar_path) await client.storage.from('photos').remove([existing.avatar_path]);
+  return avPath;
+}
+window.subirFotoPessoa=subirFotoPessoa;
 async function onPersonAvatarChange(e){
   const file=e.target.files[0];
   if(!file) return;

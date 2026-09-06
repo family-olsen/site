@@ -147,11 +147,16 @@ document.addEventListener('keydown',(e)=>{
 });
 
 /* ---------- Lightbox ---------- */
-function openLightbox(src,alt,meta,desc){
+function openLightbox(src,alt,meta,desc,pessoas){
   closeLightbox();
   const div=document.createElement('div');
   div.className='lightbox'; div.id='activeLightbox';
-  div.innerHTML=`<button type="button" class="lightbox-close" aria-label="Fechar">×</button><img src="${escapeHtml(src)}" alt="${escapeHtml(alt||'')}"><p class="lightbox-caption"><span class="alt">${escapeHtml(alt||'')}</span><span class="meta">${escapeHtml(meta||'')}</span>${desc?`<span class="desc">${escapeHtml(desc)}</span>`:''}</p>`;
+  const pessoasHtml=(pessoas&&pessoas.length)?`<span class="lightbox-pessoas">${pessoas.map(p=>`
+    <a class="pill-person" href="pessoa.html?id=${p.id}">
+      <span class="pill-avatar" style="${p.avatar_path?`background-image:url('${photoUrl(p.avatar_path)}')`:''}">${p.avatar_path?'':escapeHtml(initials(p.full_name))}</span>
+      <span>${escapeHtml(p.full_name)}</span>
+    </a>`).join('')}</span>`:'';
+  div.innerHTML=`<button type="button" class="lightbox-close" aria-label="Fechar">×</button><img src="${escapeHtml(src)}" alt="${escapeHtml(alt||'')}"><div class="lightbox-caption"><span class="alt">${escapeHtml(alt||'')}</span><span class="meta">${escapeHtml(meta||'')}</span>${desc?`<span class="desc">${escapeHtml(desc)}</span>`:''}${pessoasHtml}</div>`;
   // só fecha clicando no fundo (fora da foto/legenda) ou no ×  — clicar na foto em si não fecha.
   div.addEventListener('click',(e)=>{ if(e.target===div) closeLightbox(); });
   div.querySelector('.lightbox-close').addEventListener('click',closeLightbox);

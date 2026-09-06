@@ -58,7 +58,7 @@ let HAS_COLECOES=false, HAS_FAMILIAS=false, HAS_PESSOAS=false;
 function openPhotoLightbox(p){
   const local=p.places?.name||'';
   const meta=[p.photo_date?p.photo_date.slice(0,4):'',local].filter(Boolean).join(' · ');
-  openLightbox(photoUrl(p.optimized_path||p.thumbnail_path),p.title,meta+(p.caption?(meta?' — ':'')+p.caption:''),p.description);
+  openLightbox(photoUrl(p.optimized_path||p.thumbnail_path),p.title,meta+(p.caption?(meta?' — ':'')+p.caption:''),p.description,p.pessoasLink);
 }
 
 function filteredPhotos(){
@@ -153,7 +153,7 @@ async function boot(){
   renderHeader(); renderFooter();
   const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(!reduceMotion) revealWords($('main h1'),{stagger:35});
-  const {data:photos}=await sbClient.from('photos').select('id,title,caption,description,thumbnail_path,optimized_path,photo_date,places(name),album_photos(albums(title)),photo_people(people(full_name,surname))').eq('hide_from_gallery',false).order('photo_date',{ascending:false,nullsFirst:false});
+  const {data:photos}=await sbClient.from('photos').select('id,title,caption,description,thumbnail_path,optimized_path,photo_date,places(name),album_photos(albums(title)),photo_people(people(id,full_name,surname,avatar_path))').eq('hide_from_gallery',false).order('photo_date',{ascending:false,nullsFirst:false});
   if(!photos||!photos.length){
     $('#gallerySummary').textContent='';
     $('#cfRoot').innerHTML='<p class="empty-note">Nenhuma foto publicada ainda.</p>';
@@ -164,6 +164,7 @@ async function boot(){
     decada:p.photo_date?(Math.floor(Number(p.photo_date.slice(0,4))/10)*10)+'s':'Sem data',
     colecoes:(p.album_photos||[]).map(ap=>ap.albums?.title).filter(Boolean),
     pessoas:(p.photo_people||[]).map(pp=>pp.people?.full_name).filter(Boolean),
+    pessoasLink:(p.photo_people||[]).map(pp=>pp.people).filter(Boolean),
     familias:[...new Set((p.photo_people||[]).flatMap(pp=>pp.people?surnameTokens(pp.people):[]))]
   }));
   $('#gallerySummary').textContent=`${photos.length} ${photos.length===1?'imagem digitalizada':'imagens digitalizadas'} neste acervo.`;
