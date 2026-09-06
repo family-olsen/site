@@ -44,13 +44,24 @@
   </div>
 
   <section class="section border-bottom">
-    <div class="wrap linhagens-grid" id="linhagensGrid"></div>
+    <div class="wrap">
+      <div class="section-head">
+        <div><h2>Linhagens da família</h2><p class="section-sub">Os ramos que formam esse acervo — clique num sobrenome pra ver quem faz parte dele.</p></div>
+        <span class="rule"></span>
+      </div>
+      <div class="linhagens-grid" id="linhagensGrid">
+        <div class="skel skel-linhagem"></div><div class="skel skel-linhagem"></div><div class="skel skel-linhagem"></div><div class="skel skel-linhagem"></div>
+      </div>
+      <p id="linhagensMaisRow" class="hidden"></p>
+    </div>
   </section>
 
   <section class="section">
     <div class="wrap">
       <div class="section-head"><h2>Comece por aqui</h2><span class="rule"></span></div>
-      <div class="portas-grid" id="portasGrid"></div>
+      <div class="portas-grid" id="portasGrid">
+        <div class="skel skel-porta"></div><div class="skel skel-porta"></div><div class="skel skel-porta"></div><div class="skel skel-porta"></div>
+      </div>
     </div>
   </section>
 
@@ -62,7 +73,9 @@
   </section>
 
   <section class="section-numeros">
-    <div class="wrap numeros-grid" id="numerosGrid"></div>
+    <div class="wrap numeros-grid" id="numerosGrid">
+      <div class="skel skel-numero"></div><div class="skel skel-numero"></div><div class="skel skel-numero"></div><div class="skel skel-numero"></div><div class="skel skel-numero"></div>
+    </div>
   </section>
 </main>
 
@@ -100,17 +113,32 @@ async function boot(){
     sbClient.from('chapters').select('id,book_id')
   ]);
 
-  // Linhagens (calculadas a partir da árvore)
+  // Linhagens (calculadas a partir da árvore) — mostra só as 4 primeiras de cara
+  // (limite de itens por decisão de uma vez só) e deixa "+N linhagens" pra revelar
+  // o resto, em vez de despejar tudo numa grade só na primeira rolagem da página.
   const linhagens=await computeLinhagens();
-  $('#linhagensGrid').innerHTML=linhagens.length?linhagens.map(l=>`
-    <a class="linhagem-card" href="pessoas.html?sobrenome=${encodeURIComponent(l.nome)}">
+  const LINHAGENS_CAP=4;
+  const linhagensVisiveis=linhagens.slice(0,LINHAGENS_CAP), linhagensResto=linhagens.slice(LINHAGENS_CAP);
+  const linhagemCardHtml=l=>`<a class="linhagem-card" href="pessoas.html?sobrenome=${encodeURIComponent(l.nome)}">
       <p class="periodo">${escapeHtml(l.periodo)}</p>
       <h3>${escapeHtml(l.nome)}</h3>
       <p class="texto">Clique para ver quem são.</p>
       <p class="contagem">${escapeHtml(l.contagem)}</p>
-    </a>`).join(''):'<p class="empty-note">Ainda não há pessoas públicas suficientes para mostrar os ramos da família.</p>';
+    </a>`;
+  $('#linhagensGrid').innerHTML=linhagens.length?linhagensVisiveis.map(linhagemCardHtml).join(''):'<p class="empty-note">Ainda não há pessoas públicas suficientes para mostrar os ramos da família.</p>';
   initScrollReveal('.linhagem-card',{stagger:60});
   initCardTilt('.linhagem-card',{max:5,shadow:10});
+  if(linhagensResto.length){
+    const maisRow=$('#linhagensMaisRow');
+    maisRow.classList.remove('hidden');
+    maisRow.innerHTML=`<button type="button" class="linhagens-mais" id="linhagensMaisBtn">+ ${linhagensResto.length} ${linhagensResto.length===1?'linhagem':'linhagens'} →</button>`;
+    $('#linhagensMaisBtn').addEventListener('click',()=>{
+      $('#linhagensGrid').insertAdjacentHTML('beforeend',linhagensResto.map(linhagemCardHtml).join(''));
+      [...document.querySelectorAll('.linhagem-card:not(.reveal-block)')].forEach(el=>revealBlock(el));
+      initCardTilt('.linhagem-card:not(.tilt-card)',{max:5,shadow:10});
+      maisRow.classList.add('hidden');
+    });
+  }
 
   // Portas de entrada
   const portas=[
@@ -147,7 +175,7 @@ async function boot(){
     {v:(people||[]).length,k:'pessoas'},
     {v:(photos||[]).length,k:'fotografias'},
     {v:anosCobertos||'—',k:'anos cobertos'},
-    {v:(sources||[]).length,k:'fontes citadas'},
+    {v:(sources||[]).length||'—',k:'fontes citadas'},
     {v:linhagens.length,k:'linhagens'}
   ];
   $('#numerosGrid').innerHTML=numeros.map(n=>`<div class="numero-item"><p class="v">${escapeHtml(String(n.v))}</p><p class="k">${escapeHtml(n.k)}</p></div>`).join('');

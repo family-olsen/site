@@ -69,18 +69,22 @@ img{max-width:100%}
 /* ---------- Header ---------- */
 .site-header{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px;padding:8px clamp(16px,4vw,48px);background:rgba(11,18,32,.66);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .site-brand{display:flex;flex-direction:column;gap:2px;align-items:flex-start;background:none;border:0;padding:0;cursor:pointer;text-align:left;color:inherit;font-family:inherit}
-/* letter-spacing em "em" cresce junto com o font-size — foi isso que fez o texto
-   parecer mais espaçado ao aumentar (não era a intenção). Aqui o espaçamento fica
-   bem apertado e o peso mais leve, pra ler "fino" mesmo grande. */
-.site-brand strong{font-family:var(--serif);font-size:31.2px;letter-spacing:.02em;color:var(--text);text-transform:uppercase;font-weight:300}
-.site-brand span{font-size:8.55px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
-/* fonte um degrau menor que o resto do site (10px) e peso leve — os nomes das abas
-   não precisam competir com o restante, ficam discretos e "finos". */
+/* letter-spacing em "em" cresce junto com o font-size — é por isso que o espaçamento
+   fica bem apertado aqui (peso leve, pra ler "fino"), não em proporção ao tamanho.
+   Trazido de volta pro piso de legibilidade (crítica de design apontou 8,55px/10px
+   abaixo do mínimo de 11px pra texto funcional/de navegação). */
+.site-brand strong{font-family:var(--serif);font-size:19px;letter-spacing:.03em;color:var(--text);text-transform:uppercase;font-weight:300}
+/* ">" (filho direto) importa aqui: sem ele, esse seletor também pegava os <span
+   class="reveal-word"> que a animação de texto cria pra cada palavra da marca (span
+   dentro de strong, dentro de site-brand) e forçava esse tamanho pequeno neles — a
+   marca inteira renderizava minúscula por baixo do que a regra ".site-brand strong"
+   dizia. */
+.site-brand > span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .site-nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;margin-left:auto}
-.site-nav a{font-family:var(--sans);font-weight:400;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted-3);background:none;border:0;border-radius:999px;padding:8px 12px;cursor:pointer;transition:color .25s,background .25s,transform .25s cubic-bezier(.2,.8,.2,1);display:inline-block}
+.site-nav a{font-family:var(--sans);font-weight:400;font-size:var(--fs-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--muted-3);background:none;border:0;border-radius:999px;padding:8px 12px;cursor:pointer;transition:color .25s,background .25s,transform .25s cubic-bezier(.2,.8,.2,1);display:inline-block}
 .site-nav a:hover{color:var(--bg);background:var(--gold);transform:translateY(-1px)}
 .site-nav a.active{color:var(--bg);background:var(--gold)}
-.search-btn{display:flex;align-items:center;gap:8px;margin-left:6px;padding:8px 14px;border:1px solid var(--line-3);border-radius:999px;background:none;color:var(--text);font-family:var(--sans);font-weight:400;font-size:10px;letter-spacing:.07em;cursor:pointer;transition:border-color .25s,background .25s}
+.search-btn{display:flex;align-items:center;gap:8px;margin-left:6px;padding:8px 14px;border:1px solid var(--line-3);border-radius:999px;background:none;color:var(--text);font-family:var(--sans);font-weight:400;font-size:var(--fs-micro);letter-spacing:.07em;cursor:pointer;transition:border-color .25s,background .25s}
 .search-btn:hover{border-color:var(--gold-dark);background:rgba(192,138,69,.14)}
 .search-dot{width:13px;height:13px;border:1.5px solid currentColor;border-radius:50%;display:inline-block}
 .proto-badge{font-size:var(--fs-micro);letter-spacing:.2em;text-transform:uppercase;color:var(--muted-4);border:1px solid var(--line-2);border-radius:999px;padding:5px 10px}
@@ -144,16 +148,20 @@ main{min-height:40vh}
 .section-tight{padding:clamp(32px,5vw,72px) clamp(16px,4vw,48px)}
 .wrap{max-width:1240px;margin:0 auto}
 .wrap-narrow{max-width:1000px;margin:0 auto}
-.section-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:16px;margin-bottom:clamp(24px,4vw,46px)}
+.section-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;margin-bottom:clamp(24px,4vw,46px)}
 .section-head h2{font-family:var(--serif);font-weight:300;font-size:clamp(26px,3.8vw,44px);margin:0;letter-spacing:-.015em}
+.section-head .section-sub{font-size:var(--fs-caption);color:var(--muted-2);margin:8px 0 0;max-width:520px;line-height:1.6}
 .section-head .rule{flex:1;height:1px;background:var(--line-2);min-width:40px}
 .border-top{border-top:1px solid var(--line)}
 .border-bottom{border-bottom:1px solid var(--line)}
 
 /* ---------- Linhagens ---------- */
-.linhagens-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:clamp(20px,3vw,44px)}
-.linhagem-card{display:block;border-top:1px solid var(--line-gold);padding-top:22px;text-decoration:none;color:inherit;transition:transform .3s ease,opacity .3s ease}
-.linhagem-card:hover{opacity:.85}
+.linhagens-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:clamp(16px,2.4vw,28px)}
+/* fundo sutil + borda dourada em cima: antes era só uma linha fina sobre texto puro
+   (quase nenhum indício de que dava pra clicar) — agora lê como cartão mesmo parado,
+   sem competir com o .porta-card (que é a "porta de entrada" principal). */
+.linhagem-card{display:block;border-top:2px solid var(--line-gold);border-radius:0 0 12px 12px;background:var(--bg-2);padding:20px 18px 22px;text-decoration:none;color:inherit;transition:transform .3s ease,background .3s ease,border-color .3s ease}
+.linhagem-card:hover{background:var(--bg-3);border-top-color:var(--gold)}
 /* sem mouse (touch) o .tilt-card não existe (é ligado só sob hover:hover+pointer:fine
    — ver bloco "Cartões com inclinação"), então aqui garantimos o mesmo levantar
    sutil mesmo nesses casos. Em telas com mouse, quem manda é a regra .tilt-card. */
@@ -164,6 +172,21 @@ main{min-height:40vh}
 .linhagem-card h3{font-family:var(--serif);font-weight:400;font-size:clamp(24px,3.2vw,34px);margin:0 0 12px;letter-spacing:-.01em}
 .linhagem-card p.texto{font-size:var(--fs-caption);line-height:1.75;color:var(--muted-2);margin:0 0 18px}
 .linhagem-card p.contagem{font-size:var(--fs-label);letter-spacing:.06em;color:var(--muted);margin:0}
+.linhagens-mais{display:inline-block;margin-top:clamp(16px,2.4vw,28px);font-family:var(--sans);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.linhagens-mais:hover{color:var(--gold-light)}
+
+/* ---------- Esqueleto de carregamento ---------- */
+/* placeholders exibidos enquanto as seções esperam a resposta do Supabase — sem
+   isso, numa conexão lenta a página mostra um vão vazio abaixo do Hero, parecendo
+   quebrada em vez de "carregando". */
+@keyframes skelPulse{0%,100%{opacity:.5}50%{opacity:.9}}
+.skel{background:var(--bg-3);border-radius:14px;animation:skelPulse 1.6s ease-in-out infinite}
+.skel-linhagem{height:150px;border-radius:0 0 12px 12px}
+.skel-porta{height:314px}
+.skel-numero{height:74px}
+@media (prefers-reduced-motion: reduce){
+  .skel{animation:none;opacity:.7}
+}
 
 /* ---------- Portas (entry cards) ---------- */
 .portas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:clamp(16px,2.4vw,28px)}
