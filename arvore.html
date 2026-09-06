@@ -244,8 +244,11 @@ async function boot(){
   };
   window.addEventListener('pointerup',endPointer);
   window.addEventListener('pointercancel',endPointer);
-  // roda do mouse = zoom (sem precisar segurar Ctrl)
+  // Ctrl/Cmd + roda do mouse = zoom da árvore. Sem Ctrl, a roda rola a página
+  // normalmente (senão a página fica presa e não dá pra descer usando o mouse
+  // em cima da árvore).
   vp.addEventListener('wheel',(e)=>{
+    if(!(e.ctrlKey||e.metaKey)) return;
     e.preventDefault();
     setZoom(zoomScale+(e.deltaY<0?.08:-.08));
   },{passive:false});
