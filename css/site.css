@@ -172,7 +172,9 @@ main{min-height:40vh}
 .linhagem-card h3{font-family:var(--serif);font-weight:400;font-size:clamp(24px,3.2vw,34px);margin:0 0 12px;letter-spacing:-.01em}
 .linhagem-card p.texto{font-size:var(--fs-caption);line-height:1.75;color:var(--muted-2);margin:0 0 18px}
 .linhagem-card p.contagem{font-size:var(--fs-label);letter-spacing:.06em;color:var(--muted);margin:0}
-.linhagens-mais{display:inline-block;margin-top:clamp(16px,2.4vw,28px);font-family:var(--sans);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+/* é um <button>, então sem esse reset ele herda fundo/borda/padding padrão do
+   navegador (o quadrado branco) — aqui fica só a palavra, sem chrome nenhum. */
+.linhagens-mais{display:inline-block;margin-top:clamp(16px,2.4vw,28px);font-family:var(--sans);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);background:none;border:0;padding:0;cursor:pointer}
 .linhagens-mais:hover{color:var(--gold-light)}
 
 /* ---------- Esqueleto de carregamento ---------- */

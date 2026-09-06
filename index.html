@@ -110,8 +110,12 @@ async function boot(){
     sbClient.from('stories').select('id,slug,title,summary,content').order('updated_at',{ascending:false}),
     sbClient.from('events').select('id'),
     sbClient.from('sources').select('id'),
-    sbClient.from('chapters').select('id,book_id')
+    sbClient.from('chapters').select('id,book_id,chapter_number')
   ]);
+  // "capítulos" pro leitor = números de capítulo distintos (o livro.html agrupa
+  // várias seções sob o mesmo chapter_number num único capítulo) — contar as
+  // linhas cruas da tabela conta seções, não capítulos, e infla o número.
+  const capitulosCount=new Set((books||[]).map(c=>c.chapter_number)).size;
 
   // Linhagens (calculadas a partir da árvore) — mostra só as 4 primeiras de cara
   // (limite de itens por decisão de uma vez só) e deixa "+N linhagens" pra revelar
@@ -142,7 +146,7 @@ async function boot(){
 
   // Portas de entrada
   const portas=[
-    {kicker:'O livro',titulo:'Capítulos do livro',texto:(books||[]).length+' capítulos publicados até agora.',href:'livro.html',img:'Assents/inicio-web/livro.webp'},
+    {kicker:'O livro',titulo:'Capítulos do livro',texto:capitulosCount+' '+(capitulosCount===1?'capítulo publicado':'capítulos publicados')+' até agora.',href:'livro.html',img:'Assents/inicio-web/livro.webp'},
     {kicker:'A árvore',titulo:'Árvore genealógica',texto:'Navegue por pais, cônjuges e filhos.',href:'arvore.html',img:'Assents/inicio-web/arvore.webp'},
     {kicker:'As pessoas',titulo:(people||[]).length+' pessoas',texto:'Cada pessoa reúne biografia, família, fotos e histórias.',href:'pessoas.html',img:'Assents/inicio-web/pessoas.webp'},
     {kicker:'O arquivo',titulo:(photos||[]).length+' fotografias',texto:'Digitalizadas e organizadas por data e pessoa.',href:'galeria.html',img:'Assents/inicio-web/fotos.webp'}
