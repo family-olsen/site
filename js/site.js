@@ -75,6 +75,61 @@ async function fetchMarriages(personId){
   const fuMap=new Map((fus||[]).map(f=>[f.id,f]));
   return (members||[]).filter(m=>m.people).map(m=>({spouse:m.people,...fuMap.get(m.family_unit_id)}));
 }
+// Desce a árvore a partir de uma pessoa, geração por geração (1=filhos,
+// 2=netos, 3=bisnetos...), até maxGeracoes ou até não achar mais ninguém.
+// Usado pela "linha da vida" do perfil pra saber quando cada descendente
+// nasceu, sem ter que buscar um por um.
+async function fetchDescendantsByGeneration(rootId,maxGeracoes){
+  const out=[]; let currentIds=[rootId]; let gen=0;
+  while(currentIds.length&&gen<maxGeracoes){
+    gen++;
+    const {data}=await sbClient.from('parent_child_relationships').select(`child_id,people!parent_child_relationships_child_id_fkey(${PERSON_FIELDS})`).in('parent_id',currentIds);
+    const map=new Map();
+    (data||[]).forEach(r=>{ if(r.people) map.set(r.people.id,r.people); });
+    const kids=[...map.values()];
+    if(!kids.length) break;
+    kids.forEach(p=>out.push({person:p,generation:gen}));
+    currentIds=kids.map(p=>p.id);
+  }
+  return out;
+}
+const GERACAO_PALAVRA={1:['filho','filha'],2:['neto','neta'],3:['bisneto','bisneta'],4:['tataraneto','tataraneta']};
+function palavraGeracao(gen,pessoa){
+  const par=GERACAO_PALAVRA[gen];
+  if(!par) return `descendente (${gen}ª geração)`;
+  return pessoa.gender==='female'?par[1]:par[0];
+}
+const EVENT_TYPE_LABEL={birth:'nascimento',marriage:'casamento',death:'falecimento',baptism:'batismo',immigration:'imigração',other:'evento'};
+// Monta os marcos da "linha da vida" de uma pessoa — nascimento, casamento(s),
+// eventos próprios datados, nascimento de filhos/netos/bisnetos... e
+// falecimento, em ordem cronológica. Regra de corte: se sabemos a data da
+// morte (ou ela ainda está viva), vai por DATA, sem limite de geração — só
+// entra quem nasceu dentro do intervalo de vida dela. Se ela já morreu mas
+// SEM data de morte registrada, não dá pra cortar por data, então usamos
+// geração como critério de segurança: só filhos e netos.
+async function buildLifeTimeline(person,marriages,ownEvents){
+  const itens=[];
+  if(person.birth_date) itens.push({data:person.birth_date,titulo:'Nasceu',tipo:'nascimento'});
+  if(person.death_date) itens.push({data:person.death_date,titulo:'Faleceu',tipo:'falecimento'});
+  (marriages||[]).forEach(m=>{
+    if(m.start_date) itens.push({data:m.start_date,titulo:`Casou com ${(m.spouse.full_name||'').split(' ')[0]}`,tipo:'casamento',href:`pessoa.html?id=${m.spouse.id}`});
+  });
+  (ownEvents||[]).forEach(e=>{
+    const d=e.event_date||e.start_date;
+    if(d) itens.push({data:d,titulo:e.title,tipo:EVENT_TYPE_LABEL[e.event_type]||'evento'});
+  });
+  const dataCorte=person.death_date||null;
+  const cortarPorGeracao=!person.death_date&&person.is_living===false;
+  const maxGeracoes=cortarPorGeracao?2:8; // 8 é só um teto de segurança pro caso sem corte por data
+  const descendentes=await fetchDescendantsByGeneration(person.id,maxGeracoes);
+  descendentes.forEach(({person:p,generation:g})=>{
+    if(!p.birth_date) return;
+    if(dataCorte&&p.birth_date>dataCorte) return; // nasceu depois que ela morreu, não entra
+    itens.push({data:p.birth_date,titulo:`Nasceu ${(p.full_name||'').split(' ')[0]}`,tipo:palavraGeracao(g,p),href:`pessoa.html?id=${p.id}`});
+  });
+  itens.sort((a,b)=>String(a.data).localeCompare(String(b.data)));
+  return itens;
+}
 // checagem em lote (uma só vez por renderização, não uma consulta por cartão): pra decidir se vale
 // a pena mostrar a setinha de expandir/lateral, ou se já dá pra saber de antemão que não tem nada
 // pra mostrar (sem pai/mãe, sem filho, sem cônjuge registrado) e nem faz sentido exibir o botão.

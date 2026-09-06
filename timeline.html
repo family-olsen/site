@@ -44,7 +44,6 @@
 <script src="js/config.js"></script>
 <script src="js/site.js"></script>
 <script>
-const TYPE_LABEL={birth:'nascimento',marriage:'casamento',death:'falecimento',baptism:'batismo',immigration:'imigração',other:'evento'};
 async function boot(){
   renderHeader(); renderFooter();
   const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -64,7 +63,7 @@ async function boot(){
     return `<a class="timeline-item" href="${href}">
       <span class="timeline-dot"></span>
       <span class="timeline-ano">${escapeHtml(ano)}</span>
-      <span><span class="timeline-titulo">${escapeHtml(e.title)}</span><span class="timeline-texto">${escapeHtml(e.description||'')}</span><span class="timeline-tipo">${escapeHtml(TYPE_LABEL[e.event_type]||e.event_type||'')}</span></span>
+      <span><span class="timeline-titulo">${escapeHtml(e.title)}</span><span class="timeline-texto">${escapeHtml(e.description||'')}</span><span class="timeline-tipo">${escapeHtml(EVENT_TYPE_LABEL[e.event_type]||e.event_type||'')}</span></span>
     </a>`;
   }).join('');
 }

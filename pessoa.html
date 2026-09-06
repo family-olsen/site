@@ -73,6 +73,7 @@ async function boot(){
   const siblings=await fetchSiblings(parents.map(p=>p.id),id);
   const placeName=(pid)=>places?.find(pl=>pl.id===pid)?.name||'';
   const biografiaAutomatica=gerarBiografiaAutomatica({pessoa:person,pais:parents,casamentos:marriages,filhos:children,placeName});
+  const linhaDaVida=await buildLifeTimeline(person,marriages,(eventRows||[]).filter(r=>r.events).map(r=>r.events));
 
   const stories=(storyRows||[]).filter(r=>r.stories).map(r=>r.stories);
   const photos=(photoRows||[]).filter(r=>r.photos).map(r=>r.photos);
@@ -106,6 +107,10 @@ async function boot(){
           ${[['Pais',parents],['Cônjuge',spouses],['Filhos',children],['Irmãos',siblings]].map(([label,list])=>list.length?`
             <div class="rel-group"><p class="papel">${label}</p><div class="rel-people">${list.map(pillHtml).join('')}</div></div>`:'').join('')}
           <a class="btn-outline-gold" href="arvore.html?foco=${id}" style="display:inline-block;margin-top:6px">Ver na árvore →</a>
+          ${linhaDaVida.length?`<h2 class="col-heading" style="margin-top:32px">Linha da vida</h2><div class="life-timeline">${linhaDaVida.map(it=>{
+            const tag=it.href?'a':'div';
+            return `<${tag} class="life-timeline-item"${it.href?` href="${it.href}"`:''}><span class="life-timeline-ano">${escapeHtml(dateCell(it.data).slice(0,4))}</span><span class="life-timeline-titulo">${escapeHtml(it.titulo)}</span><span class="life-timeline-tipo">${escapeHtml(it.tipo)}</span></${tag}>`;
+          }).join('')}</div>`:''}
         </div>
         <div style="grid-column:span 2;min-width:0">
           <div class="profile-tabs" id="profileTabs"></div>
