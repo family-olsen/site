@@ -35,35 +35,53 @@
 <div id="peopleTable" class="table-wrap"></div>
 <div class="pagination" id="peoplePagination"></div>
 </section>
-<section class="panel" id="familias"><div class="panel-header"><div><span class="eyebrow">FAMÍLIAS</span><h3>Uniões e relações de parentesco</h3></div><div class="toolbar"><input id="searchFamilies" placeholder="Buscar por nome..."><button class="secondary" id="refreshFamilies">Atualizar</button><button class="primary" id="newFamilyBtn">+ Nova união</button></div></div>
-<div id="familiesTable" class="table-wrap"></div></section>
+<section class="panel" id="familias"><div class="panel-header"><div><span class="eyebrow">FAMÍLIAS</span><h3>Uniões e relações de parentesco</h3></div><div class="toolbar"><input id="searchFamilies" placeholder="Buscar por nome..."><select id="familiesPageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshFamilies">Atualizar</button><button class="primary" id="newFamilyBtn">+ Nova união</button></div></div>
+<div id="familiesTable" class="table-wrap"></div>
+<div class="pagination" id="familiesPagination"></div>
+</section>
 <section class="panel" id="genealogia"><div class="panel-header"><div><span class="eyebrow">GENEALOGIA</span><h3>Árvore da família</h3></div><div class="toolbar"><input list="peopleList" id="focusPersonSelect" autocomplete="off" placeholder="Buscar pessoa..."><button class="secondary" id="zoomOutBtn" type="button">−</button><button class="secondary" id="zoomResetBtn" type="button">100%</button><button class="secondary" id="zoomInBtn" type="button">+</button></div></div>
 <div class="tree-viewport" id="treeViewport"><div class="tree-zoom" id="treeZoomWrap"><div id="treeView"></div></div></div>
 <p class="hint">Pais em cima, irmãos ao lado, filhos embaixo. Clique em qualquer pessoa para recentralizar nela. Arraste para mover, use os botões ou a roda do mouse para zoom.</p>
 </section>
-<section class="panel" id="livro"><div class="panel-header"><div><span class="eyebrow">LIVRO</span><h3>Livros e capítulos</h3></div><div class="toolbar"><input id="searchBooks" placeholder="Buscar por título..."><button class="secondary" id="refreshBooks">Atualizar</button><button class="primary" id="newBookBtn">+ Novo livro</button></div></div>
-<div id="booksTable" class="table-wrap"></div></section>
+<section class="panel" id="livro"><div class="panel-header"><div><span class="eyebrow">LIVRO</span><h3>Livros e capítulos</h3></div><div class="toolbar"><input id="searchBooks" placeholder="Buscar por título..."><select id="booksPageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshBooks">Atualizar</button><button class="primary" id="newBookBtn">+ Novo livro</button></div></div>
+<div id="booksTable" class="table-wrap"></div>
+<div class="pagination" id="booksPagination"></div>
+</section>
 
-<section class="panel" id="historias"><div class="panel-header"><div><span class="eyebrow">HISTÓRIAS</span><h3>Relatos e memórias da família</h3></div><div class="toolbar"><input id="searchStories" placeholder="Buscar por título..."><select id="filterStoryStatus"><option value="">Todos os status</option><option value="published">Publicado</option><option value="draft">Rascunho</option></select><button class="secondary" id="refreshStories">Atualizar</button><button class="primary" id="newStoryBtn">+ Nova história</button></div></div>
-<div id="storiesTable" class="table-wrap"></div></section>
+<section class="panel" id="historias"><div class="panel-header"><div><span class="eyebrow">HISTÓRIAS</span><h3>Relatos e memórias da família</h3></div><div class="toolbar"><input id="searchStories" placeholder="Buscar por título..."><select id="filterStoryStatus"><option value="">Todos os status</option><option value="published">Publicado</option><option value="draft">Rascunho</option></select><select id="storiesPageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshStories">Atualizar</button><button class="primary" id="newStoryBtn">+ Nova história</button></div></div>
+<div id="storiesTable" class="table-wrap"></div>
+<div class="pagination" id="storiesPagination"></div>
+</section>
 
-<section class="panel" id="fotos"><div class="panel-header"><div><span class="eyebrow">FOTOS</span><h3>Acervo fotográfico</h3></div><div class="toolbar"><input id="searchPhotos" placeholder="Buscar por título..."><select id="filterPhotoStatus"><option value="">Todos os status</option><option value="published">Publicado</option><option value="draft">Rascunho</option></select><button class="secondary" id="refreshPhotos">Atualizar</button><button class="primary" id="newPhotoBtn">+ Nova foto</button></div></div>
-<div id="photosTable" class="table-wrap"></div></section>
+<section class="panel" id="fotos"><div class="panel-header"><div><span class="eyebrow">FOTOS</span><h3>Acervo fotográfico</h3></div><div class="toolbar"><input id="searchPhotos" placeholder="Buscar por título..."><select id="filterPhotoStatus"><option value="">Todos os status</option><option value="published">Publicado</option><option value="draft">Rascunho</option></select><select id="photosPageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshPhotos">Atualizar</button><button class="primary" id="newPhotoBtn">+ Nova foto</button></div></div>
+<div id="photosTable" class="table-wrap"></div>
+<div class="pagination" id="photosPagination"></div>
+</section>
 
-<section class="panel" id="albuns"><div class="panel-header"><div><span class="eyebrow">ÁLBUNS</span><h3>Coleções de fotos</h3></div><div class="toolbar"><input id="searchAlbums" placeholder="Buscar por título..."><button class="secondary" id="refreshAlbums">Atualizar</button><button class="primary" id="newAlbumBtn">+ Novo álbum</button></div></div>
-<div id="albumsTable" class="table-wrap"></div></section>
+<section class="panel" id="albuns"><div class="panel-header"><div><span class="eyebrow">ÁLBUNS</span><h3>Coleções de fotos</h3></div><div class="toolbar"><input id="searchAlbums" placeholder="Buscar por título..."><select id="albumsPageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshAlbums">Atualizar</button><button class="primary" id="newAlbumBtn">+ Novo álbum</button></div></div>
+<div id="albumsTable" class="table-wrap"></div>
+<div class="pagination" id="albumsPagination"></div>
+</section>
 
-<section class="panel" id="eventos"><div class="panel-header"><div><span class="eyebrow">EVENTOS</span><h3>Linha do tempo da família</h3></div><div class="toolbar"><input id="searchEvents" placeholder="Buscar por título..."><select id="filterEventType"><option value="">Todos os tipos</option><option value="birth">Nascimento</option><option value="marriage">Casamento</option><option value="death">Falecimento</option><option value="baptism">Batismo</option><option value="immigration">Imigração</option><option value="other">Outro</option></select><button class="secondary" id="refreshEvents">Atualizar</button><button class="primary" id="newEventBtn">+ Novo evento</button></div></div>
-<div id="eventsTable" class="table-wrap"></div></section>
+<section class="panel" id="eventos"><div class="panel-header"><div><span class="eyebrow">EVENTOS</span><h3>Linha do tempo da família</h3></div><div class="toolbar"><input id="searchEvents" placeholder="Buscar por título..."><select id="filterEventType"><option value="">Todos os tipos</option><option value="birth">Nascimento</option><option value="marriage">Casamento</option><option value="death">Falecimento</option><option value="baptism">Batismo</option><option value="immigration">Imigração</option><option value="other">Outro</option></select><select id="eventsPageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshEvents">Atualizar</button><button class="primary" id="newEventBtn">+ Novo evento</button></div></div>
+<div id="eventsTable" class="table-wrap"></div>
+<div class="pagination" id="eventsPagination"></div>
+</section>
 
-<section class="panel" id="documentos"><div class="panel-header"><div><span class="eyebrow">DOCUMENTOS</span><h3>Certidões, cartas e registros</h3></div><div class="toolbar"><input id="searchDocuments" placeholder="Buscar por título..."><select id="filterDocumentType"><option value="">Todos os tipos</option><option value="birth_record">Registro de nascimento</option><option value="death_record">Registro de óbito</option><option value="marriage_record">Registro de casamento</option><option value="baptism_record">Registro de batismo</option><option value="immigration_record">Registro de imigração</option><option value="certificate">Certidão</option><option value="letter">Carta</option><option value="map">Mapa</option><option value="photo_scan">Foto/digitalização</option><option value="pdf">PDF</option><option value="other">Outro</option></select><button class="secondary" id="refreshDocuments">Atualizar</button><button class="primary" id="newDocumentBtn">+ Novo documento</button></div></div>
-<div id="documentsTable" class="table-wrap"></div></section>
+<section class="panel" id="documentos"><div class="panel-header"><div><span class="eyebrow">DOCUMENTOS</span><h3>Certidões, cartas e registros</h3></div><div class="toolbar"><input id="searchDocuments" placeholder="Buscar por título..."><select id="filterDocumentType"><option value="">Todos os tipos</option><option value="birth_record">Registro de nascimento</option><option value="death_record">Registro de óbito</option><option value="marriage_record">Registro de casamento</option><option value="baptism_record">Registro de batismo</option><option value="immigration_record">Registro de imigração</option><option value="certificate">Certidão</option><option value="letter">Carta</option><option value="map">Mapa</option><option value="photo_scan">Foto/digitalização</option><option value="pdf">PDF</option><option value="other">Outro</option></select><select id="documentsPageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshDocuments">Atualizar</button><button class="primary" id="newDocumentBtn">+ Novo documento</button></div></div>
+<div id="documentsTable" class="table-wrap"></div>
+<div class="pagination" id="documentsPagination"></div>
+</section>
 
-<section class="panel" id="fontes"><div class="panel-header"><div><span class="eyebrow">FONTES</span><h3>Referências e procedência</h3></div><div class="toolbar"><input id="searchSources" placeholder="Buscar por título..."><button class="secondary" id="refreshSources">Atualizar</button><button class="primary" id="newSourceBtn">+ Nova fonte</button></div></div>
-<div id="sourcesTable" class="table-wrap"></div></section>
+<section class="panel" id="fontes"><div class="panel-header"><div><span class="eyebrow">FONTES</span><h3>Referências e procedência</h3></div><div class="toolbar"><input id="searchSources" placeholder="Buscar por título..."><select id="sourcesPageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshSources">Atualizar</button><button class="primary" id="newSourceBtn">+ Nova fonte</button></div></div>
+<div id="sourcesTable" class="table-wrap"></div>
+<div class="pagination" id="sourcesPagination"></div>
+</section>
 
-<section class="panel" id="lugares"><div class="panel-header"><div><span class="eyebrow">LUGARES</span><h3>Cidades e locais de referência</h3></div><div class="toolbar"><input id="searchPlaces" placeholder="Buscar por nome..."><button class="secondary" id="refreshPlaces">Atualizar</button><button class="primary" id="newPlaceBtn">+ Novo lugar</button></div></div>
-<div id="placesTable" class="table-wrap"></div></section>
+<section class="panel" id="lugares"><div class="panel-header"><div><span class="eyebrow">LUGARES</span><h3>Cidades e locais de referência</h3></div><div class="toolbar"><input id="searchPlaces" placeholder="Buscar por nome..."><select id="placesPageSize"><option value="10" selected>10 por página</option><option value="30">30 por página</option><option value="50">50 por página</option></select><button class="secondary" id="refreshPlaces">Atualizar</button><button class="primary" id="newPlaceBtn">+ Novo lugar</button></div></div>
+<div id="placesTable" class="table-wrap"></div>
+<div class="pagination" id="placesPagination"></div>
+</section>
 
 <section class="panel" id="configuracoes"><div class="panel-header"><div><span class="eyebrow">CONFIGURAÇÕES</span><h3>Conta e ambiente</h3></div></div>
 <div class="config-grid">

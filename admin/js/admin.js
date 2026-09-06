@@ -2,7 +2,7 @@ const { createClient } = supabase;
 const client = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY);
 const $ = s => document.querySelector(s);
 const loginView=$('#loginView'), appView=$('#appView'), modal=$('#personModal'), familyModal=$('#familyModal'), childrenModal=$('#childrenModal'), linkChildrenModal=$('#linkChildrenModal'), relModal=$('#relModal'), storyModal=$('#storyModal'), storyPeopleModal=$('#storyPeopleModal'), bookModal=$('#bookModal'), chaptersModal=$('#chaptersModal'), photoModal=$('#photoModal'), photoPeopleModal=$('#photoPeopleModal'), albumModal=$('#albumModal'), albumPhotosModal=$('#albumPhotosModal'), eventModal=$('#eventModal'), eventPeopleModal=$('#eventPeopleModal'), documentModal=$('#documentModal'), sourceModal=$('#sourceModal'), placeModal=$('#placeModal'), confirmDeleteModal=$('#confirmDeleteModal');
-let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null;
+let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null, familiesPage=1, booksPage=1, storiesPage=1, photosPage=1, albumsPage=1, eventsPage=1, documentsPage=1, sourcesPage=1, placesPage=1;
 
 function showError(el,msg){el.textContent=msg||''}
 let confirmDeleteResolver=null;
@@ -199,16 +199,28 @@ async function loadFamilies(){
   families=data||[]; $('#familiesCount').textContent=families.length; renderFamilies();
 }
 function renderFamilies(){
+  $('#familiesPagination').innerHTML='';
   const q=$('#searchFamilies').value.trim().toLowerCase();
   const list=q?families.filter(f=>(f.family_unit_members||[]).some(m=>(m.people?.full_name||'').toLowerCase().includes(q))):families;
   if(!list.length){$('#familiesTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">♥</div><h4>Nenhuma união encontrada</h4><p>Tente buscar por outro nome.</p></div>':'<div class="empty-state small"><div class="empty-icon">♥</div><h4>Nenhuma união cadastrada</h4><p>Cadastre a primeira união familiar.</p><button class="primary" id="emptyAddFamily">+ Nova união</button></div>';$('#emptyAddFamily')?.addEventListener('click',()=>openFamilyModal());return}
-  $('#familiesTable').innerHTML='<table><thead><tr><th>União</th><th>Tipo</th><th>Status</th><th></th></tr></thead><tbody>'+list.map(f=>{
+  const pageSize=Number($('#familiesPageSize').value)||10;
+  const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
+  if(familiesPage>totalPages) familiesPage=totalPages;
+  if(familiesPage<1) familiesPage=1;
+  const start=(familiesPage-1)*pageSize;
+  const pageItems=list.slice(start,start+pageSize);
+  $('#familiesTable').innerHTML='<table><thead><tr><th>União</th><th>Tipo</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(f=>{
     const names=(f.family_unit_members||[]).map(m=>m.people?.full_name).filter(Boolean).join(' & ')||'—';
     return `<tr><td><strong>${escapeHtml(names)}</strong></td><td>${relLabel(f.relationship_type)}</td><td><span class="status">${escapeHtml(f.status)}</span></td><td class="actions"><button data-children="${f.id}">Filhos</button><button data-edit-family="${f.id}">Editar</button><button data-delete-family="${f.id}" class="danger-text">Excluir</button></td></tr>`;
   }).join('')+'</tbody></table>';
   document.querySelectorAll('[data-children]').forEach(b=>b.onclick=()=>openChildrenModal(b.dataset.children));
   document.querySelectorAll('[data-edit-family]').forEach(b=>b.onclick=()=>openFamilyModal(families.find(f=>f.id===b.dataset.editFamily)));
   document.querySelectorAll('[data-delete-family]').forEach(b=>b.onclick=()=>deleteFamily(b.dataset.deleteFamily));
+  if(totalPages>1){
+    $('#familiesPagination').innerHTML=`<button type="button" class="secondary" id="familiesPrevPage"${familiesPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${familiesPage} de ${totalPages} (${list.length} uniões)</span><button type="button" class="secondary" id="familiesNextPage"${familiesPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#familiesPrevPage')?.addEventListener('click',()=>{familiesPage--; renderFamilies();});
+    $('#familiesNextPage')?.addEventListener('click',()=>{familiesPage++; renderFamilies();});
+  }
 }
 function openFamilyModal(family=null){
   $('#familyFormError').textContent='';
@@ -721,7 +733,8 @@ $('#personAvatarFile').addEventListener('change',onPersonAvatarChange);
 $('#searchPeople').addEventListener('input',()=>loadPeople());$('#logoutBtn').onclick=async()=>{await client.auth.signOut();location.reload()};
 $('#peoplePageSize').addEventListener('change',()=>{peoplePage=1; renderPeople();});
 $('#newFamilyBtn').onclick=()=>openFamilyModal();$('#closeFamilyModal').onclick=closeFamilyModal;$('#cancelFamilyForm').onclick=closeFamilyModal;$('#refreshFamilies').onclick=loadFamilies;
-$('#searchFamilies').addEventListener('input',renderFamilies);
+$('#searchFamilies').addEventListener('input',()=>{familiesPage=1; renderFamilies();});
+$('#familiesPageSize').addEventListener('change',()=>{familiesPage=1; renderFamilies();});
 $('#closeChildrenModal').onclick=closeChildrenModal;$('#addChildBtn').onclick=addChild;
 $('#closeLinkChildrenModal').onclick=closeLinkChildrenModal;$('#linkChildrenSkip').onclick=closeLinkChildrenModal;$('#linkChildrenConfirm').onclick=confirmLinkChildren;
 $('#newStoryBtn').onclick=()=>openStoryModal();$('#closeStoryModal').onclick=closeStoryModal;$('#cancelStoryForm').onclick=closeStoryModal;$('#refreshStories').onclick=loadStories;
@@ -733,12 +746,15 @@ wireRichTextEditor($('#storyContent'),document.querySelector('#storyForm .rt-too
 ['personBirthPlace','personDeathPlace','storyPlace','photoPlace','albumPlace','eventPlace','documentPlace','sourcePlace'].forEach(id=>{
   const el=$('#'+id); if(el) wirePlaceAutocomplete(el);
 });
-$('#searchStories').addEventListener('input',renderStories);$('#filterStoryStatus').addEventListener('change',renderStories);
+$('#searchStories').addEventListener('input',()=>{storiesPage=1; renderStories();});$('#filterStoryStatus').addEventListener('change',()=>{storiesPage=1; renderStories();});
+$('#storiesPageSize').addEventListener('change',()=>{storiesPage=1; renderStories();});
 $('#closeStoryPeopleModal').onclick=closeStoryPeopleModal;$('#addStoryPersonBtn').onclick=addStoryPerson;
 $('#newBookBtn').onclick=()=>openBookModal();$('#closeBookModal').onclick=closeBookModal;$('#cancelBookForm').onclick=closeBookModal;$('#refreshBooks').onclick=loadBooks;
-$('#searchBooks').addEventListener('input',renderBooks);
+$('#searchBooks').addEventListener('input',()=>{booksPage=1; renderBooks();});
+$('#booksPageSize').addEventListener('change',()=>{booksPage=1; renderBooks();});
 $('#newPhotoBtn').onclick=()=>openPhotoModal();$('#closePhotoModal').onclick=closePhotoModal;$('#cancelPhotoForm').onclick=closePhotoModal;$('#refreshPhotos').onclick=loadPhotos;
-$('#searchPhotos').addEventListener('input',renderPhotos);$('#filterPhotoStatus').addEventListener('change',renderPhotos);
+$('#searchPhotos').addEventListener('input',()=>{photosPage=1; renderPhotos();});$('#filterPhotoStatus').addEventListener('change',()=>{photosPage=1; renderPhotos();});
+$('#photosPageSize').addEventListener('change',()=>{photosPage=1; renderPhotos();});
 $('#photoFile').addEventListener('change',onPhotoFileChange);
 $('#photoQuickPersonAdd').onclick=addPhotoQuickPerson;
 $('#photoQuickStoryAdd').onclick=addPhotoQuickStory;
@@ -747,7 +763,8 @@ $('#photoQuickPerson').addEventListener('keydown',e=>{if(e.key==='Enter'){e.prev
 $('#photoQuickStory').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addPhotoQuickStory();}});
 $('#photoQuickAlbum').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addPhotoQuickAlbum();}});
 $('#newAlbumBtn').onclick=()=>openAlbumModal();$('#closeAlbumModal').onclick=closeAlbumModal;$('#cancelAlbumForm').onclick=closeAlbumModal;$('#refreshAlbums').onclick=loadAlbums;
-$('#searchAlbums').addEventListener('input',renderAlbums);
+$('#searchAlbums').addEventListener('input',()=>{albumsPage=1; renderAlbums();});
+$('#albumsPageSize').addEventListener('change',()=>{albumsPage=1; renderAlbums();});
 $('#newEventBtn').onclick=()=>openEventModal();$('#closeEventModal').onclick=closeEventModal;$('#cancelEventForm').onclick=closeEventModal;$('#refreshEvents').onclick=loadEvents;
 $('#eventQuickPersonAdd').onclick=addEventQuickPerson;
 $('#eventQuickPerson').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addEventQuickPerson();}});
@@ -764,7 +781,8 @@ $('#sourceQuickStoryAdd').onclick=addSourceQuickStory;
 $('#sourceQuickStory').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addSourceQuickStory();}});
 $('#sourceQuickChapterAdd').onclick=addSourceQuickChapter;
 $('#sourceQuickChapter').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addSourceQuickChapter();}});
-$('#searchEvents').addEventListener('input',renderEvents);$('#filterEventType').addEventListener('change',renderEvents);
+$('#searchEvents').addEventListener('input',()=>{eventsPage=1; renderEvents();});$('#filterEventType').addEventListener('change',()=>{eventsPage=1; renderEvents();});
+$('#eventsPageSize').addEventListener('change',()=>{eventsPage=1; renderEvents();});
 $('#newDocumentBtn').onclick=()=>openDocumentModal();$('#closeDocumentModal').onclick=closeDocumentModal;$('#cancelDocumentForm').onclick=closeDocumentModal;$('#refreshDocuments').onclick=loadDocuments;
 $('#documentFile').addEventListener('change',onDocumentFileChange);
 $('#documentQuickPersonAdd').onclick=addDocumentQuickPerson;
@@ -776,11 +794,14 @@ $('#documentQuickChapterAdd').onclick=addDocumentQuickChapter;
 $('#documentQuickChapter').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addDocumentQuickChapter();}});
 $('#documentQuickEventAdd').onclick=addDocumentQuickEvent;
 $('#documentQuickEvent').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addDocumentQuickEvent();}});
-$('#searchDocuments').addEventListener('input',renderDocuments);$('#filterDocumentType').addEventListener('change',renderDocuments);
+$('#searchDocuments').addEventListener('input',()=>{documentsPage=1; renderDocuments();});$('#filterDocumentType').addEventListener('change',()=>{documentsPage=1; renderDocuments();});
+$('#documentsPageSize').addEventListener('change',()=>{documentsPage=1; renderDocuments();});
 $('#newSourceBtn').onclick=()=>openSourceModal();$('#closeSourceModal').onclick=closeSourceModal;$('#cancelSourceForm').onclick=closeSourceModal;$('#refreshSources').onclick=loadSources;
-$('#searchSources').addEventListener('input',renderSources);
+$('#searchSources').addEventListener('input',()=>{sourcesPage=1; renderSources();});
+$('#sourcesPageSize').addEventListener('change',()=>{sourcesPage=1; renderSources();});
 $('#newPlaceBtn').onclick=()=>openPlaceModal();$('#closePlaceModal').onclick=closePlaceModal;$('#cancelPlaceForm').onclick=closePlaceModal;$('#refreshPlaces').onclick=loadPlaces;
-$('#searchPlaces').addEventListener('input',renderPlaces);
+$('#searchPlaces').addEventListener('input',()=>{placesPage=1; renderPlaces();});
+$('#placesPageSize').addEventListener('change',()=>{placesPage=1; renderPlaces();});
 $('#closeChaptersModal').onclick=closeChaptersModal;$('#cancelChapterEdit').onclick=resetChapterForm;
 wireRichTextEditor($('#chapterContent'),document.querySelector('#chapterForm .rt-toolbar'));
 $('#chapterQuickPhotoAdd').onclick=addChapterQuickPhoto;
@@ -942,11 +963,18 @@ async function loadStories(){
   renderStories();
 }
 function renderStories(){
+  $('#storiesPagination').innerHTML='';
   const q=$('#searchStories').value.trim().toLowerCase();
   const st=$('#filterStoryStatus').value;
   const list=stories.filter(s=>(!q||(s.title||'').toLowerCase().includes(q))&&(!st||s.status===st));
   if(!list.length){$('#storiesTable').innerHTML=(q||st)?'<div class="empty-state small"><div class="empty-icon">✎</div><h4>Nenhuma história encontrada</h4><p>Ajuste a busca ou o filtro de status.</p></div>':'<div class="empty-state small"><div class="empty-icon">✎</div><h4>Nenhuma história cadastrada</h4><p>Registre o primeiro relato da família.</p><button class="primary" id="emptyAddStory">+ Nova história</button></div>';$('#emptyAddStory')?.addEventListener('click',()=>openStoryModal());return}
-  $('#storiesTable').innerHTML='<table><thead><tr><th>Título</th><th>Pessoas</th><th>Atualizada</th><th>Status</th><th></th></tr></thead><tbody>'+list.map(s=>{
+  const pageSize=Number($('#storiesPageSize').value)||10;
+  const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
+  if(storiesPage>totalPages) storiesPage=totalPages;
+  if(storiesPage<1) storiesPage=1;
+  const start=(storiesPage-1)*pageSize;
+  const pageItems=list.slice(start,start+pageSize);
+  $('#storiesTable').innerHTML='<table><thead><tr><th>Título</th><th>Pessoas</th><th>Atualizada</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(s=>{
     const names=(s.story_people||[]).map(m=>m.people?.full_name).filter(Boolean);
     const shown=names.slice(0,2).join(', ')+(names.length>2?` +${names.length-2}`:'');
     return `<tr><td><strong>${escapeHtml(s.title||'—')}</strong>${s.summary?`<br><small>${escapeHtml(s.summary.slice(0,90))}${s.summary.length>90?'…':''}</small>`:''}</td><td>${escapeHtml(shown||'—')}</td><td>${(s.updated_at||'').slice(0,10)||'—'}</td><td><span class="status">${escapeHtml(s.status||'—')}</span></td><td class="actions"><button data-story-people="${s.id}">Pessoas</button><button data-edit-story="${s.id}">Editar</button><button data-delete-story="${s.id}" class="danger-text">Excluir</button></td></tr>`;
@@ -954,6 +982,11 @@ function renderStories(){
   document.querySelectorAll('[data-story-people]').forEach(b=>b.onclick=()=>openStoryPeopleModal(b.dataset.storyPeople));
   document.querySelectorAll('[data-edit-story]').forEach(b=>b.onclick=()=>openStoryModal(stories.find(s=>s.id===b.dataset.editStory)));
   document.querySelectorAll('[data-delete-story]').forEach(b=>b.onclick=()=>deleteStory(b.dataset.deleteStory));
+  if(totalPages>1){
+    $('#storiesPagination').innerHTML=`<button type="button" class="secondary" id="storiesPrevPage"${storiesPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${storiesPage} de ${totalPages} (${list.length} histórias)</span><button type="button" class="secondary" id="storiesNextPage"${storiesPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#storiesPrevPage')?.addEventListener('click',()=>{storiesPage--; renderStories();});
+    $('#storiesNextPage')?.addEventListener('click',()=>{storiesPage++; renderStories();});
+  }
 }
 function openStoryModal(story=null){
   $('#storyFormError').textContent='';
@@ -1248,12 +1281,24 @@ async function loadPlaces(){
 }
 function placeTypeLabel(t){return ({city:'Cidade',church:'Igreja',cemetery:'Cemitério',farm:'Fazenda/sítio',address:'Endereço',other:'Outro'})[t]||t||'—'}
 function renderPlaces(){
+  $('#placesPagination').innerHTML='';
   const q=$('#searchPlaces').value.trim().toLowerCase();
   const list=q?places.filter(p=>(p.name||'').toLowerCase().includes(q)):places;
   if(!list.length){$('#placesTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">◍</div><h4>Nenhum lugar encontrado</h4><p>Tente buscar por outro nome.</p></div>':'<div class="empty-state small"><div class="empty-icon">◍</div><h4>Nenhum lugar cadastrado</h4><p>Cadastre cidades e locais para usar em fotos e eventos.</p><button class="primary" id="emptyAddPlace">+ Novo lugar</button></div>';$('#emptyAddPlace')?.addEventListener('click',()=>openPlaceModal());return}
-  $('#placesTable').innerHTML='<table><thead><tr><th>Nome</th><th>Tipo</th><th>Cidade</th><th>País</th><th></th></tr></thead><tbody>'+list.map(p=>`<tr><td><strong>${escapeHtml(p.name||'—')}</strong></td><td>${escapeHtml(placeTypeLabel(p.place_type))}</td><td>${escapeHtml(p.city||'—')}</td><td>${escapeHtml(p.country||'—')}</td><td class="actions"><button data-edit-place="${p.id}">Editar</button><button data-delete-place="${p.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  const pageSize=Number($('#placesPageSize').value)||10;
+  const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
+  if(placesPage>totalPages) placesPage=totalPages;
+  if(placesPage<1) placesPage=1;
+  const start=(placesPage-1)*pageSize;
+  const pageItems=list.slice(start,start+pageSize);
+  $('#placesTable').innerHTML='<table><thead><tr><th>Nome</th><th>Tipo</th><th>Cidade</th><th>País</th><th></th></tr></thead><tbody>'+pageItems.map(p=>`<tr><td><strong>${escapeHtml(p.name||'—')}</strong></td><td>${escapeHtml(placeTypeLabel(p.place_type))}</td><td>${escapeHtml(p.city||'—')}</td><td>${escapeHtml(p.country||'—')}</td><td class="actions"><button data-edit-place="${p.id}">Editar</button><button data-delete-place="${p.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
   document.querySelectorAll('[data-edit-place]').forEach(b=>b.onclick=()=>openPlaceModal(places.find(p=>p.id===b.dataset.editPlace)));
   document.querySelectorAll('[data-delete-place]').forEach(b=>b.onclick=()=>deletePlace(b.dataset.deletePlace));
+  if(totalPages>1){
+    $('#placesPagination').innerHTML=`<button type="button" class="secondary" id="placesPrevPage"${placesPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${placesPage} de ${totalPages} (${list.length} lugares)</span><button type="button" class="secondary" id="placesNextPage"${placesPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#placesPrevPage')?.addEventListener('click',()=>{placesPage--; renderPlaces();});
+    $('#placesNextPage')?.addEventListener('click',()=>{placesPage++; renderPlaces();});
+  }
 }
 function openPlaceModal(place=null){
   $('#placeFormError').textContent='';
@@ -1338,11 +1383,18 @@ async function loadPhotos(){
   fillDatalist('#photosList',photos,'title',photosLabelMap); renderPhotos();
 }
 function renderPhotos(){
+  $('#photosPagination').innerHTML='';
   const q=$('#searchPhotos').value.trim().toLowerCase();
   const st=$('#filterPhotoStatus').value;
   const list=photos.filter(p=>(!q||(p.title||'').toLowerCase().includes(q))&&(!st||p.status===st));
   if(!list.length){$('#photosTable').innerHTML=(q||st)?'<div class="empty-state small"><div class="empty-icon">▣</div><h4>Nenhuma foto encontrada</h4><p>Ajuste a busca ou o filtro.</p></div>':'<div class="empty-state small"><div class="empty-icon">▣</div><h4>Nenhuma foto cadastrada</h4><p>Cadastre a primeira foto do acervo.</p><button class="primary" id="emptyAddPhoto">+ Nova foto</button></div>';$('#emptyAddPhoto')?.addEventListener('click',()=>openPhotoModal());return}
-  $('#photosTable').innerHTML='<table><thead><tr><th>Foto</th><th>Pessoas</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>'+list.map(p=>{
+  const pageSize=Number($('#photosPageSize').value)||10;
+  const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
+  if(photosPage>totalPages) photosPage=totalPages;
+  if(photosPage<1) photosPage=1;
+  const start=(photosPage-1)*pageSize;
+  const pageItems=list.slice(start,start+pageSize);
+  $('#photosTable').innerHTML='<table><thead><tr><th>Foto</th><th>Pessoas</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(p=>{
     const names=(p.photo_people||[]).map(m=>m.people?.full_name).filter(Boolean);
     const shown=names.slice(0,2).join(', ')+(names.length>2?` +${names.length-2}`:'');
     const thumb=p.thumbnail_path?`<img src="${photoPublicUrl(p.thumbnail_path)}" alt="">`:'<div class="thumb-empty"></div>';
@@ -1351,6 +1403,11 @@ function renderPhotos(){
   document.querySelectorAll('[data-photo-people]').forEach(b=>b.onclick=()=>openPhotoPeopleModal(b.dataset.photoPeople));
   document.querySelectorAll('[data-edit-photo]').forEach(b=>b.onclick=()=>openPhotoModal(photos.find(p=>p.id===b.dataset.editPhoto)));
   document.querySelectorAll('[data-delete-photo]').forEach(b=>b.onclick=()=>deletePhoto(b.dataset.deletePhoto));
+  if(totalPages>1){
+    $('#photosPagination').innerHTML=`<button type="button" class="secondary" id="photosPrevPage"${photosPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${photosPage} de ${totalPages} (${list.length} fotos)</span><button type="button" class="secondary" id="photosNextPage"${photosPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#photosPrevPage')?.addEventListener('click',()=>{photosPage--; renderPhotos();});
+    $('#photosNextPage')?.addEventListener('click',()=>{photosPage++; renderPhotos();});
+  }
 }
 function openPhotoModal(photo=null){
   $('#photoFormError').textContent='';
@@ -1590,13 +1647,25 @@ async function loadAlbums(){
   albums=data||[]; $('#albumsCount').textContent=albums.length; fillDatalist('#albumsQuickList',albums,'title',albumsQuickLabelMap); renderAlbums();
 }
 function renderAlbums(){
+  $('#albumsPagination').innerHTML='';
   const q=$('#searchAlbums').value.trim().toLowerCase();
   const list=q?albums.filter(a=>(a.title||'').toLowerCase().includes(q)):albums;
   if(!list.length){$('#albumsTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">▤</div><h4>Nenhum álbum encontrado</h4><p>Tente buscar por outro título.</p></div>':'<div class="empty-state small"><div class="empty-icon">▤</div><h4>Nenhum álbum cadastrado</h4><p>Agrupe fotos em coleções.</p><button class="primary" id="emptyAddAlbum">+ Novo álbum</button></div>';$('#emptyAddAlbum')?.addEventListener('click',()=>openAlbumModal());return}
-  $('#albumsTable').innerHTML='<table><thead><tr><th>Título</th><th>Fotos</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>'+list.map(a=>`<tr><td><strong>${escapeHtml(a.title||'—')}</strong></td><td>${(a.album_photos||[]).length}</td><td>${dateCell(a.album_date)}</td><td>${statusCell(a.status)}</td><td class="actions"><button data-album-photos="${a.id}">Fotos</button><button data-edit-album="${a.id}">Editar</button><button data-delete-album="${a.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  const pageSize=Number($('#albumsPageSize').value)||10;
+  const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
+  if(albumsPage>totalPages) albumsPage=totalPages;
+  if(albumsPage<1) albumsPage=1;
+  const start=(albumsPage-1)*pageSize;
+  const pageItems=list.slice(start,start+pageSize);
+  $('#albumsTable').innerHTML='<table><thead><tr><th>Título</th><th>Fotos</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(a=>`<tr><td><strong>${escapeHtml(a.title||'—')}</strong></td><td>${(a.album_photos||[]).length}</td><td>${dateCell(a.album_date)}</td><td>${statusCell(a.status)}</td><td class="actions"><button data-album-photos="${a.id}">Fotos</button><button data-edit-album="${a.id}">Editar</button><button data-delete-album="${a.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
   document.querySelectorAll('[data-album-photos]').forEach(b=>b.onclick=()=>openAlbumPhotosModal(b.dataset.albumPhotos));
   document.querySelectorAll('[data-edit-album]').forEach(b=>b.onclick=()=>openAlbumModal(albums.find(a=>a.id===b.dataset.editAlbum)));
   document.querySelectorAll('[data-delete-album]').forEach(b=>b.onclick=()=>deleteAlbum(b.dataset.deleteAlbum));
+  if(totalPages>1){
+    $('#albumsPagination').innerHTML=`<button type="button" class="secondary" id="albumsPrevPage"${albumsPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${albumsPage} de ${totalPages} (${list.length} álbuns)</span><button type="button" class="secondary" id="albumsNextPage"${albumsPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#albumsPrevPage')?.addEventListener('click',()=>{albumsPage--; renderAlbums();});
+    $('#albumsNextPage')?.addEventListener('click',()=>{albumsPage++; renderAlbums();});
+  }
 }
 function openAlbumModal(album=null){
   $('#albumFormError').textContent='';
@@ -1684,11 +1753,18 @@ async function loadEvents(){
 }
 function eventQuickLabel(e){const y=(e.event_date||e.start_date||'').slice(0,4); return e.title+(y?` (${y})`:'')}
 function renderEvents(){
+  $('#eventsPagination').innerHTML='';
   const q=$('#searchEvents').value.trim().toLowerCase();
   const tp=$('#filterEventType').value;
   const list=events.filter(e=>(!q||(e.title||'').toLowerCase().includes(q))&&(!tp||e.event_type===tp));
   if(!list.length){$('#eventsTable').innerHTML=(q||tp)?'<div class="empty-state small"><div class="empty-icon">◷</div><h4>Nenhum evento encontrado</h4><p>Ajuste a busca ou o filtro.</p></div>':'<div class="empty-state small"><div class="empty-icon">◷</div><h4>Nenhum evento cadastrado</h4><p>Monte a linha do tempo da família.</p><button class="primary" id="emptyAddEvent">+ Novo evento</button></div>';$('#emptyAddEvent')?.addEventListener('click',()=>openEventModal());return}
-  $('#eventsTable').innerHTML='<table><thead><tr><th>Evento</th><th>Tipo</th><th>Data</th><th>Pessoas</th><th>Status</th><th></th></tr></thead><tbody>'+list.map(e=>{
+  const pageSize=Number($('#eventsPageSize').value)||10;
+  const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
+  if(eventsPage>totalPages) eventsPage=totalPages;
+  if(eventsPage<1) eventsPage=1;
+  const start=(eventsPage-1)*pageSize;
+  const pageItems=list.slice(start,start+pageSize);
+  $('#eventsTable').innerHTML='<table><thead><tr><th>Evento</th><th>Tipo</th><th>Data</th><th>Pessoas</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(e=>{
     const names=(e.event_people||[]).map(m=>m.people?.full_name).filter(Boolean);
     const shown=names.slice(0,2).join(', ')+(names.length>2?` +${names.length-2}`:'');
     return `<tr><td><strong>${escapeHtml(e.title||'—')}</strong></td><td>${escapeHtml(eventTypeLabel(e.event_type))}</td><td>${dateCell(e.event_date||e.start_date)}</td><td>${escapeHtml(shown||'—')}</td><td>${statusCell(e.status)}</td><td class="actions"><button data-event-people="${e.id}">Pessoas</button><button data-edit-event="${e.id}">Editar</button><button data-delete-event="${e.id}" class="danger-text">Excluir</button></td></tr>`;
@@ -1696,6 +1772,11 @@ function renderEvents(){
   document.querySelectorAll('[data-event-people]').forEach(b=>b.onclick=()=>openEventPeopleModal(b.dataset.eventPeople));
   document.querySelectorAll('[data-edit-event]').forEach(b=>b.onclick=()=>openEventModal(events.find(e=>e.id===b.dataset.editEvent)));
   document.querySelectorAll('[data-delete-event]').forEach(b=>b.onclick=()=>deleteEvent(b.dataset.deleteEvent));
+  if(totalPages>1){
+    $('#eventsPagination').innerHTML=`<button type="button" class="secondary" id="eventsPrevPage"${eventsPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${eventsPage} de ${totalPages} (${list.length} eventos)</span><button type="button" class="secondary" id="eventsNextPage"${eventsPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#eventsPrevPage')?.addEventListener('click',()=>{eventsPage--; renderEvents();});
+    $('#eventsNextPage')?.addEventListener('click',()=>{eventsPage++; renderEvents();});
+  }
 }
 function openEventModal(ev=null){
   $('#eventFormError').textContent='';
@@ -1861,13 +1942,25 @@ async function loadDocuments(){
   documents=data||[]; $('#documentsCount').textContent=documents.length; fillDatalist('#documentsList',documents,'title',documentsLabelMap); renderDocuments();
 }
 function renderDocuments(){
+  $('#documentsPagination').innerHTML='';
   const q=$('#searchDocuments').value.trim().toLowerCase();
   const tp=$('#filterDocumentType').value;
   const list=documents.filter(d=>(!q||(d.title||'').toLowerCase().includes(q))&&(!tp||d.document_type===tp));
   if(!list.length){$('#documentsTable').innerHTML=(q||tp)?'<div class="empty-state small"><div class="empty-icon">▥</div><h4>Nenhum documento encontrado</h4><p>Ajuste a busca ou o filtro.</p></div>':'<div class="empty-state small"><div class="empty-icon">▥</div><h4>Nenhum documento cadastrado</h4><p>Registre certidões, cartas e outros registros.</p><button class="primary" id="emptyAddDocument">+ Novo documento</button></div>';$('#emptyAddDocument')?.addEventListener('click',()=>openDocumentModal());return}
-  $('#documentsTable').innerHTML='<table><thead><tr><th>Título</th><th>Tipo</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>'+list.map(d=>`<tr><td><strong>${escapeHtml(d.title||'—')}</strong>${d.storage_path?`<br><small>${escapeHtml(d.storage_path)}</small>`:''}</td><td>${escapeHtml(documentTypeLabel(d.document_type))}</td><td>${dateCell(d.document_date)}</td><td>${statusCell(d.status)}</td><td class="actions"><button data-edit-document="${d.id}">Editar</button><button data-delete-document="${d.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  const pageSize=Number($('#documentsPageSize').value)||10;
+  const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
+  if(documentsPage>totalPages) documentsPage=totalPages;
+  if(documentsPage<1) documentsPage=1;
+  const start=(documentsPage-1)*pageSize;
+  const pageItems=list.slice(start,start+pageSize);
+  $('#documentsTable').innerHTML='<table><thead><tr><th>Título</th><th>Tipo</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(d=>`<tr><td><strong>${escapeHtml(d.title||'—')}</strong>${d.storage_path?`<br><small>${escapeHtml(d.storage_path)}</small>`:''}</td><td>${escapeHtml(documentTypeLabel(d.document_type))}</td><td>${dateCell(d.document_date)}</td><td>${statusCell(d.status)}</td><td class="actions"><button data-edit-document="${d.id}">Editar</button><button data-delete-document="${d.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
   document.querySelectorAll('[data-edit-document]').forEach(b=>b.onclick=()=>openDocumentModal(documents.find(d=>d.id===b.dataset.editDocument)));
   document.querySelectorAll('[data-delete-document]').forEach(b=>b.onclick=()=>deleteDocument(b.dataset.deleteDocument));
+  if(totalPages>1){
+    $('#documentsPagination').innerHTML=`<button type="button" class="secondary" id="documentsPrevPage"${documentsPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${documentsPage} de ${totalPages} (${list.length} documentos)</span><button type="button" class="secondary" id="documentsNextPage"${documentsPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#documentsPrevPage')?.addEventListener('click',()=>{documentsPage--; renderDocuments();});
+    $('#documentsNextPage')?.addEventListener('click',()=>{documentsPage++; renderDocuments();});
+  }
 }
 function openDocumentModal(doc=null){
   $('#documentFormError').textContent='';
@@ -2062,12 +2155,24 @@ async function loadSources(){
   sources=data||[]; $('#sourcesCount').textContent=sources.length; fillDatalist('#sourcesQuickList',sources,'title',sourcesQuickLabelMap); renderSources();
 }
 function renderSources(){
+  $('#sourcesPagination').innerHTML='';
   const q=$('#searchSources').value.trim().toLowerCase();
   const list=q?sources.filter(s=>(s.title||'').toLowerCase().includes(q)):sources;
   if(!list.length){$('#sourcesTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">▧</div><h4>Nenhuma fonte encontrada</h4><p>Tente buscar por outro título.</p></div>':'<div class="empty-state small"><div class="empty-icon">▧</div><h4>Nenhuma fonte cadastrada</h4><p>Registre a procedência das informações.</p><button class="primary" id="emptyAddSource">+ Nova fonte</button></div>';$('#emptyAddSource')?.addEventListener('click',()=>openSourceModal());return}
-  $('#sourcesTable').innerHTML='<table><thead><tr><th>Título</th><th>Tipo</th><th>Documento</th><th>Link</th><th></th></tr></thead><tbody>'+list.map(s=>`<tr><td><strong>${escapeHtml(s.title||'—')}</strong></td><td>${escapeHtml(sourceTypeLabel(s.source_type))}</td><td>${escapeHtml(s.documents?.title||'—')}</td><td>${s.url?`<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">abrir</a>`:'—'}</td><td class="actions"><button data-edit-source="${s.id}">Editar</button><button data-delete-source="${s.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  const pageSize=Number($('#sourcesPageSize').value)||10;
+  const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
+  if(sourcesPage>totalPages) sourcesPage=totalPages;
+  if(sourcesPage<1) sourcesPage=1;
+  const start=(sourcesPage-1)*pageSize;
+  const pageItems=list.slice(start,start+pageSize);
+  $('#sourcesTable').innerHTML='<table><thead><tr><th>Título</th><th>Tipo</th><th>Documento</th><th>Link</th><th></th></tr></thead><tbody>'+pageItems.map(s=>`<tr><td><strong>${escapeHtml(s.title||'—')}</strong></td><td>${escapeHtml(sourceTypeLabel(s.source_type))}</td><td>${escapeHtml(s.documents?.title||'—')}</td><td>${s.url?`<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">abrir</a>`:'—'}</td><td class="actions"><button data-edit-source="${s.id}">Editar</button><button data-delete-source="${s.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
   document.querySelectorAll('[data-edit-source]').forEach(b=>b.onclick=()=>openSourceModal(sources.find(s=>s.id===b.dataset.editSource)));
   document.querySelectorAll('[data-delete-source]').forEach(b=>b.onclick=()=>deleteSource(b.dataset.deleteSource));
+  if(totalPages>1){
+    $('#sourcesPagination').innerHTML=`<button type="button" class="secondary" id="sourcesPrevPage"${sourcesPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${sourcesPage} de ${totalPages} (${list.length} fontes)</span><button type="button" class="secondary" id="sourcesNextPage"${sourcesPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#sourcesPrevPage')?.addEventListener('click',()=>{sourcesPage--; renderSources();});
+    $('#sourcesNextPage')?.addEventListener('click',()=>{sourcesPage++; renderSources();});
+  }
 }
 function openSourceModal(src=null){
   $('#sourceFormError').textContent='';
@@ -2176,13 +2281,25 @@ async function loadBooks(){
   books=data||[]; $('#chaptersCount').textContent=books.reduce((n,b)=>n+distinctChapterCount(b),0); renderBooks();
 }
 function renderBooks(){
+  $('#booksPagination').innerHTML='';
   const q=$('#searchBooks').value.trim().toLowerCase();
   const list=q?books.filter(b=>(b.title||'').toLowerCase().includes(q)):books;
   if(!list.length){$('#booksTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">▦</div><h4>Nenhum livro encontrado</h4><p>Tente buscar por outro título.</p></div>':'<div class="empty-state small"><div class="empty-icon">▦</div><h4>Nenhum livro cadastrado</h4><p>Crie o livro principal da família.</p><button class="primary" id="emptyAddBook">+ Novo livro</button></div>';$('#emptyAddBook')?.addEventListener('click',()=>openBookModal());return}
-  $('#booksTable').innerHTML='<table><thead><tr><th>Título</th><th>Capítulos</th><th>Seções</th><th>Status</th><th></th></tr></thead><tbody>'+list.map(b=>`<tr><td><strong>${escapeHtml(b.title||'—')}</strong>${b.subtitle?`<br><small>${escapeHtml(b.subtitle)}</small>`:''}</td><td>${distinctChapterCount(b)}</td><td>${(b.chapters||[]).length}</td><td>${statusCell(b.status)}</td><td class="actions"><button data-book-chapters="${b.id}">Capítulos</button><button data-edit-book="${b.id}">Editar</button><button data-delete-book="${b.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  const pageSize=Number($('#booksPageSize').value)||10;
+  const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
+  if(booksPage>totalPages) booksPage=totalPages;
+  if(booksPage<1) booksPage=1;
+  const start=(booksPage-1)*pageSize;
+  const pageItems=list.slice(start,start+pageSize);
+  $('#booksTable').innerHTML='<table><thead><tr><th>Título</th><th>Capítulos</th><th>Seções</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(b=>`<tr><td><strong>${escapeHtml(b.title||'—')}</strong>${b.subtitle?`<br><small>${escapeHtml(b.subtitle)}</small>`:''}</td><td>${distinctChapterCount(b)}</td><td>${(b.chapters||[]).length}</td><td>${statusCell(b.status)}</td><td class="actions"><button data-book-chapters="${b.id}">Capítulos</button><button data-edit-book="${b.id}">Editar</button><button data-delete-book="${b.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
   document.querySelectorAll('[data-book-chapters]').forEach(b=>b.onclick=()=>openChaptersModal(b.dataset.bookChapters));
   document.querySelectorAll('[data-edit-book]').forEach(b=>b.onclick=()=>openBookModal(books.find(x=>x.id===b.dataset.editBook)));
   document.querySelectorAll('[data-delete-book]').forEach(b=>b.onclick=()=>deleteBook(b.dataset.deleteBook));
+  if(totalPages>1){
+    $('#booksPagination').innerHTML=`<button type="button" class="secondary" id="booksPrevPage"${booksPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${booksPage} de ${totalPages} (${list.length} livros)</span><button type="button" class="secondary" id="booksNextPage"${booksPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#booksPrevPage')?.addEventListener('click',()=>{booksPage--; renderBooks();});
+    $('#booksNextPage')?.addEventListener('click',()=>{booksPage++; renderBooks();});
+  }
 }
 function openBookModal(book=null){
   $('#bookFormError').textContent='';
