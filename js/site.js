@@ -109,7 +109,7 @@ function renderHeader(){
   const nav=NAV_ITEMS.map(n=>`<a href="${n.href}" class="${n.href===cur?'active':''}">${escapeHtml(n.label)}</a>`).join('');
   document.body.insertAdjacentHTML('afterbegin',`
     <header class="site-header">
-      <a href="index.html" class="site-brand"><strong>Olsen · Belloto · Leal</strong><span>acervo da família</span></a>
+      <a href="index.html" class="site-brand"><img class="site-brand-icon" src="Assents/Logos-web/icon-96.webp" srcset="Assents/Logos-web/icon-96.webp 96w, Assents/Logos-web/icon-192.webp 192w" sizes="40px" width="40" height="40" alt="" loading="eager"><span class="site-brand-text"><strong>Olsen · Belloto · Leal</strong><span>acervo da família</span></span></a>
       <button type="button" class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="siteNav"><span></span><span></span><span></span></button>
       <nav class="site-nav" id="siteNav">${nav}<button type="button" class="search-btn" id="openSearchBtn"><span class="search-dot"></span><span>Buscar</span></button></nav>
     </header>`);
@@ -129,7 +129,7 @@ function renderHeader(){
   // é montado.
   if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
     revealWords($('.site-brand strong'),{baseDelay:0,stagger:20,dir:'left'});
-    revealBlock($('.site-brand > span'),260,{dir:'left'});
+    revealBlock($('.site-brand-text > span'),260,{dir:'left'});
   }
 }
 function renderFooter(){

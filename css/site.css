@@ -68,7 +68,9 @@ img{max-width:100%}
 
 /* ---------- Header ---------- */
 .site-header{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px;padding:8px clamp(16px,4vw,48px);background:rgba(11,18,32,.66);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
-.site-brand{display:flex;flex-direction:column;gap:2px;align-items:flex-start;background:none;border:0;padding:0;cursor:pointer;text-align:left;color:inherit;font-family:inherit}
+.site-brand{display:flex;flex-direction:row;align-items:center;gap:10px;background:none;border:0;padding:0;cursor:pointer;text-align:left;color:inherit;font-family:inherit}
+.site-brand-icon{width:40px;height:40px;object-fit:contain;flex-shrink:0}
+.site-brand-text{display:flex;flex-direction:column;gap:2px;align-items:flex-start}
 /* letter-spacing em "em" cresce junto com o font-size — é por isso que o espaçamento
    fica bem apertado aqui (peso leve, pra ler "fino"), não em proporção ao tamanho.
    Trazido de volta pro piso de legibilidade (crítica de design apontou 8,55px/10px
@@ -79,7 +81,7 @@ img{max-width:100%}
    dentro de strong, dentro de site-brand) e forçava esse tamanho pequeno neles — a
    marca inteira renderizava minúscula por baixo do que a regra ".site-brand strong"
    dizia. */
-.site-brand > span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.site-brand-text > span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .site-nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;margin-left:auto}
 .site-nav a{font-family:var(--sans);font-weight:400;font-size:var(--fs-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--muted-3);background:none;border:0;border-radius:999px;padding:8px 12px;cursor:pointer;transition:color .25s,background .25s,transform .25s cubic-bezier(.2,.8,.2,1);display:inline-block}
 .site-nav a:hover{color:var(--bg);background:var(--gold);transform:translateY(-1px)}

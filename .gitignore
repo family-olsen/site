@@ -1,7 +1,8 @@
 # Fotos originais (não usadas pelo site — só as versões comprimidas em
-# Assents/hero-frames-web e Assents/inicio-web são referenciadas).
+# Assents/hero-frames-web, Assents/inicio-web e Assents/Logos-web são referenciadas).
 Assents/hero-frames/
 Assents/Inicio/
+Assents/Logos/
 
 node_modules/
 .DS_Store
