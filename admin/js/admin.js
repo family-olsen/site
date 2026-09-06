@@ -211,8 +211,36 @@ async function onPersonAvatarChange(e){
     pendingAvatarUpload=blob;
     $('#personAvatarPreview').innerHTML=`<img src="${URL.createObjectURL(blob)}" alt="">`;
     $('#personAvatarHint').textContent=`Pronto (${(blob.size/1024).toFixed(0)} KB).`;
+    $('#personAvatarRemoveBtn').hidden=false;
   }catch(err){
     $('#personAvatarHint').textContent='Erro ao processar imagem: '+err.message;
+  }
+}
+// Remove a foto de perfil: se a pessoa já tem uma salva, apaga o arquivo do
+// Storage e limpa avatar_path no banco na hora (não só o vínculo — o pedido foi
+// pra não ficar ocupando espaço); se era só um arquivo escolhido e ainda não
+// salvo, só descarta local mesmo.
+async function removePersonAvatar(){
+  const id=$('#personId').value;
+  const person=id?people.find(p=>p.id===id):null;
+  if(!confirm('Remover a foto de perfil? A imagem será apagada do armazenamento.')) return;
+  pendingAvatarUpload=null; $('#personAvatarFile').value='';
+  $('#personAvatarPreview').innerHTML='sem foto';
+  $('#personAvatarRemoveBtn').hidden=true;
+  if(person?.avatar_path){
+    try{
+      await client.storage.from('photos').remove([person.avatar_path]);
+      const {error}=await client.from('people').update({avatar_path:null}).eq('id',id);
+      if(error) throw error;
+      person.avatar_path=null;
+      renderPeople();
+      $('#personAvatarHint').textContent='Foto removida.';
+    }catch(err){
+      $('#personAvatarHint').textContent='Erro ao remover foto: '+err.message;
+      return;
+    }
+  } else {
+    $('#personAvatarHint').textContent='Opcional — aparece na árvore genealógica e na listagem.';
   }
 }
 function openModal(person=null){
@@ -230,6 +258,7 @@ function openModal(person=null){
   updateFullNamePreview();
   pendingAvatarUpload=null; $('#personAvatarFile').value='';
   $('#personAvatarPreview').innerHTML=person?.avatar_path?`<img src="${avatarUrl(person.avatar_path)}" alt="">`:'sem foto';
+  $('#personAvatarRemoveBtn').hidden=!person?.avatar_path;
   $('#personAvatarHint').textContent='Opcional — aparece na árvore genealógica e na listagem.';
   modal.classList.add('open');
   $('#biographyAutoPreview').hidden=true; $('#biographyAutoPreview').innerHTML='';
@@ -900,6 +929,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 $('#newPersonBtn').onclick=()=>openModal();$('#closeModal').onclick=closeModal;$('#cancelForm').onclick=closeModal;$('#refreshPeople').onclick=loadPeople;
 $('#personAvatarFile').addEventListener('change',onPersonAvatarChange);
+$('#personAvatarRemoveBtn').addEventListener('click',removePersonAvatar);
 $('#searchPeople').addEventListener('input',()=>loadPeople());$('#logoutBtn').onclick=async()=>{await client.auth.signOut();location.reload()};
 $('#peoplePageSize').addEventListener('change',()=>{peoplePage=1; renderPeople();});
 $('#newFamilyBtn').onclick=()=>openFamilyModal();$('#closeFamilyModal').onclick=closeFamilyModal;$('#cancelFamilyForm').onclick=closeFamilyModal;$('#refreshFamilies').onclick=loadFamilies;
