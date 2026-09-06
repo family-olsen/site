@@ -50,7 +50,12 @@ async function boot(){
     $('#main').innerHTML='<div class="empty-state-public"><h3>Pessoa não encontrada</h3><p>Ela pode não existir ou ainda não ter sido publicada.</p><p><a href="pessoas.html">← Ver todas as pessoas</a></p></div>';
     return;
   }
-  document.title=person.full_name+' — Olsen · Belloto · Leal';
+  const anos=yearsLabel(person);
+  setPageMeta({
+    title:person.full_name+' — Olsen · Belloto · Leal',
+    description:truncate(person.biography,155)||`Perfil de ${person.full_name} no acervo genealógico das famílias Olsen, Belloto e Leal${anos?' ('+anos+')':''}.`,
+    url:location.href
+  });
 
   const [parents,children,spouses,{data:storyRows},{data:photoRows},{data:eventRows},{data:sourceRows},{data:places}]=await Promise.all([
     fetchParents(id), fetchChildren(id), fetchSpouses(id),

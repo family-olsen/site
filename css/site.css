@@ -1,6 +1,6 @@
 :root{
   --bg:#0B1220; --bg-2:#0F1725; --bg-3:#131D2B; --bg-4:#1B2636; --bg-5:#22303F;
-  --text:#EDE7DC; --text-dim:#D6DAE2; --muted:#98A2B0; --muted-2:#A9B2BF; --muted-3:#C7CEDA; --muted-4:#6E7A8A; --muted-5:#8C96A4; --muted-6:#7E8896;
+  --text:#EDE7DC; --text-dim:#D6DAE2; --muted:#98A2B0; --muted-2:#A9B2BF; --muted-3:#C7CEDA; --muted-4:#7F8A98; --muted-5:#8C96A4; --muted-6:#7E8896;
   --gold:#E3BC85; --gold-light:#F2DDBB; --gold-dark:#C08A45; --gold-deep:#8A5A22;
   --line:rgba(237,231,220,.1); --line-2:rgba(237,231,220,.14); --line-3:rgba(237,231,220,.2); --line-gold:rgba(227,188,133,.4);
   --serif:'Spectral',Georgia,serif; --sans:'Archivo',system-ui,sans-serif;

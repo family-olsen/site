@@ -13,6 +13,25 @@ function yearsLabel(p){
   return `${b} — hoje`;
 }
 function initials(name){return (name||'?').trim().charAt(0).toUpperCase()}
+// Atualiza título + meta description + Open Graph/Twitter depois que os dados de
+// uma pessoa/história específica carregam — sem isso, todo link de pessoa.html ou
+// historia.html compartilhado (WhatsApp etc.) mostra o mesmo título genérico da
+// página, em vez do nome da pessoa/história de fato.
+function setPageMeta({title,description,url}){
+  document.title=title;
+  const set=(sel,attr,val)=>{ if(!val) return; const el=document.querySelector(sel); if(el) el.setAttribute(attr,val); };
+  set('meta[name="description"]','content',description);
+  set('meta[property="og:title"]','content',title);
+  set('meta[property="og:description"]','content',description);
+  set('meta[name="twitter:title"]','content',title);
+  set('meta[name="twitter:description"]','content',description);
+  if(url){ set('meta[property="og:url"]','content',url); set('link[rel="canonical"]','href',url); }
+}
+function truncate(text,max){
+  const t=(text||'').trim();
+  if(t.length<=max) return t;
+  return t.slice(0,max-1).replace(/\s+\S*$/,'')+'…';
+}
 
 /* ---------- Parentesco (leitura pública) ---------- */
 const PERSON_FIELDS='id,full_name,birth_date,death_date,avatar_path,biography,gender,is_living';

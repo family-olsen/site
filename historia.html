@@ -42,7 +42,12 @@ async function boot(){
     $('#main').innerHTML='<div class="empty-state-public"><h3>História não encontrada</h3><p><a href="historias.html">← Ver todas as histórias</a></p></div>';
     return;
   }
-  document.title=story.title+' — Olsen · Belloto · Leal';
+  const textoPlano=(story.content||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  setPageMeta({
+    title:story.title+' — Olsen · Belloto · Leal',
+    description:truncate(story.summary||textoPlano,155)||`Uma história de família registrada no acervo das famílias Olsen, Belloto e Leal.`,
+    url:location.href
+  });
   const heroPhoto=story.story_photos?.[0]?.photos;
   const pessoas=(story.story_people||[]).filter(r=>r.people);
   const fontes=(story.story_sources||[]).filter(r=>r.sources).map(r=>r.sources);
