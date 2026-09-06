@@ -199,13 +199,49 @@ async function boot(){
   $('#maximizeBtn').addEventListener('click',toggleMaximize);
 
   const vp=$('#treeViewport');
-  vp.addEventListener('mousedown',(e)=>{
-    const ox=e.clientX, oy=e.clientY, sx=panX, sy=panY;
-    vp.classList.add('panning');
-    const move=(ev)=>{ panX=sx+(ev.clientX-ox); panY=sy+(ev.clientY-oy); applyTreeTransform(); };
-    const up=()=>{ vp.classList.remove('panning'); window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up); };
-    window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  // pointerdown/move/up cobre mouse E dedo com o mesmo código (mousedown sozinho,
+  // como era antes, não existe em touch — era por isso que a árvore não dava pra
+  // arrastar/navegar no celular). Sem setPointerCapture de propósito: os cliques nos
+  // cartões (pra recentralizar) e nos botões de expandir continuam funcionando
+  // normalmente, sem precisar excluir nada manualmente.
+  // Com dois dedos na tela vira pinça (zoom) em vez de arrastar — a roda do mouse
+  // não existe em touch, então esse é o jeito natural de dar zoom no celular.
+  const activePointers=new Map();
+  let panOrigin=null, pinchStartDist=0, pinchStartZoom=zoomScale;
+  function pointsFromMap(){ return [...activePointers.values()]; }
+  function pinchDist(){ const [a,b]=pointsFromMap(); return Math.hypot(b.x-a.x,b.y-a.y); }
+  vp.addEventListener('pointerdown',(e)=>{
+    activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(activePointers.size===1){
+      panOrigin={x:e.clientX,y:e.clientY,panX,panY};
+      vp.classList.add('panning');
+    } else if(activePointers.size===2){
+      panOrigin=null; vp.classList.remove('panning');
+      pinchStartDist=pinchDist(); pinchStartZoom=zoomScale;
+    }
   });
+  window.addEventListener('pointermove',(e)=>{
+    if(!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(activePointers.size>=2){
+      const dist=pinchDist();
+      if(pinchStartDist>0) setZoom(pinchStartZoom*(dist/pinchStartDist));
+    } else if(panOrigin){
+      panX=panOrigin.panX+(e.clientX-panOrigin.x); panY=panOrigin.panY+(e.clientY-panOrigin.y); applyTreeTransform();
+    }
+  });
+  const endPointer=(e)=>{
+    activePointers.delete(e.pointerId);
+    if(activePointers.size===1){
+      const [p]=pointsFromMap();
+      panOrigin={x:p.x,y:p.y,panX,panY}; // continua arrastando só com o dedo que sobrou
+      vp.classList.add('panning');
+    } else if(!activePointers.size){
+      panOrigin=null; vp.classList.remove('panning');
+    }
+  };
+  window.addEventListener('pointerup',endPointer);
+  window.addEventListener('pointercancel',endPointer);
   // roda do mouse = zoom (sem precisar segurar Ctrl)
   vp.addEventListener('wheel',(e)=>{
     e.preventDefault();
