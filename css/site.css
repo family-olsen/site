@@ -296,6 +296,10 @@ a.life-timeline-item:hover .life-timeline-titulo{color:var(--gold)}
 .reader-body{max-width:660px}
 .reader-body p{font-family:var(--serif);font-weight:300;line-height:1.85;color:#252B33;margin:0 0 26px;font-size:19px}
 .reader-nav-buttons{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;border-top:1px solid rgba(26,31,38,.12);padding-top:26px;margin-top:60px}
+.reader-audio{margin:4px 0 clamp(28px,4vw,44px)}
+.reader-audio-btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(26,31,38,.2);border-radius:999px;padding:10px 22px;cursor:pointer;background:none;color:var(--reader-text);transition:background .25s,color .25s}
+.reader-audio-btn:hover{background:var(--reader-text);color:var(--reader-bg)}
+.reader-body [data-reading]{background:rgba(196,154,84,.16);border-radius:4px;transition:background .25s}
 .btn-dark{font-family:var(--sans);font-size:var(--fs-label);letter-spacing:.14em;text-transform:uppercase;background:var(--reader-text);border:0;border-radius:999px;padding:14px 24px;cursor:pointer;color:var(--reader-bg)}
 .btn-dark:hover{background:var(--gold-deep)}
 

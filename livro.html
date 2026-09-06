@@ -40,15 +40,79 @@
 <script>
 let CAP_GROUPS=[], capIndex=0, BOOK=null;
 
+/* ---------- Leitura em voz alta (Web Speech API do navegador) ----------
+   Versão simples: lê o capítulo atual seção por seção, um parágrafo/bloco
+   por vez (evita o bug de navegadores que cortam a fala no meio de um
+   trecho muito longo), destacando o trecho sendo lido. "Pausar" cancela a
+   fala guardando a posição; "continuar" repete o trecho atual do início —
+   é a forma confiável de pausar entre navegadores (pause/resume nativo do
+   speechSynthesis é bem instável, principalmente no Android). */
+let ttsQueue=[], ttsIndex=-1, ttsPlaying=false, ttsVoice=null;
+const TTS_SUPPORTED='speechSynthesis' in window;
+function pickPtVoice(){
+  const voices=speechSynthesis.getVoices();
+  return voices.find(v=>v.lang==='pt-BR')||voices.find(v=>(v.lang||'').startsWith('pt'))||null;
+}
+if(TTS_SUPPORTED){
+  ttsVoice=pickPtVoice();
+  speechSynthesis.onvoiceschanged=()=>{ ttsVoice=pickPtVoice(); };
+}
+function clearReadingHighlight(){ document.querySelectorAll('[data-reading]').forEach(el=>el.removeAttribute('data-reading')); }
+function buildTtsQueue(){
+  const chunks=[];
+  document.querySelectorAll('#chapterBody .reader-section').forEach(sec=>{
+    const subtitle=sec.querySelector('.section-title');
+    if(subtitle&&subtitle.textContent.trim()) chunks.push({el:subtitle,text:subtitle.textContent.trim()});
+    const body=sec.querySelector(':scope > div');
+    if(!body) return;
+    const blocks=body.querySelectorAll('p,li,h1,h2,h3,h4,blockquote');
+    const list=blocks.length?[...blocks]:[body];
+    list.forEach(el=>{ const text=(el.textContent||'').trim(); if(text) chunks.push({el,text}); });
+  });
+  return chunks;
+}
+function updateReadBtn(){
+  const btn=$('#readAloudBtn'); if(!btn) return;
+  btn.textContent=ttsPlaying?'⏸ Pausar leitura':(ttsIndex>=0?'▶ Continuar leitura':'▶ Ouvir capítulo');
+}
+function speakChunk(i){
+  clearReadingHighlight();
+  if(i<0||i>=ttsQueue.length){ ttsPlaying=false; ttsIndex=-1; ttsQueue=[]; updateReadBtn(); return; }
+  ttsIndex=i;
+  const chunk=ttsQueue[i];
+  chunk.el.setAttribute('data-reading','');
+  chunk.el.scrollIntoView({block:'center',behavior:'smooth'});
+  const utter=new SpeechSynthesisUtterance(chunk.text);
+  utter.lang='pt-BR';
+  if(ttsVoice) utter.voice=ttsVoice;
+  utter.onend=()=>{ if(ttsPlaying) speakChunk(ttsIndex+1); };
+  utter.onerror=()=>{ if(ttsPlaying) speakChunk(ttsIndex+1); };
+  speechSynthesis.speak(utter);
+}
+function toggleReadAloud(){
+  if(!TTS_SUPPORTED) return;
+  if(ttsPlaying){ ttsPlaying=false; speechSynthesis.cancel(); updateReadBtn(); return; }
+  ttsPlaying=true;
+  if(!ttsQueue.length) ttsQueue=buildTtsQueue();
+  updateReadBtn();
+  speakChunk(ttsIndex<0?0:ttsIndex);
+}
+function stopReadAloud(){
+  speechSynthesis.cancel();
+  ttsPlaying=false; ttsQueue=[]; ttsIndex=-1;
+  clearReadingHighlight(); updateReadBtn();
+}
+
 function renderChapter(){
+  stopReadAloud();
   const grupo=CAP_GROUPS[capIndex];
   $('#readerProgress').style.transform=`scaleX(${(capIndex+1)/CAP_GROUPS.length})`;
   document.querySelectorAll('.chapter-nav-item').forEach((el,i)=>el.classList.toggle('active',i===capIndex));
   $('#chapterKicker').textContent=`Capítulo ${grupo.num}`;
   $('#chapterTitle').textContent=grupo.titulo;
-  $('#chapterBody').innerHTML=grupo.secoes.map(s=>`
+  $('#chapterBody').innerHTML=grupo.secoes.map(s=>`<div class="reader-section">
     ${s.subtitle?`<p class="section-title">${escapeHtml(s.subtitle)}</p>`:''}
-    <div>${s.content||''}</div>`).join('<hr style="border:0;border-top:1px solid rgba(26,31,38,.12);margin:36px 0">');
+    <div>${s.content||''}</div></div>`).join('<hr style="border:0;border-top:1px solid rgba(26,31,38,.12);margin:36px 0">');
   $('#prevChapterBtn').disabled=capIndex<=0;
   $('#nextChapterBtn').disabled=capIndex>=CAP_GROUPS.length-1;
   window.scrollTo(0,0);
@@ -89,6 +153,9 @@ async function boot(){
       <article class="reader-article">
         <p class="kicker" id="chapterKicker"></p>
         <h1 id="chapterTitle"></h1>
+        <div class="reader-audio" ${TTS_SUPPORTED?'':'hidden'}>
+          <button type="button" class="reader-audio-btn" id="readAloudBtn">▶ Ouvir capítulo</button>
+        </div>
         <div class="reader-body" id="chapterBody"></div>
         <div class="reader-nav-buttons">
           <button type="button" class="btn-sm" id="prevChapterBtn">← Anterior</button>
@@ -101,6 +168,7 @@ async function boot(){
   document.querySelectorAll('.chapter-nav-item').forEach(b=>b.addEventListener('click',()=>{capIndex=Number(b.dataset.i); renderChapter();}));
   $('#prevChapterBtn').addEventListener('click',()=>{ if(capIndex>0){capIndex--; renderChapter();} });
   $('#nextChapterBtn').addEventListener('click',()=>{ if(capIndex<CAP_GROUPS.length-1){capIndex++; renderChapter();} });
+  $('#readAloudBtn')?.addEventListener('click',toggleReadAloud);
   renderChapter();
   // só na primeira montagem da página — trocar de capítulo continua instantâneo,
   // sem repetir a animação toda vez (senão vira empecilho pra quem tá lendo).
