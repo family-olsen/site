@@ -29,8 +29,7 @@
   .galeria-head{display:flex;justify-content:space-between;align-items:flex-start;gap:clamp(20px,4vw,48px);flex-wrap:wrap}
   .galeria-head-left{flex:1 1 260px;min-width:0}
   .galeria-head-right{flex:0 1 auto;min-width:0;display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end}
-  .filtros-grupo{min-width:0}
-  .filtros-grupo .rotulo{display:block;font-size:var(--fs-micro);letter-spacing:.18em;text-transform:uppercase;color:var(--muted-4);margin-bottom:8px;text-align:right}
+  .galeria-head-right .rotulo{text-align:right}
 </style>
 </head>
 <body>
@@ -54,6 +53,7 @@
 <script src="js/site.js"></script>
 <script>
 let ALL_PHOTOS=[], filtroDecada='Tudo', filtroColecao='Tudo', filtroFamilia='Tudo', filtroPessoa='Tudo';
+let HAS_COLECOES=false, HAS_FAMILIAS=false, HAS_PESSOAS=false;
 
 function openPhotoLightbox(p){
   const local=p.places?.name||'';
@@ -95,19 +95,58 @@ function filtroGrupoHtml(rotulo,items,valorAtual,grupo){
   </div>`;
 }
 
-function renderFiltros(decadas,colecoes,familias,pessoas){
-  const parts=[filtroGrupoHtml('Década',decadas,filtroDecada,'decada')];
-  if(colecoes.length) parts.push(filtroGrupoHtml('Coleção',colecoes,filtroColecao,'colecao'));
-  if(familias.length) parts.push(filtroGrupoHtml('Família',familias,filtroFamilia,'familia'));
-  if(pessoas.length) parts.push(filtroGrupoHtml('Pessoa',pessoas,filtroPessoa,'pessoa'));
+// Listas grandes (dezenas de famílias ou pessoas) ficam melhor num campo que
+// deixa digitar pra buscar, mas ainda escolhe de uma lista — <input list>.
+function buscaGrupoHtml(rotulo,items,valorAtual,grupo){
+  return `<div class="filtros-grupo"><label class="rotulo" for="filtro-${grupo}">${escapeHtml(rotulo)}</label>
+    <input class="busca-filtro" id="filtro-${grupo}" list="filtro-${grupo}-list" data-grupo="${grupo}" autocomplete="off" placeholder="Todas" value="${valorAtual==='Tudo'?'':escapeHtml(valorAtual)}">
+    <datalist id="filtro-${grupo}-list">${items.map(f=>`<option value="${escapeHtml(f)}">`).join('')}</datalist>
+  </div>`;
+}
+
+// Opções de um campo, recalculadas a partir dos OUTROS filtros já aplicados
+// (sem considerar o próprio campo) — assim um filtro vai "segregando" o outro.
+function opcoesPara(campo){
+  const subset=ALL_PHOTOS.filter(p=>
+    (campo==='decada'||filtroDecada==='Tudo'||p.decada===filtroDecada) &&
+    (campo==='colecao'||filtroColecao==='Tudo'||p.colecoes.includes(filtroColecao)) &&
+    (campo==='familia'||filtroFamilia==='Tudo'||p.familias.includes(filtroFamilia)) &&
+    (campo==='pessoa'||filtroPessoa==='Tudo'||p.pessoas.includes(filtroPessoa))
+  );
+  if(campo==='decada') return [...new Set(subset.map(p=>p.decada))].sort();
+  if(campo==='colecao') return [...new Set(subset.flatMap(p=>p.colecoes))].sort();
+  if(campo==='familia') return [...new Set(subset.flatMap(p=>p.familias))].sort();
+  return [...new Set(subset.flatMap(p=>p.pessoas))].sort();
+}
+
+function renderFiltros(){
+  const parts=[filtroGrupoHtml('Década',opcoesPara('decada'),filtroDecada,'decada')];
+  if(HAS_COLECOES) parts.push(filtroGrupoHtml('Coleção',opcoesPara('colecao'),filtroColecao,'colecao'));
+  if(HAS_FAMILIAS) parts.push(buscaGrupoHtml('Família',opcoesPara('familia'),filtroFamilia,'familia'));
+  if(HAS_PESSOAS) parts.push(buscaGrupoHtml('Pessoa',opcoesPara('pessoa'),filtroPessoa,'pessoa'));
+  parts.push('<button type="button" class="btn-limpar-filtros" id="btnLimparFiltros">Limpar filtros</button>');
   $('#filtrosWrap').innerHTML=parts.join('');
+
   document.querySelectorAll('.select-filtro').forEach(sel=>sel.addEventListener('change',()=>{
-    if(sel.dataset.grupo==='decada') filtroDecada=sel.value;
-    else if(sel.dataset.grupo==='colecao') filtroColecao=sel.value;
-    else if(sel.dataset.grupo==='familia') filtroFamilia=sel.value;
-    else filtroPessoa=sel.value;
-    renderCarousel();
+    if(sel.dataset.grupo==='decada') filtroDecada=sel.value; else filtroColecao=sel.value;
+    renderFiltros(); renderCarousel();
   }));
+
+  document.querySelectorAll('.busca-filtro').forEach(inp=>{
+    const grupo=inp.dataset.grupo, itens=opcoesPara(grupo);
+    inp.addEventListener('change',()=>{
+      const v=inp.value.trim();
+      const valorValido=v===''||itens.includes(v);
+      if(grupo==='familia') filtroFamilia=valorValido&&v!==''?v:'Tudo';
+      else filtroPessoa=valorValido&&v!==''?v:'Tudo';
+      renderFiltros(); renderCarousel();
+    });
+  });
+
+  $('#btnLimparFiltros').addEventListener('click',()=>{
+    filtroDecada='Tudo'; filtroColecao='Tudo'; filtroFamilia='Tudo'; filtroPessoa='Tudo';
+    renderFiltros(); renderCarousel();
+  });
 }
 
 async function boot(){
@@ -128,11 +167,10 @@ async function boot(){
     familias:[...new Set((p.photo_people||[]).flatMap(pp=>pp.people?surnameTokens(pp.people):[]))]
   }));
   $('#gallerySummary').textContent=`${photos.length} ${photos.length===1?'imagem digitalizada':'imagens digitalizadas'} neste acervo.`;
-  const decadas=[...new Set(ALL_PHOTOS.map(p=>p.decada))].sort();
-  const colecoes=[...new Set(ALL_PHOTOS.flatMap(p=>p.colecoes))].sort();
-  const familias=[...new Set(ALL_PHOTOS.flatMap(p=>p.familias))].sort();
-  const pessoas=[...new Set(ALL_PHOTOS.flatMap(p=>p.pessoas))].sort();
-  renderFiltros(decadas,colecoes,familias,pessoas);
+  HAS_COLECOES=ALL_PHOTOS.some(p=>p.colecoes.length);
+  HAS_FAMILIAS=ALL_PHOTOS.some(p=>p.familias.length);
+  HAS_PESSOAS=ALL_PHOTOS.some(p=>p.pessoas.length);
+  renderFiltros();
   if(!reduceMotion){ revealBlock($('#gallerySummary')); revealBlock($('#filtrosWrap'),100); }
 
   const focoFoto=new URLSearchParams(location.search).get('foto');

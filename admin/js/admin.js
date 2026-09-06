@@ -4,6 +4,152 @@ const $ = s => document.querySelector(s);
 const loginView=$('#loginView'), appView=$('#appView'), modal=$('#personModal'), familyModal=$('#familyModal'), childrenModal=$('#childrenModal'), linkChildrenModal=$('#linkChildrenModal'), relModal=$('#relModal'), storyModal=$('#storyModal'), storyPeopleModal=$('#storyPeopleModal'), bookModal=$('#bookModal'), chaptersModal=$('#chaptersModal'), photoModal=$('#photoModal'), photoPeopleModal=$('#photoPeopleModal'), albumModal=$('#albumModal'), albumPhotosModal=$('#albumPhotosModal'), eventModal=$('#eventModal'), eventPeopleModal=$('#eventPeopleModal'), documentModal=$('#documentModal'), sourceModal=$('#sourceModal'), placeModal=$('#placeModal'), confirmDeleteModal=$('#confirmDeleteModal');
 let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null, familiesPage=1, booksPage=1, storiesPage=1, photosPage=1, albumsPage=1, eventsPage=1, documentsPage=1, sourcesPage=1, placesPage=1;
 
+/* ---------- Pré-visualização da biografia automática ----------
+   Mesmo gerador de texto usado em pessoa.html (js/site.js) — duplicado aqui de
+   propósito: o admin usa o cliente já autenticado (`client`, com acesso total
+   via RLS de admin), então pra mostrar exatamente o que o PÚBLICO vai ver, as
+   consultas de pai/mãe/cônjuge/filhos abaixo filtram manualmente por
+   is_public=true e status='published' — reproduzindo a política pública sem
+   precisar de um segundo cliente Supabase anônimo na mesma página. */
+function fullDateLabelAdmin(d){
+  if(!d) return '';
+  const [y,m,day]=String(d).slice(0,10).split('-').map(Number);
+  if(!y||!m||!day) return '';
+  return new Date(y,m-1,day).toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});
+}
+function dataComPrecisaoAdmin(data,precisao){
+  if(!data) return '';
+  if(!precisao||precisao==='exact') return `em ${fullDateLabelAdmin(data)}`;
+  const ano=String(data).slice(0,4);
+  if(precisao==='before') return `antes de ${ano}`;
+  if(precisao==='after') return `depois de ${ano}`;
+  return `por volta de ${ano}`;
+}
+function diferencaEmAnosAdmin(dataMaisNova,dataMaisVelha){
+  if(!dataMaisNova||!dataMaisVelha) return null;
+  const anos=Number(String(dataMaisNova).slice(0,4))-Number(String(dataMaisVelha).slice(0,4));
+  return (anos>=0&&anos<120)?anos:null;
+}
+function gerarBiografiaAutomaticaAdmin({pessoa,pais,casamentos,filhos,placeName}){
+  const nome=pessoa.full_name;
+  const feminino=pessoa.gender==='female';
+  const pronome=feminino?'Ela':'Ele';
+  const localNasc=placeName(pessoa.birth_place_id);
+  const localMorte=placeName(pessoa.death_place_id);
+  const apelido=pessoa.nickname?`, também conhecid${feminino?'a':'o'} como ${pessoa.nickname}`:'';
+  const paisComIdade=pais.filter(p=>p.birth_date);
+  const frases=[];
+  let contouNascimento=false;
+
+  if(pessoa.birth_date&&paisComIdade.length){
+    const partes=paisComIdade.map(p=>{
+      const idade=diferencaEmAnosAdmin(pessoa.birth_date,p.birth_date);
+      if(idade==null) return null;
+      const aprox=p.birth_date_precision&&p.birth_date_precision!=='exact';
+      const papel=p.gender==='female'?'sua mãe':'seu pai';
+      return `${papel}, ${p.full_name}, tinha ${aprox?'cerca de ':''}${idade} anos`;
+    }).filter(Boolean);
+    let f=`Quando ${nome} nasceu ${dataComPrecisaoAdmin(pessoa.birth_date,pessoa.birth_date_precision)}`;
+    if(localNasc) f+=`, em ${localNasc}`;
+    if(partes.length) f+=`, ${partes.join(' e ')}`;
+    frases.push(f+apelido+'.');
+    contouNascimento=true;
+  } else if(pessoa.birth_date&&pais.length){
+    let f=`${feminino?'Filha':'Filho'} de ${pais.map(p=>p.full_name).join(' e ')}, nasceu ${dataComPrecisaoAdmin(pessoa.birth_date,pessoa.birth_date_precision)}`;
+    if(localNasc) f+=`, em ${localNasc}`;
+    frases.push(f+apelido+'.');
+    contouNascimento=true;
+  } else if(pessoa.birth_date){
+    let f=`${nome} nasceu ${dataComPrecisaoAdmin(pessoa.birth_date,pessoa.birth_date_precision)}`;
+    if(localNasc) f+=`, em ${localNasc}`;
+    frases.push(f+apelido+'.');
+    contouNascimento=true;
+  } else if(pais.length){
+    frases.push(`${feminino?'Filha':'Filho'} de ${pais.map(p=>p.full_name).join(' e ')}${apelido}.`);
+    contouNascimento=true;
+  } else if(apelido){
+    frases.push(`${nome} também é conhecid${feminino?'a':'o'} como ${pessoa.nickname}.`);
+  }
+
+  casamentos.forEach(c=>{
+    let f=`${pronome} casou-se com ${c.spouse.full_name}`;
+    const data=dataComPrecisaoAdmin(c.start_date,c.start_date_precision);
+    const local=placeName(c.place_id);
+    if(data) f+=` ${data}`;
+    if(local) f+=`, em ${local}`;
+    frases.push(f+'.');
+  });
+
+  if(filhos.length){
+    if(filhos.length<=2){
+      const nomes=filhos.map(f=>f.full_name.split(' ')[0]).join(' e ');
+      const rotulo=filhos.length===1?(filhos[0].gender==='female'?'1 filha':'1 filho'):`${filhos.length} filhos`;
+      frases.push(`${casamentos.length?'Eles t':'T'}iveram pelo menos ${rotulo}, ${nomes}.`);
+    } else {
+      const m=filhos.filter(f=>f.gender==='male').length;
+      const f=filhos.filter(f=>f.gender==='female').length;
+      const outros=filhos.length-m-f;
+      const partes=[];
+      if(m) partes.push(`${m} filho${m>1?'s':''}`);
+      if(f) partes.push(`${f} filha${f>1?'s':''}`);
+      if(outros) partes.push(`${outros} filho${outros>1?'s':''} de gênero não informado`);
+      const lista=partes.length>1?partes.slice(0,-1).join(', ')+' e '+partes[partes.length-1]:partes[0];
+      frases.push(`${casamentos.length?'Eles t':'T'}iveram pelo menos ${lista}.`);
+    }
+  }
+
+  if(pessoa.death_date){
+    const idade=diferencaEmAnosAdmin(pessoa.death_date,pessoa.birth_date);
+    let f=`${pronome} faleceu ${dataComPrecisaoAdmin(pessoa.death_date,pessoa.death_date_precision)}`;
+    if(localMorte) f+=`, em ${localMorte}`;
+    if(idade!=null){
+      if(idade<12) f+=', ainda criança';
+      else if(idade<25) f+=', ainda jovem';
+      else f+=`, aos ${idade} anos`;
+    }
+    frases.push(f+'.');
+  } else if(pessoa.is_living===false){
+    frases.push('Já faleceu.');
+  } else if(pessoa.is_living){
+    frases.push(`Está ${feminino?'viva':'vivo'}.`);
+  }
+
+  return frases.join(' ');
+}
+const PESSOA_PUBLICA_FIELDS='id,full_name,nickname,gender,is_living,birth_date,birth_date_precision,birth_place_id,death_date,death_date_precision,death_place_id';
+async function carregarPreviewBiografia(personId){
+  const box=$('#biographyAutoPreview');
+  if(!personId){ box.hidden=true; box.innerHTML=''; return; }
+  const publicos=(q)=>q.eq('is_public',true).eq('status','published');
+  const [{data:pessoa},{data:paisRows},{data:filhosRows},{data:unidades}]=await Promise.all([
+    publicos(client.from('people').select(PESSOA_PUBLICA_FIELDS).eq('id',personId)).maybeSingle(),
+    client.from('parent_child_relationships').select(`people!parent_child_relationships_parent_id_fkey(${PESSOA_PUBLICA_FIELDS},is_public,status)`).eq('child_id',personId),
+    client.from('parent_child_relationships').select(`people!parent_child_relationships_child_id_fkey(${PESSOA_PUBLICA_FIELDS},is_public,status)`).eq('parent_id',personId),
+    client.from('family_unit_members').select('family_unit_id').eq('person_id',personId)
+  ]);
+  if(!pessoa){ box.hidden=true; box.innerHTML=''; return; }
+  const pais=(paisRows||[]).map(r=>r.people).filter(p=>p&&p.is_public&&p.status==='published');
+  const filhos=(filhosRows||[]).map(r=>r.people).filter(p=>p&&p.is_public&&p.status==='published');
+  const unitIds=(unidades||[]).map(u=>u.family_unit_id);
+  // o filtro is_public/status do cônjuge é feito em JS depois de trazer os dados —
+  // o Supabase não deixa encadear .eq() numa coluna de tabela relacionada (people)
+  // dentro de um select() aninhado como esse, só na tabela raiz da consulta.
+  let casamentos=[];
+  if(unitIds.length){
+    const [{data:fus},{data:membros}]=await Promise.all([
+      client.from('family_units').select('id,start_date,start_date_precision,place_id').in('id',unitIds),
+      client.from('family_unit_members').select(`family_unit_id,people(${PESSOA_PUBLICA_FIELDS},is_public,status)`).in('family_unit_id',unitIds).neq('person_id',personId)
+    ]);
+    const fuMap=new Map((fus||[]).map(f=>[f.id,f]));
+    casamentos=(membros||[]).filter(m=>m.people&&m.people.is_public&&m.people.status==='published').map(m=>({spouse:m.people,...fuMap.get(m.family_unit_id)}));
+  }
+  const placeName=(pid)=>pid?labelFromMap(placesLabelMap,pid):'';
+  const texto=gerarBiografiaAutomaticaAdmin({pessoa,pais,casamentos,filhos,placeName});
+  if(!texto){ box.hidden=true; box.innerHTML=''; return; }
+  box.hidden=false;
+  box.innerHTML=`<b>Pré-visualização automática (o que aparece publicamente)</b>${escapeHtml(texto)}`;
+}
+
 function showError(el,msg){el.textContent=msg||''}
 let confirmDeleteResolver=null;
 function confirmDelete(title,message){
@@ -64,6 +210,8 @@ function openModal(person=null){
   $('#personAvatarPreview').innerHTML=person?.avatar_path?`<img src="${avatarUrl(person.avatar_path)}" alt="">`:'sem foto';
   $('#personAvatarHint').textContent='Opcional — aparece na árvore genealógica e na listagem.';
   modal.classList.add('open');
+  $('#biographyAutoPreview').hidden=true; $('#biographyAutoPreview').innerHTML='';
+  carregarPreviewBiografia(person?.id).catch(()=>{});
 }
 function closeModal(){
   modal.classList.remove('open');

@@ -241,6 +241,9 @@ main{min-height:40vh}
 .profile-dates{font-family:var(--serif);font-size:20px;font-weight:300;color:var(--muted-3);margin:0 0 26px}
 .profile-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
 .profile-bio{font-family:var(--serif);font-size:18px;font-weight:300;line-height:1.8;color:var(--text-dim);max-width:640px;margin:0}
+/* quando a biografia automática e a manual aparecem juntas, um respiro entre
+   os dois parágrafos deixa claro que são blocos distintos, mesmo lendo corrido */
+.profile-bio+.profile-bio{margin-top:14px}
 .profile-cols{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:clamp(24px,4vw,52px)}
 .col-heading{font-size:var(--fs-micro);letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin:0 0 22px;padding-bottom:14px;border-bottom:1px solid var(--line-2)}
 .rel-group{margin-bottom:26px}
@@ -353,12 +356,24 @@ body.tree-locked{overflow:hidden}
 .galeria-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:clamp(22px,3vw,40px)}
 .filtro-btn{font-family:var(--sans);font-size:var(--fs-micro);letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:7px 13px;cursor:pointer;transition:background .25s,border-color .25s;background:transparent;border:1px solid var(--line-3);color:var(--muted-3)}
 .filtro-btn.active,.filtro-btn:hover{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+/* Padrão de campo de filtro usado em Pessoas, Fotos, Histórias e Árvore:
+   um rótulo pequeno em cima e o campo (select ou busca) embaixo. */
+.filtros-grupo{min-width:0}
+.rotulo{display:block;font-size:var(--fs-micro);letter-spacing:.18em;text-transform:uppercase;color:var(--muted-4);margin-bottom:8px}
 /* Quando uma lista de filtro cresce demais pra caber numa fileira de pílulas
    (dezenas de sobrenomes, coleções, décadas...), um select nativo escala bem
    pra qualquer quantidade e já vem com busca por teclado de graça. */
 .select-filtro{appearance:none;-webkit-appearance:none;font-family:var(--sans);font-size:var(--fs-micro);letter-spacing:.08em;text-transform:uppercase;background:var(--bg-3) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M1 1l4 4 4-4" stroke="%23C7CEDA" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>') no-repeat right 16px center;border:1px solid var(--line-3);border-radius:999px;padding:9px 38px 9px 18px;color:var(--text);cursor:pointer;max-width:100%;transition:border-color .25s}
 .select-filtro:hover,.select-filtro:focus{border-color:var(--gold);outline:none}
 .select-filtro option{background:var(--bg-2);color:var(--text)}
+/* Variante digitável do select-filtro: quando a lista é grande demais até pra
+   rolar (nomes de pessoas), um <input list> com <datalist> deixa buscar
+   digitando e ainda escolher da lista — sem depender de biblioteca nenhuma. */
+.busca-filtro{font-family:var(--sans);font-size:var(--fs-micro);letter-spacing:.08em;text-transform:uppercase;background:var(--bg-3);border:1px solid var(--line-3);border-radius:999px;padding:9px 18px;color:var(--text);cursor:text;max-width:100%;transition:border-color .25s}
+.busca-filtro::placeholder{color:var(--muted-4)}
+.busca-filtro:hover,.busca-filtro:focus{border-color:var(--gold);outline:none}
+.btn-limpar-filtros{align-self:flex-end;background:none;border:1px solid var(--line-3);border-radius:999px;padding:9px 16px;color:var(--muted-3);font-family:var(--sans);font-size:var(--fs-micro);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:border-color .25s,color .25s}
+.btn-limpar-filtros:hover{border-color:var(--gold);color:var(--gold)}
 .masonry{columns:4 260px;column-gap:14px}
 .masonry-item{break-inside:avoid;margin-bottom:14px;animation:fadeUp .8s both}
 .photo-card{display:block;width:100%;padding:0;border:1px solid var(--line-2);border-radius:14px;background:var(--bg-3);cursor:zoom-in;overflow:hidden;position:relative}

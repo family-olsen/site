@@ -28,8 +28,8 @@
 <style>
   .pessoas-head{display:flex;justify-content:space-between;align-items:flex-start;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:8px}
   .pessoas-head-left{flex:1 1 260px;min-width:0}
-  .pessoas-head-right{flex:0 1 auto;min-width:0}
-  .pessoas-head-right .rotulo{display:block;font-size:var(--fs-micro);letter-spacing:.18em;text-transform:uppercase;color:var(--muted-4);margin-bottom:8px;text-align:right}
+  .pessoas-head-right{flex:0 1 auto;min-width:0;display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+  .pessoas-head-right .rotulo{text-align:right}
 </style>
 </head>
 <body>
@@ -43,8 +43,17 @@
           <p style="margin:8px 0 0" id="clearFilterRow"></p>
         </div>
         <div class="pessoas-head-right">
-          <label class="rotulo" for="filtroSobrenome">Filtrar por família</label>
-          <select class="select-filtro" id="filtroSobrenome"></select>
+          <div class="filtros-grupo">
+            <label class="rotulo" for="filtroSobrenome">Filtrar por família</label>
+            <input class="busca-filtro" id="filtroSobrenome" list="filtroSobrenomeList" autocomplete="off" placeholder="Todas as famílias">
+            <datalist id="filtroSobrenomeList"></datalist>
+          </div>
+          <div class="filtros-grupo">
+            <label class="rotulo" for="filtroPessoaBusca">Pessoa</label>
+            <input class="busca-filtro" id="filtroPessoaBusca" list="filtroPessoaList" autocomplete="off" placeholder="Buscar pessoa...">
+            <datalist id="filtroPessoaList"></datalist>
+          </div>
+          <button type="button" class="btn-limpar-filtros" id="btnLimparFiltros">Limpar filtros</button>
         </div>
       </div>
       <div id="csRoot" style="margin-top:26px"></div>
@@ -67,15 +76,34 @@ function renderPeopleCarousel(list){
   });
 }
 
-function renderFiltroSobrenome(allPeople,sobrenomeAtivo){
-  const todos=[...new Set(allPeople.flatMap(p=>surnameTokens(p)))].sort();
-  const sel=$('#filtroSobrenome');
-  sel.innerHTML=['Tudo',...todos].map(f=>`<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
-  sel.value=sobrenomeAtivo||'Tudo';
-  sel.onchange=()=>{
-    const f=sel.value;
-    location.href=f==='Tudo'?'pessoas.html':`pessoas.html?sobrenome=${encodeURIComponent(f)}`;
-  };
+function renderFiltros(allPeople,people,sobrenomeAtivo){
+  const familias=[...new Set(allPeople.flatMap(p=>surnameTokens(p)))].sort();
+  $('#filtroSobrenomeList').innerHTML=familias.map(f=>`<option value="${escapeHtml(f)}">`).join('');
+  const inpFamilia=$('#filtroSobrenome');
+  inpFamilia.value=sobrenomeAtivo||'';
+  inpFamilia.addEventListener('change',()=>{
+    const f=inpFamilia.value.trim();
+    if(!f){ location.href='pessoas.html'; return; }
+    if(familias.includes(f)) location.href=`pessoas.html?sobrenome=${encodeURIComponent(f)}`;
+  });
+
+  // A lista de pessoas do campo de busca respeita o filtro de família já
+  // aplicado — assim ela vai "sabendo" só de quem está na tela no momento.
+  const labelMap=new Map();
+  $('#filtroPessoaList').innerHTML=people.map(p=>{
+    let label=p.full_name;
+    if(p.birth_date) label+=` (${p.birth_date.slice(0,4)})`;
+    else if(p.death_date) label+=` (†${p.death_date.slice(0,4)})`;
+    if(labelMap.has(label)) label=`${label} · ${p.id.slice(0,8)}`;
+    labelMap.set(label,p.id);
+    return `<option value="${escapeHtml(label)}">`;
+  }).join('');
+  $('#filtroPessoaBusca').addEventListener('change',(e)=>{
+    const id=labelMap.get(e.target.value.trim());
+    if(id) location.href=`pessoa.html?id=${id}`;
+  });
+
+  $('#btnLimparFiltros').addEventListener('click',()=>{ location.href='pessoas.html'; });
 }
 
 async function boot(){
@@ -91,7 +119,7 @@ async function boot(){
   const sobrenome=new URLSearchParams(location.search).get('sobrenome');
   const people=sobrenome?allPeople.filter(p=>surnameTokens(p).includes(sobrenome)):allPeople;
 
-  renderFiltroSobrenome(allPeople,sobrenome);
+  renderFiltros(allPeople,people,sobrenome);
   if(!reduceMotion) revealBlock($('.pessoas-head-right'),100);
 
   if(sobrenome){

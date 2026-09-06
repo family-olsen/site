@@ -162,6 +162,25 @@ async function renderPedigree(focus,parents,spouses,children,siblings){
   });
 }
 
+// Campo "Pessoa" no cabeçalho: busca digitando (mesmo padrão usado em
+// Pessoas/Fotos/Histórias) e, ao escolher alguém, recentraliza a árvore nela.
+async function wireBuscaPessoa(){
+  const {data:allPeople}=await sbClient.from('people').select('id,full_name,birth_date,death_date').order('full_name',{ascending:true});
+  const labelMap=new Map();
+  $('#arvoreBuscaPessoaList').innerHTML=(allPeople||[]).map(p=>{
+    let label=p.full_name;
+    if(p.birth_date) label+=` (${p.birth_date.slice(0,4)})`;
+    else if(p.death_date) label+=` (†${p.death_date.slice(0,4)})`;
+    if(labelMap.has(label)) label=`${label} · ${p.id.slice(0,8)}`;
+    labelMap.set(label,p.id);
+    return `<option value="${escapeHtml(label)}">`;
+  }).join('');
+  $('#arvoreBuscaPessoa').addEventListener('change',(e)=>{
+    const id=labelMap.get(e.target.value.trim());
+    if(id){ loadTree(id); e.target.value=''; e.target.blur(); }
+  });
+}
+
 async function boot(){
   renderHeader(); renderFooter();
   const {data:anyPerson,count}=await sbClient.from('people').select('id',{count:'exact'}).limit(1);
@@ -181,6 +200,11 @@ async function boot(){
     <div class="tree-main">
       <div class="tree-head">
         <div><h1>Árvore genealógica</h1><p>${ALL_PEOPLE_COUNT} pessoas documentadas.</p></div>
+        <div class="filtros-grupo">
+          <label class="rotulo" for="arvoreBuscaPessoa">Pessoa</label>
+          <input class="busca-filtro" id="arvoreBuscaPessoa" list="arvoreBuscaPessoaList" autocomplete="off" placeholder="Buscar pessoa...">
+          <datalist id="arvoreBuscaPessoaList"></datalist>
+        </div>
         <a class="tree-view-link" id="verPerfilLink" href="#">Ver perfil de <span id="focoNome">—</span> →</a>
         <div style="display:flex;gap:8px">
           <button type="button" class="tree-zoom-btn" id="zoomOutBtn" aria-label="Diminuir zoom">−</button>
@@ -195,6 +219,7 @@ async function boot(){
     </div>`;
   if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches) revealWords($('.tree-head h1'),{stagger:35});
 
+  wireBuscaPessoa();
   $('#zoomInBtn').addEventListener('click',()=>setZoom(zoomScale+.15));
   $('#zoomOutBtn').addEventListener('click',()=>setZoom(zoomScale-.15));
   $('#zoomResetBtn').addEventListener('click',()=>{zoomScale=.85; panX=0; panY=0; applyTreeTransform();});

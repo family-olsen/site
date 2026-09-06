@@ -35,7 +35,7 @@ function truncate(text,max){
 }
 
 /* ---------- Parentesco (leitura pública) ---------- */
-const PERSON_FIELDS='id,full_name,birth_date,death_date,avatar_path,biography,gender,is_living';
+const PERSON_FIELDS='id,full_name,nickname,birth_date,birth_date_precision,birth_place_id,death_date,death_date_precision,death_place_id,avatar_path,biography,gender,is_living';
 async function fetchParents(personId){
   const {data}=await sbClient.from('parent_child_relationships').select(`parent_id,people!parent_child_relationships_parent_id_fkey(${PERSON_FIELDS})`).eq('child_id',personId);
   return (data||[]).map(r=>r.people).filter(Boolean);
@@ -60,6 +60,20 @@ async function fetchSpouses(personId){
   const map=new Map();
   (data||[]).forEach(r=>{ if(r.people) map.set(r.people.id,r.people); });
   return [...map.values()];
+}
+// Como fetchSpouses, mas traz também a união em si (data/local do casamento) —
+// usado só pela biografia automática, que precisa dessa informação extra sem
+// arriscar mudar o formato de retorno que a árvore e o admin já esperam.
+async function fetchMarriages(personId){
+  const {data:units}=await sbClient.from('family_unit_members').select('family_unit_id').eq('person_id',personId);
+  const unitIds=(units||[]).map(u=>u.family_unit_id);
+  if(!unitIds.length) return [];
+  const [{data:fus},{data:members}]=await Promise.all([
+    sbClient.from('family_units').select('id,start_date,start_date_precision,place_id').in('id',unitIds),
+    sbClient.from('family_unit_members').select(`family_unit_id,person_id,people(${PERSON_FIELDS})`).in('family_unit_id',unitIds).neq('person_id',personId)
+  ]);
+  const fuMap=new Map((fus||[]).map(f=>[f.id,f]));
+  return (members||[]).filter(m=>m.people).map(m=>({spouse:m.people,...fuMap.get(m.family_unit_id)}));
 }
 // checagem em lote (uma só vez por renderização, não uma consulta por cartão): pra decidir se vale
 // a pena mostrar a setinha de expandir/lateral, ou se já dá pra saber de antemão que não tem nada
@@ -178,6 +192,120 @@ function eventLine(verbo,data,lugar){
   if(d) return `${verbo} em ${d}`;
   if(lugar) return `${verbo} em ${lugar}`;
   return '';
+}
+
+/* ---------- Biografia automática ----------
+   Monta um parágrafo a partir só do que já está cadastrado (nascimento, pais e
+   suas idades, casamento, filhos, falecimento) — sem inventar nada. É pensado
+   pra ficar sempre em cima, com a biografia manual (histórias, detalhes que não
+   cabem em campo nenhum) complementando embaixo. */
+// "em 11 de maio de 1899" (data exata) ou "por volta de 1899" (só o ano, ou data aproximada).
+function dataComPrecisao(data,precisao){
+  if(!data) return '';
+  if(!precisao||precisao==='exact') return `em ${fullDateLabel(data)}`;
+  const ano=String(data).slice(0,4);
+  if(precisao==='before') return `antes de ${ano}`;
+  if(precisao==='after') return `depois de ${ano}`;
+  return `por volta de ${ano}`;
+}
+// Diferença em anos entre duas datas, usando só o ano (suficiente pro texto) —
+// devolve null se alguma data faltar ou o resultado não fizer sentido.
+function diferencaEmAnos(dataMaisNova,dataMaisVelha){
+  if(!dataMaisNova||!dataMaisVelha) return null;
+  const anos=Number(String(dataMaisNova).slice(0,4))-Number(String(dataMaisVelha).slice(0,4));
+  return (anos>=0&&anos<120)?anos:null;
+}
+function gerarBiografiaAutomatica({pessoa,pais,casamentos,filhos,placeName}){
+  const nome=pessoa.full_name;
+  const feminino=pessoa.gender==='female';
+  const pronome=feminino?'Ela':'Ele';
+  const localNasc=placeName(pessoa.birth_place_id);
+  const localMorte=placeName(pessoa.death_place_id);
+  const apelido=pessoa.nickname?`, também conhecid${feminino?'a':'o'} como ${pessoa.nickname}`:'';
+  const paisComIdade=pais.filter(p=>p.birth_date);
+  const frases=[];
+  let contouNascimento=false;
+
+  if(pessoa.birth_date&&paisComIdade.length){
+    const partes=paisComIdade.map(p=>{
+      const idade=diferencaEmAnos(pessoa.birth_date,p.birth_date);
+      if(idade==null) return null;
+      const aprox=p.birth_date_precision&&p.birth_date_precision!=='exact';
+      const papel=p.gender==='female'?'sua mãe':'seu pai';
+      return `${papel}, ${p.full_name}, tinha ${aprox?'cerca de ':''}${idade} anos`;
+    }).filter(Boolean);
+    let f=`Quando ${nome} nasceu ${dataComPrecisao(pessoa.birth_date,pessoa.birth_date_precision)}`;
+    if(localNasc) f+=`, em ${localNasc}`;
+    if(partes.length) f+=`, ${partes.join(' e ')}`;
+    frases.push(f+apelido+'.');
+    contouNascimento=true;
+  } else if(pessoa.birth_date&&pais.length){
+    let f=`${feminino?'Filha':'Filho'} de ${pais.map(p=>p.full_name).join(' e ')}, nasceu ${dataComPrecisao(pessoa.birth_date,pessoa.birth_date_precision)}`;
+    if(localNasc) f+=`, em ${localNasc}`;
+    frases.push(f+apelido+'.');
+    contouNascimento=true;
+  } else if(pessoa.birth_date){
+    let f=`${nome} nasceu ${dataComPrecisao(pessoa.birth_date,pessoa.birth_date_precision)}`;
+    if(localNasc) f+=`, em ${localNasc}`;
+    frases.push(f+apelido+'.');
+    contouNascimento=true;
+  } else if(pais.length){
+    frases.push(`${feminino?'Filha':'Filho'} de ${pais.map(p=>p.full_name).join(' e ')}${apelido}.`);
+    contouNascimento=true;
+  } else if(apelido){
+    frases.push(`${nome} também é conhecid${feminino?'a':'o'} como ${pessoa.nickname}.`);
+  }
+
+  casamentos.forEach(c=>{
+    let f=`${pronome} casou-se com ${c.spouse.full_name}`;
+    const data=dataComPrecisao(c.start_date,c.start_date_precision);
+    const local=placeName(c.place_id);
+    if(data) f+=` ${data}`;
+    if(local) f+=`, em ${local}`;
+    frases.push(f+'.');
+  });
+
+  if(filhos.length){
+    if(filhos.length<=2){
+      const nomes=filhos.map(f=>f.full_name.split(' ')[0]).join(' e ');
+      const rotulo=filhos.length===1?(filhos[0].gender==='female'?'1 filha':'1 filho'):`${filhos.length} filhos`;
+      frases.push(`${casamentos.length?'Eles t':'T'}iveram pelo menos ${rotulo}, ${nomes}.`);
+    } else {
+      const m=filhos.filter(f=>f.gender==='male').length;
+      const f=filhos.filter(f=>f.gender==='female').length;
+      const outros=filhos.length-m-f;
+      const partes=[];
+      if(m) partes.push(`${m} filho${m>1?'s':''}`);
+      if(f) partes.push(`${f} filha${f>1?'s':''}`);
+      if(outros) partes.push(`${outros} filho${outros>1?'s':''} de gênero não informado`);
+      // "3 filhos, 5 filhas e 1 filho..." — vírgula entre os itens do meio, "e" só
+      // antes do último (evita "3 filhos e 5 filhas e 1..." quando há 3 partes).
+      const lista=partes.length>1?partes.slice(0,-1).join(', ')+' e '+partes[partes.length-1]:partes[0];
+      frases.push(`${casamentos.length?'Eles t':'T'}iveram pelo menos ${lista}.`);
+    }
+  }
+  // Se não veio nenhum filho aqui, pode ser que realmente não tiveram — ou pode
+  // ser que os filhos existem mas estão marcados como privados (não aparecem
+  // pra o público). Como não dá pra saber a diferença com os dados públicos,
+  // é mais seguro simplesmente não afirmar nada sobre filhos nesse caso.
+
+  if(pessoa.death_date){
+    const idade=diferencaEmAnos(pessoa.death_date,pessoa.birth_date);
+    let f=`${pronome} faleceu ${dataComPrecisao(pessoa.death_date,pessoa.death_date_precision)}`;
+    if(localMorte) f+=`, em ${localMorte}`;
+    if(idade!=null){
+      if(idade<12) f+=', ainda criança';
+      else if(idade<25) f+=', ainda jovem';
+      else f+=`, aos ${idade} anos`;
+    }
+    frases.push(f+'.');
+  } else if(pessoa.is_living===false){
+    frases.push('Já faleceu.');
+  } else if(pessoa.is_living){
+    frases.push(`Está ${feminino?'viva':'vivo'}.`);
+  }
+
+  return frases.join(' ');
 }
 async function openSearch(){
   closeSearch();

@@ -45,7 +45,7 @@ function pillHtml(p){
 async function boot(){
   renderHeader(); renderFooter();
   const id=new URLSearchParams(location.search).get('id');
-  const {data:person,error}=await sbClient.from('people').select('id,full_name,birth_date,death_date,avatar_path,biography,birth_place_id,death_place_id').eq('id',id).maybeSingle();
+  const {data:person,error}=await sbClient.from('people').select('id,full_name,nickname,gender,is_living,birth_date,birth_date_precision,death_date,death_date_precision,avatar_path,biography,birth_place_id,death_place_id').eq('id',id).maybeSingle();
   if(error||!person){
     $('#main').innerHTML='<div class="empty-state-public"><h3>Pessoa não encontrada</h3><p>Ela pode não existir ou ainda não ter sido publicada.</p><p><a href="pessoas.html">← Ver todas as pessoas</a></p></div>';
     return;
@@ -57,8 +57,8 @@ async function boot(){
     url:location.href
   });
 
-  const [parents,children,spouses,{data:storyRows},{data:photoRows},{data:eventRows},{data:sourceRows},{data:documentRows},{data:places}]=await Promise.all([
-    fetchParents(id), fetchChildren(id), fetchSpouses(id),
+  const [parents,children,spouses,marriages,{data:storyRows},{data:photoRows},{data:eventRows},{data:sourceRows},{data:documentRows},{data:places}]=await Promise.all([
+    fetchParents(id), fetchChildren(id), fetchSpouses(id), fetchMarriages(id),
     sbClient.from('story_people').select('role,story_id,stories(id,slug,title,summary,status,story_photos(photos(thumbnail_path)))').eq('person_id',id),
     sbClient.from('photo_people').select('photo_id,photos(id,title,caption,thumbnail_path,photo_date)').eq('person_id',id),
     sbClient.from('event_people').select('role,event_id,events(id,title,event_type,event_date,start_date,description)').eq('person_id',id),
@@ -68,6 +68,7 @@ async function boot(){
   ]);
   const siblings=await fetchSiblings(parents.map(p=>p.id),id);
   const placeName=(pid)=>places?.find(pl=>pl.id===pid)?.name||'';
+  const biografiaAutomatica=gerarBiografiaAutomatica({pessoa:person,pais:parents,casamentos:marriages,filhos:children,placeName});
 
   const stories=(storyRows||[]).filter(r=>r.stories).map(r=>r.stories);
   const photos=(photoRows||[]).filter(r=>r.photos).map(r=>r.photos);
@@ -88,6 +89,7 @@ async function boot(){
           <p class="eyebrow-gold">Pessoa</p>
           <h1 class="profile-name">${escapeHtml(person.full_name)}</h1>
           <p class="profile-dates">${escapeHtml(yearsLabel(person)||'Datas não registradas')}</p>
+          ${biografiaAutomatica?`<p class="profile-bio">${escapeHtml(biografiaAutomatica)}</p>`:''}
           ${person.biography?`<p class="profile-bio">${escapeHtml(person.biography)}</p>`:''}
         </div>
       </div>

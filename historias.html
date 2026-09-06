@@ -41,8 +41,7 @@
   .historias-head{display:flex;justify-content:space-between;align-items:flex-start;gap:clamp(20px,4vw,48px);flex-wrap:wrap}
   .historias-head-left{flex:1 1 260px;min-width:0}
   .historias-head-right{flex:0 1 auto;min-width:0;display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end}
-  .filtros-grupo{min-width:0}
-  .filtros-grupo .rotulo{display:block;font-size:var(--fs-micro);letter-spacing:.18em;text-transform:uppercase;color:var(--muted-4);margin-bottom:8px;text-align:right}
+  .historias-head-right .rotulo{text-align:right}
 </style>
 </head>
 <body>
@@ -64,38 +63,64 @@
 <script src="js/config.js"></script>
 <script src="js/site.js"></script>
 <script>
-let ALL_STORIES=[], filtroPessoa='Tudo', filtroFamilia='Tudo';
+let ALL_STORIES=[], filtroPessoa='Tudo', filtroFamilia='Tudo', filtroTitulo='Tudo';
+let HAS_FAMILIAS=false, HAS_PESSOAS=false, HAS_TITULOS=false;
 
-function filtroGrupoHtml(rotulo,items,valorAtual,grupo){
+// Listas grandes (dezenas de famílias ou pessoas) ficam melhor num campo que
+// deixa digitar pra buscar, mas ainda escolhe de uma lista — <input list>.
+function buscaGrupoHtml(rotulo,items,valorAtual,grupo,placeholder){
   return `<div class="filtros-grupo"><label class="rotulo" for="filtro-${grupo}">${escapeHtml(rotulo)}</label>
-    <select class="select-filtro" id="filtro-${grupo}" data-grupo="${grupo}">
-      ${['Tudo',...items].map(f=>`<option value="${escapeHtml(f)}" ${f===valorAtual?'selected':''}>${escapeHtml(f)}</option>`).join('')}
-    </select>
+    <input class="busca-filtro" id="filtro-${grupo}" list="filtro-${grupo}-list" data-grupo="${grupo}" autocomplete="off" placeholder="${escapeHtml(placeholder||'Todas')}" value="${valorAtual==='Tudo'?'':escapeHtml(valorAtual)}">
+    <datalist id="filtro-${grupo}-list">${items.map(f=>`<option value="${escapeHtml(f)}">`).join('')}</datalist>
   </div>`;
 }
 
-function renderFiltros(pessoas,familias){
+// Opções de um campo, recalculadas a partir do OUTRO filtro já aplicado (sem
+// considerar o próprio campo) — assim um filtro vai "segregando" o outro.
+function opcoesPara(campo){
+  const subset=ALL_STORIES.filter(s=>
+    (campo==='familia'||filtroFamilia==='Tudo'||s.familias.includes(filtroFamilia)) &&
+    (campo==='pessoa'||filtroPessoa==='Tudo'||s.pessoas.includes(filtroPessoa)) &&
+    (campo==='titulo'||filtroTitulo==='Tudo'||s.title===filtroTitulo)
+  );
+  if(campo==='familia') return [...new Set(subset.flatMap(s=>s.familias))].sort();
+  if(campo==='pessoa') return [...new Set(subset.flatMap(s=>s.pessoas))].sort();
+  return [...new Set(subset.map(s=>s.title).filter(Boolean))].sort();
+}
+
+function renderFiltros(){
   const parts=[];
-  if(familias.length) parts.push(filtroGrupoHtml('Filtrar por família',familias,filtroFamilia,'familia'));
-  if(pessoas.length) parts.push(filtroGrupoHtml('Pessoa',pessoas,filtroPessoa,'pessoa'));
+  if(HAS_TITULOS) parts.push(buscaGrupoHtml('Título',opcoesPara('titulo'),filtroTitulo,'titulo','Todos'));
+  if(HAS_FAMILIAS) parts.push(buscaGrupoHtml('Filtrar por família',opcoesPara('familia'),filtroFamilia,'familia'));
+  if(HAS_PESSOAS) parts.push(buscaGrupoHtml('Pessoa',opcoesPara('pessoa'),filtroPessoa,'pessoa'));
+  parts.push('<button type="button" class="btn-limpar-filtros" id="btnLimparFiltros">Limpar filtros</button>');
   $('#filtrosWrap').innerHTML=parts.join('');
-  document.querySelectorAll('.select-filtro').forEach(sel=>sel.addEventListener('change',()=>{
-    if(sel.dataset.grupo==='pessoa') filtroPessoa=sel.value;
-    else filtroFamilia=sel.value;
-    renderList();
-  }));
+
+  document.querySelectorAll('.busca-filtro').forEach(inp=>{
+    const grupo=inp.dataset.grupo, itens=opcoesPara(grupo);
+    inp.addEventListener('change',()=>{
+      const v=inp.value.trim();
+      const valorValido=v===''||itens.includes(v);
+      const novo=valorValido&&v!==''?v:'Tudo';
+      if(grupo==='familia') filtroFamilia=novo;
+      else if(grupo==='pessoa') filtroPessoa=novo;
+      else filtroTitulo=novo;
+      renderFiltros(); renderList();
+    });
+  });
+
+  $('#btnLimparFiltros').addEventListener('click',()=>{
+    filtroFamilia='Tudo'; filtroPessoa='Tudo'; filtroTitulo='Tudo';
+    renderFiltros(); renderList();
+  });
 }
 
 function filteredStories(){
-  return ALL_STORIES.filter(s=>{
-    const nomes=(s.story_people||[]).map(sp=>sp.people?.full_name).filter(Boolean);
-    if(filtroPessoa!=='Tudo' && !nomes.includes(filtroPessoa)) return false;
-    if(filtroFamilia!=='Tudo'){
-      const familias=(s.story_people||[]).flatMap(sp=>sp.people?surnameTokens(sp.people):[]);
-      if(!familias.includes(filtroFamilia)) return false;
-    }
-    return true;
-  });
+  return ALL_STORIES.filter(s=>
+    (filtroPessoa==='Tudo'||s.pessoas.includes(filtroPessoa)) &&
+    (filtroFamilia==='Tudo'||s.familias.includes(filtroFamilia)) &&
+    (filtroTitulo==='Tudo'||s.title===filtroTitulo)
+  );
 }
 
 function renderList(){
@@ -115,13 +140,18 @@ async function boot(){
   const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(!reduceMotion) revealWords($('main h1'),{stagger:35});
   const {data:stories}=await sbClient.from('stories').select('id,slug,title,summary,story_photos(photos(thumbnail_path)),story_people(people(id,full_name,surname))').order('updated_at',{ascending:false});
-  ALL_STORIES=stories||[];
+  ALL_STORIES=(stories||[]).map(s=>({
+    ...s,
+    pessoas:(s.story_people||[]).map(sp=>sp.people?.full_name).filter(Boolean),
+    familias:[...new Set((s.story_people||[]).flatMap(sp=>sp.people?surnameTokens(sp.people):[]))]
+  }));
   if(!ALL_STORIES.length){ $('#summary').textContent=''; $('#list').innerHTML='<p class="empty-note">Nenhuma história publicada ainda.</p>'; revealBlock($('#list')); return; }
   $('#summary').textContent=`${ALL_STORIES.length} ${ALL_STORIES.length===1?'relato guardado':'relatos guardados'} neste acervo.`;
 
-  const pessoas=[...new Set(ALL_STORIES.flatMap(s=>(s.story_people||[]).map(sp=>sp.people?.full_name).filter(Boolean)))].sort();
-  const familias=[...new Set(ALL_STORIES.flatMap(s=>(s.story_people||[]).flatMap(sp=>sp.people?surnameTokens(sp.people):[])))].sort();
-  renderFiltros(pessoas,familias);
+  HAS_FAMILIAS=ALL_STORIES.some(s=>s.familias.length);
+  HAS_PESSOAS=ALL_STORIES.some(s=>s.pessoas.length);
+  HAS_TITULOS=ALL_STORIES.some(s=>s.title);
+  renderFiltros();
   renderList();
 
   if(!reduceMotion){
