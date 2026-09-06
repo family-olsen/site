@@ -795,7 +795,12 @@ $('#closeRelModal').onclick=closeRelModal;$('#cancelRelModal').onclick=closeRelM
 $('#relNewPersonLink').addEventListener('click',(e)=>{e.preventDefault(); reopenRelModeAfterPersonSave=relMode; closeRelModal(); openModal();});
 $('#zoomInBtn').onclick=()=>setZoom(0.1);$('#zoomOutBtn').onclick=()=>setZoom(-0.1);$('#zoomResetBtn').onclick=()=>resetZoom();
 const treeViewport=$('#treeViewport');
-treeViewport.addEventListener('wheel',(e)=>{e.preventDefault(); setZoom(e.deltaY<0?0.08:-0.08);},{passive:false});
+// Ctrl/Cmd + roda = zoom; sem Ctrl, a roda rola a página normalmente
+// (mesmo padrão do site público).
+treeViewport.addEventListener('wheel',(e)=>{
+  if(!(e.ctrlKey||e.metaKey)) return;
+  e.preventDefault(); setZoom(e.deltaY<0?0.08:-0.08);
+},{passive:false});
 treeViewport.addEventListener('mousedown',(e)=>{isPanning=true; panOrigin={x:e.clientX,y:e.clientY}; panStartOffset={x:panX,y:panY}; treeViewport.classList.add('panning');});
 window.addEventListener('mousemove',(e)=>{if(!isPanning) return; panX=panStartOffset.x+(e.clientX-panOrigin.x); panY=panStartOffset.y+(e.clientY-panOrigin.y); applyZoom();});
 window.addEventListener('mouseup',()=>{isPanning=false; treeViewport.classList.remove('panning');});
