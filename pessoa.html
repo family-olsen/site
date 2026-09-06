@@ -57,12 +57,13 @@ async function boot(){
     url:location.href
   });
 
-  const [parents,children,spouses,{data:storyRows},{data:photoRows},{data:eventRows},{data:sourceRows},{data:places}]=await Promise.all([
+  const [parents,children,spouses,{data:storyRows},{data:photoRows},{data:eventRows},{data:sourceRows},{data:documentRows},{data:places}]=await Promise.all([
     fetchParents(id), fetchChildren(id), fetchSpouses(id),
     sbClient.from('story_people').select('role,story_id,stories(id,slug,title,summary,status,story_photos(photos(thumbnail_path)))').eq('person_id',id),
     sbClient.from('photo_people').select('photo_id,photos(id,title,caption,thumbnail_path,photo_date)').eq('person_id',id),
     sbClient.from('event_people').select('role,event_id,events(id,title,event_type,event_date,start_date,description)').eq('person_id',id),
     sbClient.from('person_sources').select('source_id,sources(id,title,url,source_type)').eq('person_id',id),
+    sbClient.from('document_people').select('document_id,documents(id,title,description,document_type,document_date,storage_path,mime_type)').eq('person_id',id),
     sbClient.from('places').select('id,name')
   ]);
   const siblings=await fetchSiblings(parents.map(p=>p.id),id);
@@ -72,6 +73,8 @@ async function boot(){
   const photos=(photoRows||[]).filter(r=>r.photos).map(r=>r.photos);
   const events=(eventRows||[]).filter(r=>r.events).map(r=>({...r.events,role:r.role}));
   const sources=(sourceRows||[]).filter(r=>r.sources).map(r=>r.sources);
+  const documents=(documentRows||[]).filter(r=>r.documents).map(r=>r.documents);
+  const DOC_TYPE_LABEL={birth_record:'Registro de nascimento',death_record:'Registro de óbito',marriage_record:'Registro de casamento',baptism_record:'Registro de batismo',immigration_record:'Registro de imigração',certificate:'Certidão',letter:'Carta',map:'Mapa',photo_scan:'Foto/digitalização',pdf:'PDF',other:'Documento'};
 
   $('#main').innerHTML=`
     <section class="profile-hero">
@@ -79,7 +82,7 @@ async function boot(){
       <div class="profile-grid">
         <div>
           <div class="profile-portrait">${person.avatar_path?`<img src="${photoUrl(person.avatar_path)}" alt="Retrato de ${escapeHtml(person.full_name)}">`:`<div class="profile-portrait-fallback">${escapeHtml(initials(person.full_name))}</div>`}</div>
-          ${person.birth_place_id||person.death_place_id?`<p class="profile-caption">${escapeHtml([placeName(person.birth_place_id)&&('Nasceu em '+placeName(person.birth_place_id)),placeName(person.death_place_id)&&('Faleceu em '+placeName(person.death_place_id))].filter(Boolean).join(' · '))}</p>`:''}
+          ${person.birth_date||person.death_date||person.birth_place_id||person.death_place_id?`<p class="profile-caption">${escapeHtml([eventLine('Nasceu',person.birth_date,placeName(person.birth_place_id)),eventLine('Faleceu',person.death_date,placeName(person.death_place_id))].filter(Boolean).join(' · '))}</p>`:''}
         </div>
         <div>
           <p class="eyebrow-gold">Pessoa</p>
@@ -115,7 +118,8 @@ async function boot(){
     {id:'historias',label:'Histórias',n:stories.length,items:stories.map(s=>({meta:'História',titulo:s.title,resumo:s.summary||'',bg:s.story_photos?.find(sp=>sp.photos?.thumbnail_path)?.photos?.thumbnail_path?photoUrl(s.story_photos.find(sp=>sp.photos?.thumbnail_path).photos.thumbnail_path):'',go:`historia.html?slug=${s.slug||s.id}`}))},
     {id:'fotos',label:'Fotos',n:photos.length,items:photos.map(p=>({meta:dateCell(p.photo_date)||'Foto',titulo:p.title,resumo:p.caption||'',bg:p.thumbnail_path?photoUrl(p.thumbnail_path):'',go:`galeria.html?foto=${p.id}`}))},
     {id:'eventos',label:'Eventos',n:events.length,items:events.map(e=>({meta:dateCell(e.event_date||e.start_date)||'Evento',titulo:e.title,resumo:e.description||'',go:`timeline.html?evento=${e.id}`}))},
-    {id:'fontes',label:'Fontes',n:sources.length,items:sources.map(s=>({meta:s.source_type||'Fonte',titulo:s.title,resumo:s.url||'',go:s.url||'#'}))}
+    {id:'fontes',label:'Fontes',n:sources.length,items:sources.map(s=>({meta:s.source_type||'Fonte',titulo:s.title,resumo:s.url||'',go:s.url||'#'}))},
+    {id:'documentos',label:'Documentos',n:documents.length,items:documents.map(d=>({meta:DOC_TYPE_LABEL[d.document_type]||'Documento',titulo:d.title,resumo:d.description||'',bg:d.mime_type?.startsWith('image/')&&d.storage_path?documentUrl(d.storage_path):'',go:documentUrl(d.storage_path)||'#'}))}
   ];
   let activeTab=tabs.find(t=>t.n>0)?.id||'historias';
   function renderTabs(){

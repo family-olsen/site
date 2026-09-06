@@ -5,6 +5,7 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
 function $(sel){return document.querySelector(sel)}
 function photoUrl(path){return path?sbClient.storage.from('photos').getPublicUrl(path).data.publicUrl:''}
 function avatarUrl(path){return photoUrl(path)}
+function documentUrl(path){return path?sbClient.storage.from('documents').getPublicUrl(path).data.publicUrl:''}
 function yearsLabel(p){
   const b=p.birth_date?p.birth_date.slice(0,4):null, d=p.death_date?p.death_date.slice(0,4):null;
   if(!b&&!d) return '';
@@ -163,6 +164,21 @@ async function loadSearchIndex(){
   return items;
 }
 function dateCell(d){return d?String(d).slice(0,10):''}
+function fullDateLabel(d){
+  if(!d) return '';
+  const [y,m,day]=String(d).slice(0,10).split('-').map(Number);
+  if(!y||!m||!day) return '';
+  return new Date(y,m-1,day).toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});
+}
+// "Nasceu em 12 de setembro de 1937, em Itápolis" — junta data e lugar quando os
+// dois existem; usa só o que tiver quando falta um dos dois.
+function eventLine(verbo,data,lugar){
+  const d=fullDateLabel(data);
+  if(d&&lugar) return `${verbo} em ${d}, em ${lugar}`;
+  if(d) return `${verbo} em ${d}`;
+  if(lugar) return `${verbo} em ${lugar}`;
+  return '';
+}
 async function openSearch(){
   closeSearch();
   const overlay=document.createElement('div');

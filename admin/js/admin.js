@@ -2,7 +2,7 @@ const { createClient } = supabase;
 const client = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY);
 const $ = s => document.querySelector(s);
 const loginView=$('#loginView'), appView=$('#appView'), modal=$('#personModal'), familyModal=$('#familyModal'), childrenModal=$('#childrenModal'), linkChildrenModal=$('#linkChildrenModal'), relModal=$('#relModal'), storyModal=$('#storyModal'), storyPeopleModal=$('#storyPeopleModal'), bookModal=$('#bookModal'), chaptersModal=$('#chaptersModal'), photoModal=$('#photoModal'), photoPeopleModal=$('#photoPeopleModal'), albumModal=$('#albumModal'), albumPhotosModal=$('#albumPhotosModal'), eventModal=$('#eventModal'), eventPeopleModal=$('#eventPeopleModal'), documentModal=$('#documentModal'), sourceModal=$('#sourceModal'), placeModal=$('#placeModal'), confirmDeleteModal=$('#confirmDeleteModal');
-let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null;
+let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null;
 
 function showError(el,msg){el.textContent=msg||''}
 let confirmDeleteResolver=null;
@@ -730,7 +730,7 @@ $('#storyQuickPerson').addEventListener('keydown',e=>{if(e.key==='Enter'){e.prev
 $('#storyQuickPhotoAdd').onclick=addStoryQuickPhoto;
 $('#storyQuickPhoto').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addStoryQuickPhoto();}});
 wireRichTextEditor($('#storyContent'),document.querySelector('#storyForm .rt-toolbar'));
-['personBirthPlace','personDeathPlace','storyPlace','photoPlace','albumPlace','eventPlace','documentPlace'].forEach(id=>{
+['personBirthPlace','personDeathPlace','storyPlace','photoPlace','albumPlace','eventPlace','documentPlace','sourcePlace'].forEach(id=>{
   const el=$('#'+id); if(el) wirePlaceAutocomplete(el);
 });
 $('#searchStories').addEventListener('input',renderStories);$('#filterStoryStatus').addEventListener('change',renderStories);
@@ -757,6 +757,13 @@ $('#eventQuickPlaceNew').addEventListener('click',(e)=>{e.preventDefault(); open
 $('#eventQuickSourceAdd').onclick=addEventQuickSource;
 $('#eventQuickSource').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addEventQuickSource();}});
 $('#eventQuickSourceNew').addEventListener('click',(e)=>{e.preventDefault(); reopenEventAfterSourceSave=true; eventModal.classList.remove('open'); openSourceModal();});
+$('#eventQuickDocumentAdd').onclick=addEventQuickDocument;
+$('#eventQuickDocument').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addEventQuickDocument();}});
+$('#sourceQuickPlaceNew').addEventListener('click',(e)=>{e.preventDefault(); openPlaceShortcut(sourceModal,'sourcePlace');});
+$('#sourceQuickStoryAdd').onclick=addSourceQuickStory;
+$('#sourceQuickStory').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addSourceQuickStory();}});
+$('#sourceQuickChapterAdd').onclick=addSourceQuickChapter;
+$('#sourceQuickChapter').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addSourceQuickChapter();}});
 $('#searchEvents').addEventListener('input',renderEvents);$('#filterEventType').addEventListener('change',renderEvents);
 $('#newDocumentBtn').onclick=()=>openDocumentModal();$('#closeDocumentModal').onclick=closeDocumentModal;$('#cancelDocumentForm').onclick=closeDocumentModal;$('#refreshDocuments').onclick=loadDocuments;
 $('#documentFile').addEventListener('change',onDocumentFileChange);
@@ -1663,7 +1670,7 @@ async function removeAlbumPhoto(photoId){
 /* ---------- Eventos ---------- */
 function eventTypeLabel(t){return ({birth:'Nascimento',marriage:'Casamento',death:'Falecimento',baptism:'Batismo',immigration:'Imigração',other:'Outro'})[t]||t||'—'}
 async function loadEvents(){
-  const {data,error}=await client.from('events').select('id,title,description,status,event_type,event_date,start_date,end_date,date_precision,place_id,photo_id,updated_at,event_people(role,person_id,people(full_name)),event_sources(source_id,notes,sources(id,title))').order('event_date',{ascending:false,nullsFirst:false});
+  const {data,error}=await client.from('events').select('id,title,description,status,event_type,event_date,start_date,end_date,date_precision,place_id,photo_id,updated_at,event_people(role,person_id,people(full_name)),event_sources(source_id,notes,sources(id,title)),event_documents(document_id,documents(id,title))').order('event_date',{ascending:false,nullsFirst:false});
   if(error){$('#eventsTable').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   events=data||[]; $('#eventsCount').textContent=events.length;
   eventsQuickLabelMap=new Map();
@@ -1706,7 +1713,8 @@ function openEventModal(ev=null){
   $('#eventPhotoSelect').value=ev?.photo_id?labelFromMap(photosLabelMap,ev.photo_id):'';
   eventQuickPeople=(ev?.event_people||[]).map(ep=>({id:ep.person_id,full_name:ep.people?.full_name||'',role:ep.role}));
   eventQuickSources=(ev?.event_sources||[]).map(es=>({id:es.source_id,title:es.sources?.title||''}));
-  $('#eventQuickPerson').value=''; $('#eventQuickRole').value='subject'; $('#eventQuickSource').value='';
+  eventQuickDocuments=(ev?.event_documents||[]).map(ed=>({id:ed.document_id,title:ed.documents?.title||''}));
+  $('#eventQuickPerson').value=''; $('#eventQuickRole').value='subject'; $('#eventQuickSource').value=''; $('#eventQuickDocument').value='';
   fillPeopleDatalist();
   renderEventChips();
   eventModal.classList.add('open');
@@ -1715,8 +1723,10 @@ function closeEventModal(){eventModal.classList.remove('open')}
 function renderEventChips(){
   $('#eventPeopleChips').innerHTML=eventQuickPeople.map(p=>`<span class="chip">${escapeHtml(p.full_name)} · ${escapeHtml(eventRoleLabel(p.role))}<button type="button" data-remove-evqp="${p.id}">×</button></span>`).join('');
   $('#eventSourceChips').innerHTML=eventQuickSources.map(s=>`<span class="chip">${escapeHtml(s.title)}<button type="button" data-remove-evqs="${s.id}">×</button></span>`).join('');
+  $('#eventDocumentChips').innerHTML=eventQuickDocuments.map(d=>`<span class="chip">${escapeHtml(d.title)}<button type="button" data-remove-evqd="${d.id}">×</button></span>`).join('');
   document.querySelectorAll('[data-remove-evqp]').forEach(b=>b.onclick=()=>{eventQuickPeople=eventQuickPeople.filter(p=>p.id!==b.dataset.removeEvqp); renderEventChips();});
   document.querySelectorAll('[data-remove-evqs]').forEach(b=>b.onclick=()=>{eventQuickSources=eventQuickSources.filter(s=>s.id!==b.dataset.removeEvqs); renderEventChips();});
+  document.querySelectorAll('[data-remove-evqd]').forEach(b=>b.onclick=()=>{eventQuickDocuments=eventQuickDocuments.filter(d=>d.id!==b.dataset.removeEvqd); renderEventChips();});
 }
 function addEventQuickSource(){
   const raw=$('#eventQuickSource').value.trim();
@@ -1729,6 +1739,18 @@ function addEventQuickSource(){
     renderEventChips();
   }
   $('#eventQuickSource').value='';
+}
+function addEventQuickDocument(){
+  const raw=$('#eventQuickDocument').value.trim();
+  if(!raw) return;
+  const id=resolveFrom(documentsLabelMap,$('#eventQuickDocument'));
+  if(!id){showError($('#eventFormError'),'Documento não encontrado — selecione um da lista.');return}
+  showError($('#eventFormError'),'');
+  if(!eventQuickDocuments.some(d=>d.id===id)){
+    eventQuickDocuments.push({id,title:raw});
+    renderEventChips();
+  }
+  $('#eventQuickDocument').value='';
 }
 function addEventQuickPerson(){
   const raw=$('#eventQuickPerson').value.trim();
@@ -1778,6 +1800,12 @@ async function saveEvent(e){
     const addSources=eventQuickSources.filter(s=>!origSources.has(s.id));
     if(removeSources.length) await client.from('event_sources').delete().eq('event_id',eventId).in('source_id',removeSources);
     if(addSources.length) await client.from('event_sources').insert(addSources.map(s=>({event_id:eventId,source_id:s.id})));
+    const origDocuments=new Set((existing?.event_documents||[]).map(ed=>ed.document_id));
+    const curDocuments=new Set(eventQuickDocuments.map(d=>d.id));
+    const removeDocuments=[...origDocuments].filter(did=>!curDocuments.has(did));
+    const addDocuments=eventQuickDocuments.filter(d=>!origDocuments.has(d.id));
+    if(removeDocuments.length) await client.from('event_documents').delete().eq('event_id',eventId).in('document_id',removeDocuments);
+    if(addDocuments.length) await client.from('event_documents').insert(addDocuments.map(d=>({event_id:eventId,document_id:d.id})));
   }
   closeEventModal(); showToast(id?'Evento atualizado.':'Evento cadastrado.'); await loadEvents();
 }
@@ -1826,7 +1854,7 @@ async function removeEventPerson(personId,role){
 }
 
 /* ---------- Documentos ---------- */
-function documentTypeLabel(t){return ({certificate:'Certidão',letter:'Carta',record:'Registro',photo:'Foto de documento',other:'Outro'})[t]||t||'—'}
+function documentTypeLabel(t){return ({birth_record:'Registro de nascimento',death_record:'Registro de óbito',marriage_record:'Registro de casamento',baptism_record:'Registro de batismo',immigration_record:'Registro de imigração',certificate:'Certidão',letter:'Carta',map:'Mapa',photo_scan:'Foto/digitalização',pdf:'PDF',other:'Outro'})[t]||t||'—'}
 async function loadDocuments(){
   const {data,error}=await client.from('documents').select('id,title,description,status,document_type,document_date,date_precision,place_id,storage_path,mime_type,file_size_bytes,updated_at,document_people(person_id,people(id,full_name)),story_documents(story_id,stories(id,title)),chapter_documents(chapter_id,chapters(id,chapter_number,title,subtitle)),event_documents(event_id,events(id,title,event_date,start_date))').order('updated_at',{ascending:false});
   if(error){$('#documentsTable').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
@@ -2029,7 +2057,7 @@ async function deleteDocument(id){
 /* ---------- Fontes ---------- */
 function sourceTypeLabel(t){return ({document:'Documento',book:'Livro',interview:'Entrevista',website:'Site',video:'Vídeo',photo:'Foto',oral_history:'História oral',family_memory:'Memória de família',archive:'Arquivo público',unverified:'Não verificado',reconstruction:'Reconstrução',other:'Outro'})[t]||t||'—'}
 async function loadSources(){
-  const {data,error}=await client.from('sources').select('id,title,description,notes,source_type,url,document_id,updated_at,documents(title)').order('updated_at',{ascending:false});
+  const {data,error}=await client.from('sources').select('id,title,description,notes,source_type,url,document_id,place_id,updated_at,documents(title),story_sources(story_id,stories(title)),chapter_sources(chapter_id,chapters(chapter_number,title,subtitle))').order('updated_at',{ascending:false});
   if(error){$('#sourcesTable').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   sources=data||[]; $('#sourcesCount').textContent=sources.length; fillDatalist('#sourcesQuickList',sources,'title',sourcesQuickLabelMap); renderSources();
 }
@@ -2048,10 +2076,45 @@ function openSourceModal(src=null){
   $('#sourceTitle').value=src?.title||'';
   $('#sourceType').value=src?.source_type||'document';
   $('#sourceDocument').value=src?.document_id?labelFromMap(documentsLabelMap,src.document_id):'';
+  $('#sourcePlace').value=src?.place_id?labelFromMap(placesLabelMap,src.place_id):'';
   $('#sourceUrl').value=src?.url||'';
   $('#sourceDescription').value=src?.description||'';
   $('#sourceNotes').value=src?.notes||'';
+  sourceQuickStories=(src?.story_sources||[]).map(ss=>({id:ss.story_id,title:ss.stories?.title||''}));
+  sourceQuickChapters=(src?.chapter_sources||[]).map(cs=>({id:cs.chapter_id,title:cs.chapters?chapterQuickLabel(cs.chapters):''}));
+  $('#sourceQuickStory').value=''; $('#sourceQuickChapter').value='';
+  renderSourceChips();
   sourceModal.classList.add('open');
+}
+function renderSourceChips(){
+  $('#sourceStoryChips').innerHTML=sourceQuickStories.map(s=>`<span class="chip">${escapeHtml(s.title)}<button type="button" data-remove-sqs="${s.id}">×</button></span>`).join('');
+  $('#sourceChapterChips').innerHTML=sourceQuickChapters.map(c=>`<span class="chip">${escapeHtml(c.title)}<button type="button" data-remove-sqc="${c.id}">×</button></span>`).join('');
+  document.querySelectorAll('[data-remove-sqs]').forEach(b=>b.onclick=()=>{sourceQuickStories=sourceQuickStories.filter(s=>s.id!==b.dataset.removeSqs); renderSourceChips();});
+  document.querySelectorAll('[data-remove-sqc]').forEach(b=>b.onclick=()=>{sourceQuickChapters=sourceQuickChapters.filter(c=>c.id!==b.dataset.removeSqc); renderSourceChips();});
+}
+function addSourceQuickStory(){
+  const raw=$('#sourceQuickStory').value.trim();
+  if(!raw) return;
+  const id=storiesQuickLabelMap.get(raw);
+  if(!id){showError($('#sourceFormError'),'História não encontrada — selecione uma da lista.');return}
+  showError($('#sourceFormError'),'');
+  if(!sourceQuickStories.some(s=>s.id===id)){
+    sourceQuickStories.push({id,title:raw});
+    renderSourceChips();
+  }
+  $('#sourceQuickStory').value='';
+}
+function addSourceQuickChapter(){
+  const raw=$('#sourceQuickChapter').value.trim();
+  if(!raw) return;
+  const id=chaptersQuickLabelMap.get(raw);
+  if(!id){showError($('#sourceFormError'),'Capítulo não encontrado — selecione um da lista.');return}
+  showError($('#sourceFormError'),'');
+  if(!sourceQuickChapters.some(c=>c.id===id)){
+    sourceQuickChapters.push({id,title:raw});
+    renderSourceChips();
+  }
+  $('#sourceQuickChapter').value='';
 }
 function closeSourceModal(){
   sourceModal.classList.remove('open');
@@ -2067,11 +2130,30 @@ async function saveSource(e){
   const docRaw=$('#sourceDocument').value.trim();
   const docId=docRaw?resolveFrom(documentsLabelMap,$('#sourceDocument')):'';
   if(docRaw&&!docId){showError($('#sourceFormError'),'Documento não encontrado — selecione um da lista.');return}
-  const payload={title,description:nn($('#sourceDescription').value),notes:nn($('#sourceNotes').value),source_type:$('#sourceType').value,url:nn($('#sourceUrl').value),document_id:docId||null};
+  const placeRaw=$('#sourcePlace').value.trim();
+  const placeId=placeRaw?await resolveOrCreatePlace($('#sourcePlace')):'';
+  if(placeRaw&&!placeId){showError($('#sourceFormError'),'Local não encontrado — selecione um da lista ou cadastre em Lugares.');return}
+  const existing=id?sources.find(s=>s.id===id):null;
+  const payload={title,description:nn($('#sourceDescription').value),notes:nn($('#sourceNotes').value),source_type:$('#sourceType').value,url:nn($('#sourceUrl').value),document_id:docId||null,place_id:placeId||null};
   let error, newSourceId=null;
   if(id){({error}=await client.from('sources').update(payload).eq('id',id));}
   else {const res=await client.from('sources').insert(payload).select('id').single(); error=res.error; newSourceId=res.data?.id;}
   if(error){dbErr($('#sourceFormError'),error);return}
+  const sourceRowId=id||newSourceId;
+  if(sourceRowId){
+    const origStories=new Set((existing?.story_sources||[]).map(ss=>ss.story_id));
+    const curStories=new Set(sourceQuickStories.map(s=>s.id));
+    const removeStories=[...origStories].filter(sid=>!curStories.has(sid));
+    const addStories=sourceQuickStories.filter(s=>!origStories.has(s.id));
+    if(removeStories.length) await client.from('story_sources').delete().eq('source_id',sourceRowId).in('story_id',removeStories);
+    if(addStories.length) await client.from('story_sources').insert(addStories.map(s=>({source_id:sourceRowId,story_id:s.id})));
+    const origChapters=new Set((existing?.chapter_sources||[]).map(cs=>cs.chapter_id));
+    const curChapters=new Set(sourceQuickChapters.map(c=>c.id));
+    const removeChapters=[...origChapters].filter(cid=>!curChapters.has(cid));
+    const addChapters=sourceQuickChapters.filter(c=>!origChapters.has(c.id));
+    if(removeChapters.length) await client.from('chapter_sources').delete().eq('source_id',sourceRowId).in('chapter_id',removeChapters);
+    if(addChapters.length) await client.from('chapter_sources').insert(addChapters.map(c=>({source_id:sourceRowId,chapter_id:c.id})));
+  }
   if(!id&&newSourceId){
     if(reopenStoryAfterSourceSave){storyQuickSources.push({id:newSourceId,title}); renderStoryChips();}
     if(reopenEventAfterSourceSave){eventQuickSources.push({id:newSourceId,title}); renderEventChips();}
