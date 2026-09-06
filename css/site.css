@@ -353,6 +353,12 @@ body.tree-locked{overflow:hidden}
 .galeria-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:clamp(22px,3vw,40px)}
 .filtro-btn{font-family:var(--sans);font-size:var(--fs-micro);letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:7px 13px;cursor:pointer;transition:background .25s,border-color .25s;background:transparent;border:1px solid var(--line-3);color:var(--muted-3)}
 .filtro-btn.active,.filtro-btn:hover{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+/* Quando uma lista de filtro cresce demais pra caber numa fileira de pílulas
+   (dezenas de sobrenomes, coleções, décadas...), um select nativo escala bem
+   pra qualquer quantidade e já vem com busca por teclado de graça. */
+.select-filtro{appearance:none;-webkit-appearance:none;font-family:var(--sans);font-size:var(--fs-micro);letter-spacing:.08em;text-transform:uppercase;background:var(--bg-3) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M1 1l4 4 4-4" stroke="%23C7CEDA" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>') no-repeat right 16px center;border:1px solid var(--line-3);border-radius:999px;padding:9px 38px 9px 18px;color:var(--text);cursor:pointer;max-width:100%;transition:border-color .25s}
+.select-filtro:hover,.select-filtro:focus{border-color:var(--gold);outline:none}
+.select-filtro option{background:var(--bg-2);color:var(--text)}
 .masonry{columns:4 260px;column-gap:14px}
 .masonry-item{break-inside:avoid;margin-bottom:14px;animation:fadeUp .8s both}
 .photo-card{display:block;width:100%;padding:0;border:1px solid var(--line-2);border-radius:14px;background:var(--bg-3);cursor:zoom-in;overflow:hidden;position:relative}
