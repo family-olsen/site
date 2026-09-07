@@ -9,6 +9,19 @@ const sbClient = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_K
 });
 
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+// Usado por index.html (vídeo em destaque) e videos.html: distingue um link
+// pro arquivo de vídeo em si (ex.: .../download/.../video.mp4) de um link de
+// player embutido de terceiro (ex.: .../embed/...). Só o primeiro dá pra usar
+// num <video> nativo — o que garante mudo de verdade, sem depender do player
+// de terceiro respeitar algum parâmetro na URL.
+function isDirectVideoUrl(url){return /\.(mp4|webm|ogv|mov|m4v)(\?.*)?$/i.test(url||'')}
+// miniatura automática: o archive.org já gera uma capa pra cada item do
+// acervo dele, nesse endpoint de imagem — extrai o identificador do item a
+// partir de qualquer formato de link (embed, download ou details).
+function archiveThumbUrl(url){
+  const m=/archive\.org\/(?:embed|download|details)\/([^/?#]+)/i.exec(url||'');
+  return m?`https://archive.org/services/img/${m[1]}`:'';
+}
 function $(sel){return document.querySelector(sel)}
 function photoUrl(path){return path?sbClient.storage.from('photos').getPublicUrl(path).data.publicUrl:''}
 function avatarUrl(path){return photoUrl(path)}
@@ -156,20 +169,55 @@ async function fetchHasRelations(personIds){
 }
 
 /* ---------- Header / footer / navegação ---------- */
+// "check" diz qual seção do acervo precisa ter pelo menos 1 registro publicado
+// pra essa aba fazer sentido (ver pruneEmptyNavSections) — sem "check", a aba
+// sempre aparece (Início). Árvore reaproveita a mesma contagem de Pessoas: não
+// faz sentido abrir a árvore genealógica sem nenhuma pessoa cadastrada.
 const NAV_ITEMS=[
   {href:'index.html',label:'Início'},
-  {href:'historias.html',label:'Histórias'},
-  {href:'livros.html',label:'Livros'},
-  {href:'pessoas.html',label:'Pessoas'},
-  {href:'arvore.html',label:'Árvore'},
-  {href:'galeria.html',label:'Fotos'},
-  {href:'timeline.html',label:'Linha do tempo'},
-  {href:'contato.html',label:'Contato'}
+  {href:'historias.html',label:'Histórias',check:'stories'},
+  {href:'livros.html',label:'Livros',check:'books'},
+  {href:'pessoas.html',label:'Pessoas',check:'people'},
+  {href:'arvore.html',label:'Árvore',check:'people'},
+  {href:'galeria.html',label:'Fotos',check:'photos'},
+  {href:'videos.html',label:'Vídeos',check:'videos'},
+  {href:'timeline.html',label:'Linha do tempo',check:'events'}
 ];
+// Abas com "check" nascem escondidas (hidden) e só aparecem depois de
+// confirmado que a seção tem conteúdo — nunca o contrário (mostrar e depois
+// esconder), que pisca a aba na tela por um instante e é ruim de ver, ainda
+// mais quando a página termina de carregar de novo (F5) e a pessoa vê a aba
+// surgir e sumir toda hora. A exceção é a aba da página em que a pessoa já
+// está: essa nasce visível mesmo com "check", pra nunca sumir debaixo dela.
+async function revealNavSections(){
+  const links=[...document.querySelectorAll('.site-nav a[data-nav-check]')];
+  if(!links.length) return;
+  const keys=[...new Set(links.map(a=>a.dataset.navCheck))];
+  const countQueries={
+    stories:()=>sbClient.from('stories').select('id',{count:'exact',head:true}),
+    books:()=>sbClient.from('books').select('id',{count:'exact',head:true}),
+    people:()=>sbClient.from('people').select('id',{count:'exact',head:true}),
+    photos:()=>sbClient.from('photos').select('id',{count:'exact',head:true}),
+    events:()=>sbClient.from('events').select('id',{count:'exact',head:true}),
+    videos:()=>sbClient.from('sources').select('id',{count:'exact',head:true}).eq('source_type','video').eq('show_in_videos',true)
+  };
+  try{
+    const entries=await Promise.all(keys.map(async key=>[key,(await countQueries[key]()).count||0]));
+    const countByKey=Object.fromEntries(entries);
+    links.forEach(a=>{ if(countByKey[a.dataset.navCheck]) a.hidden=false; });
+  }catch(err){
+    // checagem falhou (ex.: rede) — melhor mostrar tudo do que deixar aba
+    // sumida por engano pra sempre.
+    links.forEach(a=>{ a.hidden=false; });
+  }
+}
 function currentPage(){return location.pathname.split('/').pop()||'index.html'}
 function renderHeader(){
   const cur=currentPage();
-  const nav=NAV_ITEMS.map(n=>`<a href="${n.href}" class="${n.href===cur?'active':''}">${escapeHtml(n.label)}</a>`).join('');
+  const nav=NAV_ITEMS.map(n=>{
+    const isCurrent=n.href===cur;
+    return `<a href="${n.href}" class="${isCurrent?'active':''}"${n.check?` data-nav-check="${n.check}"`:''}${n.check&&!isCurrent?' hidden':''}>${escapeHtml(n.label)}</a>`;
+  }).join('');
   document.body.insertAdjacentHTML('afterbegin',`
     <header class="site-header">
       <a href="index.html" class="site-brand"><img class="site-brand-icon" src="Assents/Logos-web/icon-96.webp" srcset="Assents/Logos-web/icon-96.webp 96w, Assents/Logos-web/icon-192.webp 192w" sizes="40px" width="40" height="40" alt="" loading="eager"><span class="site-brand-text"><strong>Olsen · Belloto · Leal</strong><span>acervo da família</span></span></a>
@@ -202,15 +250,15 @@ function renderHeader(){
     revealWords($('.site-brand strong'),{baseDelay:0,stagger:20,dir:'left'});
     revealBlock($('.site-brand-text > span'),260,{dir:'left'});
   }
+  revealNavSections();
 }
 function renderFooter(){
   document.body.insertAdjacentHTML('beforeend',`
     <footer class="site-footer">
       <span class="brand">Olsen · Belloto · Leal</span>
       <span class="note">Acervo privado da família, compartilhado publicamente com carinho. O conteúdo é mantido pelo painel administrativo da família.</span>
-      <button type="button" id="footerSearchBtn">Buscar no acervo</button>
+      <a class="footer-contact" href="contato.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m0 1.67c2.23 0 4.33.87 5.9 2.45a8.23 8.23 0 0 1 2.43 5.87c0 4.58-3.73 8.31-8.31 8.31a8.3 8.3 0 0 1-4.22-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.25 8.25 0 0 1-1.27-4.42c0-4.58 3.73-8.35 8.26-8.35M8.53 7.15c-.17 0-.45.06-.68.32-.23.25-.9.87-.9 2.13 0 1.25.92 2.46 1.05 2.63.13.17 1.79 2.86 4.43 3.9 2.19.87 2.64.7 3.11.65.48-.04 1.53-.62 1.75-1.22.22-.6.22-1.11.15-1.22-.06-.1-.23-.17-.48-.29-.25-.13-1.53-.76-1.77-.84-.24-.09-.41-.13-.58.13-.17.25-.67.84-.82 1.02-.15.17-.3.19-.56.06-.25-.13-1.06-.39-2.02-1.25-.75-.66-1.25-1.48-1.4-1.73-.14-.25-.01-.38.11-.51.12-.12.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.58-1.42-.81-1.94-.21-.51-.43-.44-.58-.44h-.5"/></svg>Contato</a>
     </footer>`);
-  $('#footerSearchBtn').addEventListener('click',openSearch);
 }
 document.addEventListener('keydown',(e)=>{
   if(e.key==='Escape'){ closeSearch(); closeLightbox(); }

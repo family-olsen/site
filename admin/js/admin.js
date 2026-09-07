@@ -2464,7 +2464,7 @@ async function deleteDocument(id){
 /* ---------- Fontes ---------- */
 function sourceTypeLabel(t){return ({document:'Documento',book:'Livro',interview:'Entrevista',website:'Site',video:'Vídeo',photo:'Foto',oral_history:'História oral',family_memory:'Memória de família',archive:'Arquivo público',unverified:'Não verificado',reconstruction:'Reconstrução',other:'Outro'})[t]||t||'—'}
 async function loadSources(){
-  const {data,error}=await client.from('sources').select('id,title,description,notes,source_type,url,document_id,place_id,updated_at,documents(title),story_sources(story_id,stories(title)),chapter_sources(chapter_id,chapters(chapter_number,title,subtitle)),person_sources(person_id,people(id,full_name))').order('updated_at',{ascending:false});
+  const {data,error}=await client.from('sources').select('id,title,description,notes,source_type,url,document_id,place_id,video_order,show_in_videos,show_on_home,status,updated_at,documents(title),story_sources(story_id,stories(title)),chapter_sources(chapter_id,chapters(chapter_number,title,subtitle)),person_sources(person_id,people(id,full_name))').order('updated_at',{ascending:false});
   if(error){$('#sourcesTable').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   sources=data||[]; $('#sourcesCount').textContent=sources.length; fillDatalist('#sourcesQuickList',sources,'title',sourcesQuickLabelMap); renderSources();
 }
@@ -2479,11 +2479,12 @@ function renderSources(){
   if(sourcesPage<1) sourcesPage=1;
   const start=(sourcesPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#sourcesTable').innerHTML=tableHtml(['Título','Tipo','Documento','Link',''],pageItems.map(s=>[
+  $('#sourcesTable').innerHTML=tableHtml(['Título','Tipo','Documento','Link','Status',''],pageItems.map(s=>[
     `<strong>${escapeHtml(s.title||'—')}</strong>`,
     escapeHtml(sourceTypeLabel(s.source_type)),
     escapeHtml(s.documents?.title||'—'),
     s.url?`<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">abrir</a>`:'—',
+    statusCell(s.status),
     `<div class="actions"><button data-edit-source="${s.id}">Editar</button><button data-delete-source="${s.id}" class="danger-text">Excluir</button></div>`
   ]));
   document.querySelectorAll('[data-edit-source]').forEach(b=>b.onclick=()=>openSourceModal(sources.find(s=>s.id===b.dataset.editSource)));
@@ -2494,6 +2495,14 @@ function renderSources(){
     $('#sourcesNextPage')?.addEventListener('click',()=>{sourcesPage++; renderSources();});
   }
 }
+// Ordem/Vídeos/Home só fazem sentido quando a fonte é do tipo vídeo — o resto
+// dos tipos (documento, site, entrevista...) não usa esses 3 campos.
+function toggleSourceVideoFields(){
+  const isVideo=$('#sourceType').value==='video';
+  $('#sourceVideoFields').hidden=!isVideo;
+  $('#sourceVideoHint').hidden=!isVideo;
+}
+$('#sourceType').addEventListener('change',toggleSourceVideoFields);
 function openSourceModal(src=null){
   $('#sourceFormError').textContent='';
   $('#sourceId').value=src?.id||'';
@@ -2502,9 +2511,14 @@ function openSourceModal(src=null){
   $('#sourceType').value=src?.source_type||'document';
   $('#sourceDocument').value=src?.document_id?labelFromMap(documentsLabelMap,src.document_id):'';
   $('#sourcePlace').value=src?.place_id?labelFromMap(placesLabelMap,src.place_id):'';
+  $('#sourceStatus').value=src?.status||'published';
   $('#sourceUrl').value=src?.url||'';
   $('#sourceDescription').value=src?.description||'';
   $('#sourceNotes').value=src?.notes||'';
+  $('#sourceVideoOrder').value=src?.video_order??'';
+  $('#sourceShowInVideos').checked=!!src?.show_in_videos;
+  $('#sourceShowOnHome').checked=!!src?.show_on_home;
+  toggleSourceVideoFields();
   sourceQuickStories=(src?.story_sources||[]).map(ss=>({id:ss.story_id,title:ss.stories?.title||''}));
   sourceQuickChapters=(src?.chapter_sources||[]).map(cs=>({id:cs.chapter_id,title:cs.chapters?chapterQuickLabel(cs.chapters):''}));
   sourceQuickPeople=(src?.person_sources||[]).map(ps=>({id:ps.person_id,full_name:ps.people?.full_name||''}));
@@ -2575,7 +2589,17 @@ async function saveSource(e){
   const placeId=placeRaw?await resolveOrCreatePlace($('#sourcePlace')):'';
   if(placeRaw&&!placeId){showError($('#sourceFormError'),'Local não encontrado — selecione um da lista ou cadastre em Lugares.');return}
   const existing=id?sources.find(s=>s.id===id):null;
-  const payload={title,description:nn($('#sourceDescription').value),notes:nn($('#sourceNotes').value),source_type:$('#sourceType').value,url:nn($('#sourceUrl').value),document_id:docId||null,place_id:placeId||null};
+  const isVideoType=$('#sourceType').value==='video';
+  const videoOrderRaw=$('#sourceVideoOrder').value.trim();
+  const showOnHome=isVideoType&&$('#sourceShowOnHome').checked;
+  const payload={title,description:nn($('#sourceDescription').value),notes:nn($('#sourceNotes').value),source_type:$('#sourceType').value,url:nn($('#sourceUrl').value),document_id:docId||null,place_id:placeId||null,status:$('#sourceStatus').value,video_order:isVideoType&&videoOrderRaw?Number(videoOrderRaw):null,show_in_videos:isVideoType&&$('#sourceShowInVideos').checked,show_on_home:showOnHome};
+  // Só um vídeo por vez em destaque na Home: marcar este desmarca qualquer
+  // outro que já estivesse marcado, antes de gravar esta fonte.
+  if(showOnHome){
+    let clearQuery=client.from('sources').update({show_on_home:false}).eq('show_on_home',true);
+    if(id) clearQuery=clearQuery.neq('id',id);
+    await clearQuery;
+  }
   let error, newSourceId=null;
   if(id){({error}=await client.from('sources').update(payload).eq('id',id));}
   else {const res=await client.from('sources').insert(payload).select('id').single(); error=res.error; newSourceId=res.data?.id;}

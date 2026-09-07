@@ -7,3 +7,4 @@ Assents/Logos/
 node_modules/
 .DS_Store
 Thumbs.db
+.netlify/

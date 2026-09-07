@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="Assents/Logos-web/favicon-32.png">
 <link rel="icon" type="image/png" sizes="48x48" href="Assents/Logos-web/favicon-48.png">
 <link rel="apple-touch-icon" href="Assents/Logos-web/apple-touch-icon.png">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://igglfuatavmxabffaflb.supabase.co; connect-src 'self' https://igglfuatavmxabffaflb.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://igglfuatavmxabffaflb.supabase.co https://archive.org https://*.archive.org; connect-src 'self' https://igglfuatavmxabffaflb.supabase.co https://cdn.jsdelivr.net; frame-src https://archive.org; media-src https://archive.org https://*.archive.org; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Olsen · Belloto · Leal — acervo da família</title>
 <meta name="description" content="Acervo genealógico das famílias Olsen, Belloto e Leal: árvore genealógica, histórias, fotografias e fontes documentais reunidas em um só lugar.">
@@ -44,6 +44,7 @@
         <div class="hero-actions">
           <a class="btn btn-primary" href="livros.html">Ler o livro</a>
           <a class="btn btn-ghost" href="arvore.html">Abrir a árvore</a>
+          <a class="btn btn-ghost btn-contact-hero" href="contato.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m0 1.67c2.23 0 4.33.87 5.9 2.45a8.23 8.23 0 0 1 2.43 5.87c0 4.58-3.73 8.31-8.31 8.31a8.3 8.3 0 0 1-4.22-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.25 8.25 0 0 1-1.27-4.42c0-4.58 3.73-8.35 8.26-8.35M8.53 7.15c-.17 0-.45.06-.68.32-.23.25-.9.87-.9 2.13 0 1.25.92 2.46 1.05 2.63.13.17 1.79 2.86 4.43 3.9 2.19.87 2.64.7 3.11.65.48-.04 1.53-.62 1.75-1.22.22-.6.22-1.11.15-1.22-.06-.1-.23-.17-.48-.29-.25-.13-1.53-.76-1.77-.84-.24-.09-.41-.13-.58.13-.17.25-.67.84-.82 1.02-.15.17-.3.19-.56.06-.25-.13-1.06-.39-2.02-1.25-.75-.66-1.25-1.48-1.4-1.73-.14-.25-.01-.38.11-.51.12-.12.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.58-1.42-.81-1.94-.21-.51-.43-.44-.58-.44h-.5"/></svg>Contato</a>
         </div>
       </div>
     </section>
@@ -76,6 +77,16 @@
       <p id="quoteText"></p>
       <footer id="quoteFooter"></footer>
     </blockquote>
+  </section>
+
+  <section class="section-tight hidden" id="featuredVideoSection">
+    <div class="wrap-narrow">
+      <div class="featured-video-outer">
+        <div class="featured-video-frame" id="featuredVideoFrame"></div>
+        <p class="featured-video-title" id="featuredVideoTitle"></p>
+        <a class="featured-video-more" href="videos.html">Ver mais vídeos →</a>
+      </div>
+    </div>
   </section>
 
   <section class="section-numeros">
@@ -115,7 +126,7 @@ async function boot(){
     sbClient.from('photos').select('id,title,thumbnail_path,photo_date,updated_at').order('updated_at',{ascending:false}),
     sbClient.from('stories').select('id,slug,title,summary,content').order('updated_at',{ascending:false}),
     sbClient.from('events').select('id'),
-    sbClient.from('sources').select('id'),
+    sbClient.from('sources').select('id,title,url,show_on_home'),
     sbClient.from('chapters').select('id,book_id,chapter_number')
   ]);
   // "capítulos" pro leitor = números de capítulo distintos por livro (livro.html
@@ -178,6 +189,30 @@ async function boot(){
     $('#quoteText').textContent='"'+storyWithSummary.summary+'"';
     $('#quoteFooter').textContent=storyWithSummary.title;
     initScrollReveal('#quoteSection blockquote');
+  }
+
+  // Vídeo em destaque (marcado como "Aparece na Home" numa Fonte do tipo vídeo)
+  const featuredVideo=(sources||[]).find(s=>s.show_on_home&&s.url);
+  if(featuredVideo){
+    $('#featuredVideoSection').classList.remove('hidden');
+    const titulo=featuredVideo.title||'Vídeo em destaque';
+    if(isDirectVideoUrl(featuredVideo.url)){
+      // Arquivo de vídeo direto (ex.: .../download/.../arquivo.mp4) — usa
+      // <video> nativo. É o único jeito confiável de garantir mudo: o
+      // atributo "muted" do <video> é respeitado por todo navegador, ao
+      // contrário de um parâmetro "?muted=1" que dependeria do player de
+      // terceiro (o do archive.org, por exemplo, ignora esse parâmetro e
+      // tocaria com som mesmo assim).
+      $('#featuredVideoFrame').innerHTML=`<video autoplay muted loop playsinline preload="metadata" title="${escapeHtml(titulo)}"><source src="${escapeHtml(featuredVideo.url)}"></video>`;
+    } else {
+      // Fallback pro formato antigo (link de /embed/ de terceiro) — autoplay
+      // não é garantido silencioso aqui; prefira sempre a URL do arquivo
+      // direto pro vídeo que for ficar em destaque na Home.
+      const sep=featuredVideo.url.includes('?')?'&':'?';
+      $('#featuredVideoFrame').innerHTML=`<iframe src="${escapeHtml(featuredVideo.url+sep+'autoplay=1&muted=1')}" allow="autoplay" allowfullscreen loading="lazy" title="${escapeHtml(titulo)}"></iframe>`;
+    }
+    $('#featuredVideoTitle').textContent=titulo;
+    initScrollReveal('#featuredVideoSection');
   }
 
   // Números
