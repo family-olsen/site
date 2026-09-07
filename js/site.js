@@ -163,7 +163,8 @@ const NAV_ITEMS=[
   {href:'pessoas.html',label:'Pessoas'},
   {href:'arvore.html',label:'Árvore'},
   {href:'galeria.html',label:'Fotos'},
-  {href:'timeline.html',label:'Linha do tempo'}
+  {href:'timeline.html',label:'Linha do tempo'},
+  {href:'contato.html',label:'Contato'}
 ];
 function currentPage(){return location.pathname.split('/').pop()||'index.html'}
 function renderHeader(){
