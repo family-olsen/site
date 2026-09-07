@@ -71,7 +71,60 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 .title-group-title{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.02em;color:#4d5ed0}
 .title-group table{margin-top:2px}
 .fam-expand-badge:hover{background:#eef1ff;border-color:#7b8cf0;color:#315cff}
-.toolbar select{border:1px solid #dce2ec;border-radius:9px;padding:9px 10px;font:inherit}.error.box{padding:15px;background:#fff1f3;border-radius:10px}.mobile-menu{display:none}@media(max-width:900px){.sidebar{position:fixed;z-index:20;left:-280px;height:100vh;transition:left .2s ease}.sidebar.open{left:0}.mobile-menu{display:block;border:0;background:none;font-size:22px;margin-right:12px}.topbar{padding:0 18px}.content{padding:20px}.hero-card{flex-direction:column;align-items:flex-start}.stats-grid{grid-template-columns:1fr 1fr}.actions button,.form-actions button,.primary,.secondary{min-height:44px}.modal-close{width:44px;height:44px;top:8px;right:8px}}@media(max-width:600px){.stats-grid,.form-grid{grid-template-columns:1fr}.toolbar{width:100%;flex-direction:column}.toolbar input{width:100%}.panel-header{align-items:flex-start;flex-direction:column}.user-badge{display:none}.actions{white-space:normal;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}}
+.toolbar select{border:1px solid #dce2ec;border-radius:9px;padding:9px 10px;font:inherit}.error.box{padding:15px;background:#fff1f3;border-radius:10px}.mobile-menu{display:none}
+@media(max-width:900px){
+  .sidebar{position:fixed;z-index:20;left:-280px;height:100vh;transition:left .2s ease}
+  .sidebar.open{left:0}
+  .mobile-menu{display:block;border:0;background:none;font-size:22px;margin-right:12px;flex:none}
+  .topbar{height:auto;min-height:64px;padding:12px 16px}
+  .topbar h1{font-size:18px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .content{padding:16px}
+  .hero-card{flex-direction:column;align-items:flex-start;padding:22px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .actions button,.form-actions button,.primary,.secondary{min-height:44px}
+  .modal-close{width:44px;height:44px;top:8px;right:8px}
+  .panel{padding:18px}
+  .panel-header{margin:-18px -18px 18px;padding:16px 18px 14px}
+}
+@media(max-width:600px){
+  .stats-grid{gap:12px}
+  .stat-card{padding:14px}
+  .stat-card strong{font-size:22px;margin:6px 0 2px}
+  .stat-icon{width:28px;height:28px}
+  .stat-icon svg{width:15px;height:15px}
+  .form-grid{grid-template-columns:1fr}
+  .toolbar{width:100%;flex-direction:column}
+  .toolbar input,.toolbar select{width:100%}
+  .panel-header{align-items:flex-start;flex-direction:column}
+  .user-badge{display:none}
+  /* Tabela -> lista de cartões: cabeçalho de coluna some, cada <tr> vira um
+     cartão, e cada <td> mostra "rótulo: valor" usando o data-label que
+     tableHtml() já grava em admin.js — funciona pra qualquer tabela nova
+     sem precisar de ajuste nenhum aqui. A 1ª coluna (nome/título, com
+     avatar quando tem) vira o "cabeçalho" do cartão; a última (ações, sem
+     rótulo) vira uma fileira de botões no rodapé. */
+  .table-wrap table{display:block}
+  .table-wrap thead{display:none}
+  .table-wrap tbody{display:block}
+  .table-wrap tr{display:block;background:#fff;border:1px solid #e6eaf2;border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .table-wrap tr:last-child{margin-bottom:0}
+  .table-wrap td{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #f2f4f9;text-align:right;font-size:13px}
+  .table-wrap td:last-child{border-bottom:0}
+  .table-wrap td::before{content:attr(data-label);flex:none;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#5c6580;text-align:left}
+  .table-wrap td[data-label=""]{display:block;padding-top:10px}
+  .table-wrap td[data-label=""]::before{content:none}
+  .table-wrap td:first-child{display:block;text-align:left;font-size:15px;padding-top:0}
+  .table-wrap td:first-child::before{content:none}
+  .table-wrap td:first-child .thumb-cell{justify-content:flex-start}
+  .table-wrap .actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;text-align:left;white-space:normal}
+  .table-wrap .actions button{margin-left:0}
+  /* Modal quase em tela cheia — o padding duplo (do .modal + do .modal-card)
+     comia boa parte de uma tela já estreita, e os formulários daqui costumam
+     ser longos (Pessoa, História, Capítulo...). */
+  .modal{padding:0}
+  .modal-card{width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;padding:20px 16px 24px}
+  .form-actions{position:sticky;bottom:-24px;margin:20px -16px -24px;padding:14px 16px;background:#fff;border-top:1px solid #edf0f5;z-index:2}
+}
 .modal-card.wide{width:min(920px,100%)}.inline-form{margin-top:22px;padding-top:20px;border-top:1px solid #edf0f5}.config-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}.config-grid .stat-card strong{font-size:19px;word-break:break-word}code{background:#eef1f7;padding:2px 6px;border-radius:5px;font-size:12px}@media(max-width:900px){.config-grid{grid-template-columns:1fr}}
 .auto-preview{background:#eef1ff;border:1px solid #d7ddfb;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;color:#3a4470;margin:2px 0 6px}
 .auto-preview b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#4d5ed0;margin-bottom:4px}

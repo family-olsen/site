@@ -302,7 +302,13 @@ function renderPeople(){
   if(peoplePage<1) peoplePage=1;
   const start=(peoplePage-1)*pageSize;
   const pageItems=people.slice(start,start+pageSize);
-  $('#peopleTable').innerHTML='<table><thead><tr><th>Nome</th><th>Nascimento</th><th>Falecimento</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(p=>`<tr><td><div class="thumb-cell">${avatarThumb(p)}<strong>${escapeHtml(p.full_name)}</strong></div></td><td>${p.birth_date||'—'}</td><td>${p.death_date||'—'}</td><td><span class="status">${escapeHtml(p.status)}</span></td><td class="actions"><button data-edit="${p.id}">Editar</button><button data-delete="${p.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  $('#peopleTable').innerHTML=tableHtml(['Nome','Nascimento','Falecimento','Status',''],pageItems.map(p=>[
+    `<div class="thumb-cell">${avatarThumb(p)}<strong>${escapeHtml(p.full_name)}</strong></div>`,
+    p.birth_date||'—',
+    p.death_date||'—',
+    `<span class="status">${escapeHtml(p.status)}</span>`,
+    `<div class="actions"><button data-edit="${p.id}">Editar</button><button data-delete="${p.id}" class="danger-text">Excluir</button></div>`
+  ]));
   document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openModal(people.find(p=>p.id===b.dataset.edit)));
   document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deletePerson(b.dataset.delete));
   if(totalPages>1){
@@ -413,10 +419,15 @@ function renderFamilies(){
   if(familiesPage<1) familiesPage=1;
   const start=(familiesPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#familiesTable').innerHTML='<table><thead><tr><th>União</th><th>Tipo</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(f=>{
+  $('#familiesTable').innerHTML=tableHtml(['União','Tipo','Status',''],pageItems.map(f=>{
     const names=(f.family_unit_members||[]).map(m=>m.people?.full_name).filter(Boolean).join(' & ')||'—';
-    return `<tr><td><strong>${escapeHtml(names)}</strong></td><td>${relLabel(f.relationship_type)}</td><td><span class="status">${escapeHtml(f.status)}</span></td><td class="actions"><button data-children="${f.id}">Filhos</button><button data-edit-family="${f.id}">Editar</button><button data-delete-family="${f.id}" class="danger-text">Excluir</button></td></tr>`;
-  }).join('')+'</tbody></table>';
+    return [
+      `<strong>${escapeHtml(names)}</strong>`,
+      relLabel(f.relationship_type),
+      `<span class="status">${escapeHtml(f.status)}</span>`,
+      `<div class="actions"><button data-children="${f.id}">Filhos</button><button data-edit-family="${f.id}">Editar</button><button data-delete-family="${f.id}" class="danger-text">Excluir</button></div>`
+    ];
+  }));
   document.querySelectorAll('[data-children]').forEach(b=>b.onclick=()=>openChildrenModal(b.dataset.children));
   document.querySelectorAll('[data-edit-family]').forEach(b=>b.onclick=()=>openFamilyModal(families.find(f=>f.id===b.dataset.editFamily)));
   document.querySelectorAll('[data-delete-family]').forEach(b=>b.onclick=()=>deleteFamily(b.dataset.deleteFamily));
@@ -501,7 +512,12 @@ async function maybeOfferLinkChildren(familyUnitId,partnerA,partnerB){
 function renderLinkChildrenList(){
   $('#linkChildrenError').textContent='';
   $('#linkChildrenList').innerHTML=pendingLinkChildren.length
-    ?'<table><thead><tr><th></th><th>Filho(a)</th><th>Já é filho(a) de</th><th>Vincular também a</th></tr></thead><tbody>'+pendingLinkChildren.map((c,i)=>`<tr><td><input type="checkbox" data-link-child="${i}" ${c.checked?'checked':''}></td><td>${escapeHtml(c.childName)}</td><td>${escapeHtml(c.existingParentName)}</td><td>${escapeHtml(c.missingParentName)}</td></tr>`).join('')+'</tbody></table>'
+    ?tableHtml(['','Filho(a)','Já é filho(a) de','Vincular também a'],pendingLinkChildren.map((c,i)=>[
+        `<input type="checkbox" data-link-child="${i}" ${c.checked?'checked':''}>`,
+        escapeHtml(c.childName),
+        escapeHtml(c.existingParentName),
+        escapeHtml(c.missingParentName)
+      ]))
     :'<p class="hint">Nada pra vincular.</p>';
   document.querySelectorAll('[data-link-child]').forEach(cb=>{cb.onchange=()=>{pendingLinkChildren[Number(cb.dataset.linkChild)].checked=cb.checked;};});
 }
@@ -543,7 +559,10 @@ async function loadChildren(){
   (data||[]).forEach(r=>{if(!currentChildrenMap.has(r.child_id)) currentChildrenMap.set(r.child_id,r.people?.full_name||'—')});
   const entries=[...currentChildrenMap.entries()];
   $('#childrenList').innerHTML=entries.length
-    ?'<table><thead><tr><th>Filho(a)</th><th></th></tr></thead><tbody>'+entries.map(([cid,name])=>`<tr><td>${escapeHtml(name)}</td><td class="actions"><button data-remove-child="${cid}" class="danger-text">Remover</button></td></tr>`).join('')+'</tbody></table>'
+    ?tableHtml(['Filho(a)',''],entries.map(([cid,name])=>[
+        escapeHtml(name),
+        `<div class="actions"><button data-remove-child="${cid}" class="danger-text">Remover</button></div>`
+      ]))
     :'<p class="hint">Nenhum filho vinculado ainda.</p>';
   document.querySelectorAll('[data-remove-child]').forEach(b=>b.onclick=()=>removeChild(b.dataset.removeChild));
 }
@@ -911,6 +930,18 @@ async function login(e){
   }
 }
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+// Monta uma <table> a partir de colunas (nomes do cabeçalho) e linhas (um array
+// de células HTML já prontas por linha, na mesma ordem das colunas). Todo
+// carregador de tabela do admin (pessoas, famílias, fotos, etc.) deveria usar
+// essa função em vez de escrever <table>/<tr>/<td> na mão — além de reduzir
+// repetição, cada <td> já sai com data-label do cabeçalho correspondente, o
+// que o CSS usa pra virar "cartão" em telas estreitas (ver .table-wrap no
+// admin.css) sem precisar de nenhum JS extra por tabela.
+function tableHtml(columns,rows){
+  const thead='<thead><tr>'+columns.map(c=>`<th>${escapeHtml(c)}</th>`).join('')+'</tr></thead>';
+  const tbody='<tbody>'+rows.map(cells=>'<tr>'+cells.map((cell,i)=>`<td data-label="${escapeHtml(columns[i]||'')}">${cell}</td>`).join('')+'</tr>').join('')+'</tbody>';
+  return `<table>${thead}${tbody}</table>`;
+}
 async function boot(){
   if(window.SUPABASE_PUBLISHABLE_KEY.includes('COLOQUE_AQUI')){showError($('#loginError'),'Configure a chave publishable do Supabase em js/config.js antes de entrar.');return}
   const {data:{session}}=await client.auth.getSession();
@@ -1182,11 +1213,17 @@ function renderStories(){
   if(storiesPage<1) storiesPage=1;
   const start=(storiesPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#storiesTable').innerHTML='<table><thead><tr><th>Título</th><th>Pessoas</th><th>Atualizada</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(s=>{
+  $('#storiesTable').innerHTML=tableHtml(['Título','Pessoas','Atualizada','Status',''],pageItems.map(s=>{
     const names=(s.story_people||[]).map(m=>m.people?.full_name).filter(Boolean);
     const shown=names.slice(0,2).join(', ')+(names.length>2?` +${names.length-2}`:'');
-    return `<tr><td><strong>${escapeHtml(s.title||'—')}</strong>${s.summary?`<br><small>${escapeHtml(s.summary.slice(0,90))}${s.summary.length>90?'…':''}</small>`:''}</td><td>${escapeHtml(shown||'—')}</td><td>${(s.updated_at||'').slice(0,10)||'—'}</td><td><span class="status">${escapeHtml(s.status||'—')}</span></td><td class="actions"><button data-story-people="${s.id}">Pessoas</button><button data-edit-story="${s.id}">Editar</button><button data-delete-story="${s.id}" class="danger-text">Excluir</button></td></tr>`;
-  }).join('')+'</tbody></table>';
+    return [
+      `<strong>${escapeHtml(s.title||'—')}</strong>${s.summary?`<br><small>${escapeHtml(s.summary.slice(0,90))}${s.summary.length>90?'…':''}</small>`:''}`,
+      escapeHtml(shown||'—'),
+      (s.updated_at||'').slice(0,10)||'—',
+      `<span class="status">${escapeHtml(s.status||'—')}</span>`,
+      `<div class="actions"><button data-story-people="${s.id}">Pessoas</button><button data-edit-story="${s.id}">Editar</button><button data-delete-story="${s.id}" class="danger-text">Excluir</button></div>`
+    ];
+  }));
   document.querySelectorAll('[data-story-people]').forEach(b=>b.onclick=()=>openStoryPeopleModal(b.dataset.storyPeople));
   document.querySelectorAll('[data-edit-story]').forEach(b=>b.onclick=()=>openStoryModal(stories.find(s=>s.id===b.dataset.editStory)));
   document.querySelectorAll('[data-delete-story]').forEach(b=>b.onclick=()=>deleteStory(b.dataset.deleteStory));
@@ -1328,7 +1365,11 @@ async function loadStoryPeople(){
   if(error){$('#storyPeopleList').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   currentStoryPeople=data||[];
   $('#storyPeopleList').innerHTML=currentStoryPeople.length
-    ?'<table><thead><tr><th>Pessoa</th><th>Papel</th><th></th></tr></thead><tbody>'+currentStoryPeople.map(r=>`<tr><td>${escapeHtml(r.people?.full_name||'—')}</td><td>${escapeHtml(storyRoleLabel(r.role))}</td><td class="actions"><button data-remove-story-person="${r.person_id}" data-role="${escapeHtml(r.role||'')}" class="danger-text">Remover</button></td></tr>`).join('')+'</tbody></table>'
+    ?tableHtml(['Pessoa','Papel',''],currentStoryPeople.map(r=>[
+        escapeHtml(r.people?.full_name||'—'),
+        escapeHtml(storyRoleLabel(r.role)),
+        `<div class="actions"><button data-remove-story-person="${r.person_id}" data-role="${escapeHtml(r.role||'')}" class="danger-text">Remover</button></div>`
+      ]))
     :'<p class="hint">Nenhuma pessoa vinculada ainda.</p>';
   document.querySelectorAll('[data-remove-story-person]').forEach(b=>b.onclick=()=>removeStoryPerson(b.dataset.removeStoryPerson,b.dataset.role));
 }
@@ -1499,7 +1540,13 @@ function renderPlaces(){
   if(placesPage<1) placesPage=1;
   const start=(placesPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#placesTable').innerHTML='<table><thead><tr><th>Nome</th><th>Tipo</th><th>Cidade</th><th>País</th><th></th></tr></thead><tbody>'+pageItems.map(p=>`<tr><td><strong>${escapeHtml(p.name||'—')}</strong></td><td>${escapeHtml(placeTypeLabel(p.place_type))}</td><td>${escapeHtml(p.city||'—')}</td><td>${escapeHtml(p.country||'—')}</td><td class="actions"><button data-edit-place="${p.id}">Editar</button><button data-delete-place="${p.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  $('#placesTable').innerHTML=tableHtml(['Nome','Tipo','Cidade','País',''],pageItems.map(p=>[
+    `<strong>${escapeHtml(p.name||'—')}</strong>`,
+    escapeHtml(placeTypeLabel(p.place_type)),
+    escapeHtml(p.city||'—'),
+    escapeHtml(p.country||'—'),
+    `<div class="actions"><button data-edit-place="${p.id}">Editar</button><button data-delete-place="${p.id}" class="danger-text">Excluir</button></div>`
+  ]));
   document.querySelectorAll('[data-edit-place]').forEach(b=>b.onclick=()=>openPlaceModal(places.find(p=>p.id===b.dataset.editPlace)));
   document.querySelectorAll('[data-delete-place]').forEach(b=>b.onclick=()=>deletePlace(b.dataset.deletePlace));
   if(totalPages>1){
@@ -1602,12 +1649,18 @@ function renderPhotos(){
   if(photosPage<1) photosPage=1;
   const start=(photosPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#photosTable').innerHTML='<table><thead><tr><th>Foto</th><th>Pessoas</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(p=>{
+  $('#photosTable').innerHTML=tableHtml(['Foto','Pessoas','Data','Status',''],pageItems.map(p=>{
     const names=(p.photo_people||[]).map(m=>m.people?.full_name).filter(Boolean);
     const shown=names.slice(0,2).join(', ')+(names.length>2?` +${names.length-2}`:'');
     const thumb=p.thumbnail_path?`<img src="${photoPublicUrl(p.thumbnail_path)}" alt="">`:'<div class="thumb-empty"></div>';
-    return `<tr><td><div class="thumb-cell">${thumb}<div><strong>${escapeHtml(p.title||'—')}</strong>${p.caption?`<br><small>${escapeHtml(p.caption.slice(0,80))}</small>`:''}</div></div></td><td>${escapeHtml(shown||'—')}</td><td>${dateCell(p.photo_date)}</td><td>${statusCell(p.status)}${p.hide_from_gallery?' <span class="status" title="Não aparece no carrossel da Galeria pública">oculta da galeria</span>':''}</td><td class="actions"><button data-photo-people="${p.id}">Pessoas</button><button data-edit-photo="${p.id}">Editar</button><button data-delete-photo="${p.id}" class="danger-text">Excluir</button></td></tr>`;
-  }).join('')+'</tbody></table>';
+    return [
+      `<div class="thumb-cell">${thumb}<div><strong>${escapeHtml(p.title||'—')}</strong>${p.caption?`<br><small>${escapeHtml(p.caption.slice(0,80))}</small>`:''}</div></div>`,
+      escapeHtml(shown||'—'),
+      dateCell(p.photo_date),
+      `${statusCell(p.status)}${p.hide_from_gallery?' <span class="status" title="Não aparece no carrossel da Galeria pública">oculta da galeria</span>':''}`,
+      `<div class="actions"><button data-photo-people="${p.id}">Pessoas</button><button data-edit-photo="${p.id}">Editar</button><button data-delete-photo="${p.id}" class="danger-text">Excluir</button></div>`
+    ];
+  }));
   document.querySelectorAll('[data-photo-people]').forEach(b=>b.onclick=()=>openPhotoPeopleModal(b.dataset.photoPeople));
   document.querySelectorAll('[data-edit-photo]').forEach(b=>b.onclick=()=>openPhotoModal(photos.find(p=>p.id===b.dataset.editPhoto)));
   document.querySelectorAll('[data-delete-photo]').forEach(b=>b.onclick=()=>deletePhoto(b.dataset.deletePhoto));
@@ -1825,7 +1878,11 @@ async function loadPhotoPeople(){
   if(error){$('#photoPeopleList').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   currentPhotoPeople=data||[];
   $('#photoPeopleList').innerHTML=currentPhotoPeople.length
-    ?'<table><thead><tr><th>Pessoa</th><th>Papel</th><th></th></tr></thead><tbody>'+currentPhotoPeople.map(r=>`<tr><td>${escapeHtml(r.people?.full_name||'—')}</td><td>${escapeHtml(photoRoleLabel(r.role))}</td><td class="actions"><button data-rm-photo-person="${r.person_id}" data-role="${escapeHtml(r.role||'')}" class="danger-text">Remover</button></td></tr>`).join('')+'</tbody></table>'
+    ?tableHtml(['Pessoa','Papel',''],currentPhotoPeople.map(r=>[
+        escapeHtml(r.people?.full_name||'—'),
+        escapeHtml(photoRoleLabel(r.role)),
+        `<div class="actions"><button data-rm-photo-person="${r.person_id}" data-role="${escapeHtml(r.role||'')}" class="danger-text">Remover</button></div>`
+      ]))
     :'<p class="hint">Nenhuma pessoa vinculada ainda.</p>';
   document.querySelectorAll('[data-rm-photo-person]').forEach(b=>b.onclick=()=>removePhotoPerson(b.dataset.rmPhotoPerson,b.dataset.role));
 }
@@ -1865,7 +1922,13 @@ function renderAlbums(){
   if(albumsPage<1) albumsPage=1;
   const start=(albumsPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#albumsTable').innerHTML='<table><thead><tr><th>Título</th><th>Fotos</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(a=>`<tr><td><strong>${escapeHtml(a.title||'—')}</strong></td><td>${(a.album_photos||[]).length}</td><td>${dateCell(a.album_date)}</td><td>${statusCell(a.status)}</td><td class="actions"><button data-album-photos="${a.id}">Fotos</button><button data-edit-album="${a.id}">Editar</button><button data-delete-album="${a.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  $('#albumsTable').innerHTML=tableHtml(['Título','Fotos','Data','Status',''],pageItems.map(a=>[
+    `<strong>${escapeHtml(a.title||'—')}</strong>`,
+    (a.album_photos||[]).length,
+    dateCell(a.album_date),
+    statusCell(a.status),
+    `<div class="actions"><button data-album-photos="${a.id}">Fotos</button><button data-edit-album="${a.id}">Editar</button><button data-delete-album="${a.id}" class="danger-text">Excluir</button></div>`
+  ]));
   document.querySelectorAll('[data-album-photos]').forEach(b=>b.onclick=()=>openAlbumPhotosModal(b.dataset.albumPhotos));
   document.querySelectorAll('[data-edit-album]').forEach(b=>b.onclick=()=>openAlbumModal(albums.find(a=>a.id===b.dataset.editAlbum)));
   document.querySelectorAll('[data-delete-album]').forEach(b=>b.onclick=()=>deleteAlbum(b.dataset.deleteAlbum));
@@ -1921,7 +1984,12 @@ async function loadAlbumPhotos(){
   if(error){$('#albumPhotosList').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   currentAlbumPhotos=data||[];
   $('#albumPhotosList').innerHTML=currentAlbumPhotos.length
-    ?'<table><thead><tr><th>#</th><th>Foto</th><th>Data</th><th></th></tr></thead><tbody>'+currentAlbumPhotos.map(r=>`<tr><td>${r.order_index??'—'}</td><td>${escapeHtml(r.photos?.title||'—')}</td><td>${dateCell(r.photos?.photo_date)}</td><td class="actions"><button data-rm-album-photo="${r.photo_id}" class="danger-text">Remover</button></td></tr>`).join('')+'</tbody></table>'
+    ?tableHtml(['#','Foto','Data',''],currentAlbumPhotos.map(r=>[
+        r.order_index??'—',
+        escapeHtml(r.photos?.title||'—'),
+        dateCell(r.photos?.photo_date),
+        `<div class="actions"><button data-rm-album-photo="${r.photo_id}" class="danger-text">Remover</button></div>`
+      ]))
     :'<p class="hint">Nenhuma foto neste álbum ainda.</p>';
   document.querySelectorAll('[data-rm-album-photo]').forEach(b=>b.onclick=()=>removeAlbumPhoto(b.dataset.rmAlbumPhoto));
 }
@@ -1972,11 +2040,18 @@ function renderEvents(){
   if(eventsPage<1) eventsPage=1;
   const start=(eventsPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#eventsTable').innerHTML='<table><thead><tr><th>Evento</th><th>Tipo</th><th>Data</th><th>Pessoas</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(e=>{
+  $('#eventsTable').innerHTML=tableHtml(['Evento','Tipo','Data','Pessoas','Status',''],pageItems.map(e=>{
     const names=(e.event_people||[]).map(m=>m.people?.full_name).filter(Boolean);
     const shown=names.slice(0,2).join(', ')+(names.length>2?` +${names.length-2}`:'');
-    return `<tr><td><strong>${escapeHtml(e.title||'—')}</strong></td><td>${escapeHtml(eventTypeLabel(e.event_type))}</td><td>${dateCell(e.event_date||e.start_date)}</td><td>${escapeHtml(shown||'—')}</td><td>${statusCell(e.status)}</td><td class="actions"><button data-event-people="${e.id}">Pessoas</button><button data-edit-event="${e.id}">Editar</button><button data-delete-event="${e.id}" class="danger-text">Excluir</button></td></tr>`;
-  }).join('')+'</tbody></table>';
+    return [
+      `<strong>${escapeHtml(e.title||'—')}</strong>`,
+      escapeHtml(eventTypeLabel(e.event_type)),
+      dateCell(e.event_date||e.start_date),
+      escapeHtml(shown||'—'),
+      statusCell(e.status),
+      `<div class="actions"><button data-event-people="${e.id}">Pessoas</button><button data-edit-event="${e.id}">Editar</button><button data-delete-event="${e.id}" class="danger-text">Excluir</button></div>`
+    ];
+  }));
   document.querySelectorAll('[data-event-people]').forEach(b=>b.onclick=()=>openEventPeopleModal(b.dataset.eventPeople));
   document.querySelectorAll('[data-edit-event]').forEach(b=>b.onclick=()=>openEventModal(events.find(e=>e.id===b.dataset.editEvent)));
   document.querySelectorAll('[data-delete-event]').forEach(b=>b.onclick=()=>deleteEvent(b.dataset.deleteEvent));
@@ -2119,7 +2194,11 @@ async function loadEventPeople(){
   if(error){$('#eventPeopleList').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   currentEventPeople=data||[];
   $('#eventPeopleList').innerHTML=currentEventPeople.length
-    ?'<table><thead><tr><th>Pessoa</th><th>Papel</th><th></th></tr></thead><tbody>'+currentEventPeople.map(r=>`<tr><td>${escapeHtml(r.people?.full_name||'—')}</td><td>${escapeHtml(eventRoleLabel(r.role))}</td><td class="actions"><button data-rm-event-person="${r.person_id}" data-role="${escapeHtml(r.role||'')}" class="danger-text">Remover</button></td></tr>`).join('')+'</tbody></table>'
+    ?tableHtml(['Pessoa','Papel',''],currentEventPeople.map(r=>[
+        escapeHtml(r.people?.full_name||'—'),
+        escapeHtml(eventRoleLabel(r.role)),
+        `<div class="actions"><button data-rm-event-person="${r.person_id}" data-role="${escapeHtml(r.role||'')}" class="danger-text">Remover</button></div>`
+      ]))
     :'<p class="hint">Nenhuma pessoa vinculada ainda.</p>';
   document.querySelectorAll('[data-rm-event-person]').forEach(b=>b.onclick=()=>removeEventPerson(b.dataset.rmEventPerson,b.dataset.role));
 }
@@ -2161,7 +2240,13 @@ function renderDocuments(){
   if(documentsPage<1) documentsPage=1;
   const start=(documentsPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#documentsTable').innerHTML='<table><thead><tr><th>Título</th><th>Tipo</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(d=>`<tr><td><strong>${escapeHtml(d.title||'—')}</strong>${d.storage_path?`<br><small>${escapeHtml(d.storage_path)}</small>`:''}</td><td>${escapeHtml(documentTypeLabel(d.document_type))}</td><td>${dateCell(d.document_date)}</td><td>${statusCell(d.status)}</td><td class="actions"><button data-edit-document="${d.id}">Editar</button><button data-delete-document="${d.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  $('#documentsTable').innerHTML=tableHtml(['Título','Tipo','Data','Status',''],pageItems.map(d=>[
+    `<strong>${escapeHtml(d.title||'—')}</strong>${d.storage_path?`<br><small>${escapeHtml(d.storage_path)}</small>`:''}`,
+    escapeHtml(documentTypeLabel(d.document_type)),
+    dateCell(d.document_date),
+    statusCell(d.status),
+    `<div class="actions"><button data-edit-document="${d.id}">Editar</button><button data-delete-document="${d.id}" class="danger-text">Excluir</button></div>`
+  ]));
   document.querySelectorAll('[data-edit-document]').forEach(b=>b.onclick=()=>openDocumentModal(documents.find(d=>d.id===b.dataset.editDocument)));
   document.querySelectorAll('[data-delete-document]').forEach(b=>b.onclick=()=>deleteDocument(b.dataset.deleteDocument));
   if(totalPages>1){
@@ -2373,7 +2458,13 @@ function renderSources(){
   if(sourcesPage<1) sourcesPage=1;
   const start=(sourcesPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#sourcesTable').innerHTML='<table><thead><tr><th>Título</th><th>Tipo</th><th>Documento</th><th>Link</th><th></th></tr></thead><tbody>'+pageItems.map(s=>`<tr><td><strong>${escapeHtml(s.title||'—')}</strong></td><td>${escapeHtml(sourceTypeLabel(s.source_type))}</td><td>${escapeHtml(s.documents?.title||'—')}</td><td>${s.url?`<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">abrir</a>`:'—'}</td><td class="actions"><button data-edit-source="${s.id}">Editar</button><button data-delete-source="${s.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  $('#sourcesTable').innerHTML=tableHtml(['Título','Tipo','Documento','Link',''],pageItems.map(s=>[
+    `<strong>${escapeHtml(s.title||'—')}</strong>`,
+    escapeHtml(sourceTypeLabel(s.source_type)),
+    escapeHtml(s.documents?.title||'—'),
+    s.url?`<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">abrir</a>`:'—',
+    `<div class="actions"><button data-edit-source="${s.id}">Editar</button><button data-delete-source="${s.id}" class="danger-text">Excluir</button></div>`
+  ]));
   document.querySelectorAll('[data-edit-source]').forEach(b=>b.onclick=()=>openSourceModal(sources.find(s=>s.id===b.dataset.editSource)));
   document.querySelectorAll('[data-delete-source]').forEach(b=>b.onclick=()=>deleteSource(b.dataset.deleteSource));
   if(totalPages>1){
@@ -2521,7 +2612,13 @@ function renderBooks(){
   if(booksPage<1) booksPage=1;
   const start=(booksPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
-  $('#booksTable').innerHTML='<table><thead><tr><th>Título</th><th>Capítulos</th><th>Seções</th><th>Status</th><th></th></tr></thead><tbody>'+pageItems.map(b=>`<tr><td><strong>${escapeHtml(b.title||'—')}</strong>${b.subtitle?`<br><small>${escapeHtml(b.subtitle)}</small>`:''}</td><td>${distinctChapterCount(b)}</td><td>${(b.chapters||[]).length}</td><td>${statusCell(b.status)}</td><td class="actions"><button data-book-chapters="${b.id}">Capítulos</button><button data-edit-book="${b.id}">Editar</button><button data-delete-book="${b.id}" class="danger-text">Excluir</button></td></tr>`).join('')+'</tbody></table>';
+  $('#booksTable').innerHTML=tableHtml(['Título','Capítulos','Seções','Status',''],pageItems.map(b=>[
+    `<strong>${escapeHtml(b.title||'—')}</strong>${b.subtitle?`<br><small>${escapeHtml(b.subtitle)}</small>`:''}`,
+    distinctChapterCount(b),
+    (b.chapters||[]).length,
+    statusCell(b.status),
+    `<div class="actions"><button data-book-chapters="${b.id}">Capítulos</button><button data-edit-book="${b.id}">Editar</button><button data-delete-book="${b.id}" class="danger-text">Excluir</button></div>`
+  ]));
   document.querySelectorAll('[data-book-chapters]').forEach(b=>b.onclick=()=>openChaptersModal(b.dataset.bookChapters));
   document.querySelectorAll('[data-edit-book]').forEach(b=>b.onclick=()=>openBookModal(books.find(x=>x.id===b.dataset.editBook)));
   document.querySelectorAll('[data-delete-book]').forEach(b=>b.onclick=()=>deleteBook(b.dataset.deleteBook));
@@ -2640,7 +2737,7 @@ function renderChaptersGrouped(){
     html+=`<div class="chapter-group"><h4 class="chapter-group-title">Capítulo ${escapeHtml(String(chNum))}</h4>`;
     titleMap.forEach((rows,titleText)=>{
       html+=`<div class="title-group"><h5 class="title-group-title">${escapeHtml(titleText)}</h5><table><tbody>`+
-        rows.map(c=>`<tr><td>${c.subtitle?escapeHtml(c.subtitle):'<em>(sem subtítulo)</em>'}</td><td>${statusCell(c.status)}</td><td class="actions"><button data-edit-chapter="${c.id}">Editar</button><button data-rm-chapter="${c.id}" class="danger-text">Excluir</button></td></tr>`).join('')+
+        rows.map(c=>`<tr><td data-label="Subtítulo">${c.subtitle?escapeHtml(c.subtitle):'<em>(sem subtítulo)</em>'}</td><td data-label="Status">${statusCell(c.status)}</td><td data-label=""><div class="actions"><button data-edit-chapter="${c.id}">Editar</button><button data-rm-chapter="${c.id}" class="danger-text">Excluir</button></div></td></tr>`).join('')+
         '</tbody></table></div>';
     });
     html+='</div>';
