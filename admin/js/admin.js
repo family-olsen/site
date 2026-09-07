@@ -1096,7 +1096,23 @@ mobileMenuBtn.addEventListener('click',()=>toggleSidebar());
 sidebarScrim.addEventListener('click',()=>toggleSidebar(false));
 
 /* ---------- Menu retrátil (desktop) ---------- */
-const navIconMap={dashboard:'DA',pessoas:'PE',familias:'FA',genealogia:'GE',livro:'LI',historias:'HI',fotos:'FO',albuns:'AL',eventos:'EV',documentos:'DO',fontes:'FN',lugares:'LU',configuracoes:'CO'};
+// Mesmos ícones dos cartões do dashboard (ver stat-icon-* no HTML) — repetir
+// aqui ajuda a reconhecer cada seção de relance, sem precisar ler o texto.
+const navIconMap={
+  dashboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
+  pessoas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/></svg>',
+  familias:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.1"/><path d="M3.8 19.5c0-3 2.3-5.2 5.3-5.2 2 0 3.7.9 4.6 2.4"/><path d="M13 19.5c.2-2.5 2-4.3 4.4-4.3 2.4 0 4.4 2 4.4 4.3"/></svg>',
+  genealogia:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.1"/><circle cx="6.5" cy="17" r="2.1"/><circle cx="17.5" cy="17" r="2.1"/><path d="M12 7.1v3.4M12 10.5 6.9 15M12 10.5l5.1 4.5"/></svg>',
+  livro:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5c-1.8-1.2-4-1.7-6-1.5v12c2-.2 4.2.3 6 1.5 1.8-1.2 4-1.7 6-1.5v-12c-2-.2-4.2.3-6 1.5Z"/><path d="M12 6.5v12"/></svg>',
+  historias:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 3.5V16H6.5A2.5 2.5 0 0 1 4 13.5v-7Z"/></svg>',
+  fotos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 16.5l4.5-4.5 3 3 3.5-4.5 5.5 5.5"/></svg>',
+  albuns:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="13" height="11" rx="1.8"/><path d="M7 7.5V6a1.8 1.8 0 0 1 1.8-1.8h9.4A1.8 1.8 0 0 1 20 6v9.4a1.8 1.8 0 0 1-1.8 1.8H17"/></svg>',
+  eventos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16"/><path d="M8 3.5v3.5M16 3.5v3.5"/></svg>',
+  documentos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M8.5 12.5h7M8.5 15.5h7"/></svg>',
+  fontes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4-6.5 4V5a1 1 0 0 1 1-1Z"/></svg>',
+  lugares:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>',
+  configuracoes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 3.5v2.3M12 18.2v2.3M4.6 7.3l2 1.2M17.4 15.5l2 1.2M4.6 16.7l2-1.2M17.4 8.5l2-1.2M3.5 12h2.3M18.2 12h2.3"/></svg>'
+};
 document.querySelectorAll('.nav-item').forEach(a=>{
   const id=a.getAttribute('href').slice(1);
   const label=a.textContent;
