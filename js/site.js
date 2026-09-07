@@ -179,6 +179,14 @@ function renderHeader(){
   });
   navEl.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMobileMenu));
   window.addEventListener('resize',()=>{ if(window.innerWidth>760) closeMobileMenu(); });
+  // altura real do cabeçalho (ele é sticky top:0) numa variável CSS — usado por
+  // quem precisar grudar algo logo abaixo dele (ex: hero da home, aside sticky
+  // do livro). Sincroniza nessa hora e de novo se a janela mudar de tamanho
+  // (o cabeçalho pode quebrar linha e mudar de altura no mobile).
+  const headerEl=$('.site-header');
+  function syncHeaderH(){ document.documentElement.style.setProperty('--hdr-h',(headerEl?.offsetHeight||0)+'px'); }
+  syncHeaderH();
+  window.addEventListener('resize',syncHeaderH);
   // marca do cabeçalho entra deslizando da esquerda (mesma linguagem de blur/subida
   // dos títulos, só que na horizontal) — roda em toda página, é aqui que o cabeçalho
   // é montado.

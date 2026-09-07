@@ -279,7 +279,11 @@ a.life-timeline-item:hover .life-timeline-titulo{color:var(--gold)}
 .reader-progress{height:3px;background:rgba(26,31,38,.1)}
 .reader-progress-bar{height:100%;width:100%;background:var(--gold-deep);transform-origin:left;transform:scaleX(0);transition:transform .6s cubic-bezier(.2,.8,.2,1)}
 .reader-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));max-width:1400px;margin:0 auto}
-.reader-aside{padding:clamp(28px,4vw,56px) clamp(20px,3vw,40px);border-right:1px solid rgba(26,31,38,.12)}
+/* Rola independente do artigo — sem isso, a lista de capítulos "some" pra cima
+   assim que a rolagem passa da altura dela, porque o item do grid estica
+   (align-items:stretch) até a altura do artigo inteiro. align-self:start
+   devolve à aside sua altura natural, aí o sticky consegue grudar de verdade. */
+.reader-aside{align-self:start;position:sticky;top:var(--hdr-h,0px);max-height:calc(100vh - var(--hdr-h,0px));overflow-y:auto;padding:clamp(28px,4vw,56px) clamp(20px,3vw,40px);border-right:1px solid rgba(26,31,38,.12)}
 .reader-aside .kicker{font-size:var(--fs-micro);letter-spacing:.3em;text-transform:uppercase;color:var(--gold-deep);margin:0 0 10px}
 .reader-aside h2{font-family:var(--serif);font-weight:300;font-size:34px;line-height:1.1;margin:0 0 8px}
 .reader-aside .sub{font-size:var(--fs-caption);color:var(--reader-muted);margin:0 0 34px;line-height:1.6}
@@ -507,6 +511,7 @@ figcaption{font-size:var(--fs-label);color:var(--muted);margin-top:12px;line-hei
 @media(max-width:720px){
   .masonry{columns:2 160px}
   .reader-article{grid-column:span 1}
+  .reader-aside{position:static;max-height:none}
   .profile-cols>*:last-child{grid-column:auto}
   .profile-grid{grid-template-columns:1fr}
 }
