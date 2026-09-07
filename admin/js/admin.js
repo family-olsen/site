@@ -1,5 +1,9 @@
 const { createClient } = supabase;
-const client = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY);
+// Ver o mesmo comentário em js/site.js — evita o admin mostrar dado velho
+// (ex.: depois de editar um registro) por cache do navegador.
+const client = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY, {
+  global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) }
+});
 const $ = s => document.querySelector(s);
 const loginView=$('#loginView'), appView=$('#appView'), modal=$('#personModal'), familyModal=$('#familyModal'), childrenModal=$('#childrenModal'), linkChildrenModal=$('#linkChildrenModal'), relModal=$('#relModal'), storyModal=$('#storyModal'), storyPeopleModal=$('#storyPeopleModal'), bookModal=$('#bookModal'), chaptersModal=$('#chaptersModal'), photoModal=$('#photoModal'), photoPeopleModal=$('#photoPeopleModal'), albumModal=$('#albumModal'), albumPhotosModal=$('#albumPhotosModal'), eventModal=$('#eventModal'), eventPeopleModal=$('#eventPeopleModal'), documentModal=$('#documentModal'), sourceModal=$('#sourceModal'), placeModal=$('#placeModal'), confirmDeleteModal=$('#confirmDeleteModal');
 let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], sourceQuickPeople=[], reopenSourceAfterPersonSave=false, reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null, familiesPage=1, booksPage=1, storiesPage=1, photosPage=1, albumsPage=1, eventsPage=1, documentsPage=1, sourcesPage=1, placesPage=1;
@@ -296,7 +300,7 @@ function avatarThumb(p){
 function renderPeople(){
   $('#peoplePagination').innerHTML='';
   if(!people.length){$('#peopleTable').innerHTML='<div class="empty-state small"><div class="empty-icon">◎</div><h4>Nenhuma pessoa encontrada</h4><p>Cadastre a primeira pessoa da família.</p><button class="primary" id="emptyAdd">+ Nova pessoa</button></div>';$('#emptyAdd')?.addEventListener('click',()=>openModal());return}
-  const pageSize=Number($('#peoplePageSize').value)||10;
+  const pageSize=Number($('#peoplePageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(people.length/pageSize));
   if(peoplePage>totalPages) peoplePage=totalPages;
   if(peoplePage<1) peoplePage=1;
@@ -413,7 +417,7 @@ function renderFamilies(){
   const q=$('#searchFamilies').value.trim().toLowerCase();
   const list=q?families.filter(f=>(f.family_unit_members||[]).some(m=>(m.people?.full_name||'').toLowerCase().includes(q))):families;
   if(!list.length){$('#familiesTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">♥</div><h4>Nenhuma união encontrada</h4><p>Tente buscar por outro nome.</p></div>':'<div class="empty-state small"><div class="empty-icon">♥</div><h4>Nenhuma união cadastrada</h4><p>Cadastre a primeira união familiar.</p><button class="primary" id="emptyAddFamily">+ Nova união</button></div>';$('#emptyAddFamily')?.addEventListener('click',()=>openFamilyModal());return}
-  const pageSize=Number($('#familiesPageSize').value)||10;
+  const pageSize=Number($('#familiesPageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
   if(familiesPage>totalPages) familiesPage=totalPages;
   if(familiesPage<1) familiesPage=1;
@@ -986,6 +990,7 @@ $('#searchStories').addEventListener('input',()=>{storiesPage=1; renderStories()
 $('#storiesPageSize').addEventListener('change',()=>{storiesPage=1; renderStories();});
 $('#closeStoryPeopleModal').onclick=closeStoryPeopleModal;$('#addStoryPersonBtn').onclick=addStoryPerson;
 $('#newBookBtn').onclick=()=>openBookModal();$('#closeBookModal').onclick=closeBookModal;$('#cancelBookForm').onclick=closeBookModal;$('#refreshBooks').onclick=loadBooks;
+$('#bookCoverFile').addEventListener('change',onBookCoverChange);$('#bookCoverRemoveBtn').addEventListener('click',removeBookCover);
 $('#searchBooks').addEventListener('input',()=>{booksPage=1; renderBooks();});
 $('#booksPageSize').addEventListener('change',()=>{booksPage=1; renderBooks();});
 $('#newPhotoBtn').onclick=()=>openPhotoModal();$('#closePhotoModal').onclick=closePhotoModal;$('#cancelPhotoForm').onclick=closePhotoModal;$('#refreshPhotos').onclick=loadPhotos;
@@ -1207,7 +1212,7 @@ function renderStories(){
   const st=$('#filterStoryStatus').value;
   const list=stories.filter(s=>(!q||(s.title||'').toLowerCase().includes(q))&&(!st||s.status===st));
   if(!list.length){$('#storiesTable').innerHTML=(q||st)?'<div class="empty-state small"><div class="empty-icon">✎</div><h4>Nenhuma história encontrada</h4><p>Ajuste a busca ou o filtro de status.</p></div>':'<div class="empty-state small"><div class="empty-icon">✎</div><h4>Nenhuma história cadastrada</h4><p>Registre o primeiro relato da família.</p><button class="primary" id="emptyAddStory">+ Nova história</button></div>';$('#emptyAddStory')?.addEventListener('click',()=>openStoryModal());return}
-  const pageSize=Number($('#storiesPageSize').value)||10;
+  const pageSize=Number($('#storiesPageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
   if(storiesPage>totalPages) storiesPage=totalPages;
   if(storiesPage<1) storiesPage=1;
@@ -1534,7 +1539,7 @@ function renderPlaces(){
   const q=$('#searchPlaces').value.trim().toLowerCase();
   const list=q?places.filter(p=>(p.name||'').toLowerCase().includes(q)):places;
   if(!list.length){$('#placesTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">◍</div><h4>Nenhum lugar encontrado</h4><p>Tente buscar por outro nome.</p></div>':'<div class="empty-state small"><div class="empty-icon">◍</div><h4>Nenhum lugar cadastrado</h4><p>Cadastre cidades e locais para usar em fotos e eventos.</p><button class="primary" id="emptyAddPlace">+ Novo lugar</button></div>';$('#emptyAddPlace')?.addEventListener('click',()=>openPlaceModal());return}
-  const pageSize=Number($('#placesPageSize').value)||10;
+  const pageSize=Number($('#placesPageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
   if(placesPage>totalPages) placesPage=totalPages;
   if(placesPage<1) placesPage=1;
@@ -1643,7 +1648,7 @@ function renderPhotos(){
   const st=$('#filterPhotoStatus').value;
   const list=photos.filter(p=>(!q||(p.title||'').toLowerCase().includes(q))&&(!st||p.status===st));
   if(!list.length){$('#photosTable').innerHTML=(q||st)?'<div class="empty-state small"><div class="empty-icon">▣</div><h4>Nenhuma foto encontrada</h4><p>Ajuste a busca ou o filtro.</p></div>':'<div class="empty-state small"><div class="empty-icon">▣</div><h4>Nenhuma foto cadastrada</h4><p>Cadastre a primeira foto do acervo.</p><button class="primary" id="emptyAddPhoto">+ Nova foto</button></div>';$('#emptyAddPhoto')?.addEventListener('click',()=>openPhotoModal());return}
-  const pageSize=Number($('#photosPageSize').value)||10;
+  const pageSize=Number($('#photosPageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
   if(photosPage>totalPages) photosPage=totalPages;
   if(photosPage<1) photosPage=1;
@@ -1916,7 +1921,7 @@ function renderAlbums(){
   const q=$('#searchAlbums').value.trim().toLowerCase();
   const list=q?albums.filter(a=>(a.title||'').toLowerCase().includes(q)):albums;
   if(!list.length){$('#albumsTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">▤</div><h4>Nenhum álbum encontrado</h4><p>Tente buscar por outro título.</p></div>':'<div class="empty-state small"><div class="empty-icon">▤</div><h4>Nenhum álbum cadastrado</h4><p>Agrupe fotos em coleções.</p><button class="primary" id="emptyAddAlbum">+ Novo álbum</button></div>';$('#emptyAddAlbum')?.addEventListener('click',()=>openAlbumModal());return}
-  const pageSize=Number($('#albumsPageSize').value)||10;
+  const pageSize=Number($('#albumsPageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
   if(albumsPage>totalPages) albumsPage=totalPages;
   if(albumsPage<1) albumsPage=1;
@@ -2034,7 +2039,7 @@ function renderEvents(){
   const tp=$('#filterEventType').value;
   const list=events.filter(e=>(!q||(e.title||'').toLowerCase().includes(q))&&(!tp||e.event_type===tp));
   if(!list.length){$('#eventsTable').innerHTML=(q||tp)?'<div class="empty-state small"><div class="empty-icon">◷</div><h4>Nenhum evento encontrado</h4><p>Ajuste a busca ou o filtro.</p></div>':'<div class="empty-state small"><div class="empty-icon">◷</div><h4>Nenhum evento cadastrado</h4><p>Monte a linha do tempo da família.</p><button class="primary" id="emptyAddEvent">+ Novo evento</button></div>';$('#emptyAddEvent')?.addEventListener('click',()=>openEventModal());return}
-  const pageSize=Number($('#eventsPageSize').value)||10;
+  const pageSize=Number($('#eventsPageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
   if(eventsPage>totalPages) eventsPage=totalPages;
   if(eventsPage<1) eventsPage=1;
@@ -2234,7 +2239,7 @@ function renderDocuments(){
   const tp=$('#filterDocumentType').value;
   const list=documents.filter(d=>(!q||(d.title||'').toLowerCase().includes(q))&&(!tp||d.document_type===tp));
   if(!list.length){$('#documentsTable').innerHTML=(q||tp)?'<div class="empty-state small"><div class="empty-icon">▥</div><h4>Nenhum documento encontrado</h4><p>Ajuste a busca ou o filtro.</p></div>':'<div class="empty-state small"><div class="empty-icon">▥</div><h4>Nenhum documento cadastrado</h4><p>Registre certidões, cartas e outros registros.</p><button class="primary" id="emptyAddDocument">+ Novo documento</button></div>';$('#emptyAddDocument')?.addEventListener('click',()=>openDocumentModal());return}
-  const pageSize=Number($('#documentsPageSize').value)||10;
+  const pageSize=Number($('#documentsPageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
   if(documentsPage>totalPages) documentsPage=totalPages;
   if(documentsPage<1) documentsPage=1;
@@ -2452,7 +2457,7 @@ function renderSources(){
   const q=$('#searchSources').value.trim().toLowerCase();
   const list=q?sources.filter(s=>(s.title||'').toLowerCase().includes(q)):sources;
   if(!list.length){$('#sourcesTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">▧</div><h4>Nenhuma fonte encontrada</h4><p>Tente buscar por outro título.</p></div>':'<div class="empty-state small"><div class="empty-icon">▧</div><h4>Nenhuma fonte cadastrada</h4><p>Registre a procedência das informações.</p><button class="primary" id="emptyAddSource">+ Nova fonte</button></div>';$('#emptyAddSource')?.addEventListener('click',()=>openSourceModal());return}
-  const pageSize=Number($('#sourcesPageSize').value)||10;
+  const pageSize=Number($('#sourcesPageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
   if(sourcesPage>totalPages) sourcesPage=totalPages;
   if(sourcesPage<1) sourcesPage=1;
@@ -2596,8 +2601,58 @@ async function deleteSource(id){
 
 /* ---------- Livro e capítulos ---------- */
 function distinctChapterCount(book){return new Set((book.chapters||[]).map(c=>c.chapter_number)).size}
+function bookCoverUrl(path){return path?client.storage.from('photos').getPublicUrl(path).data.publicUrl:''}
+let pendingBookCoverUpload=null;
+async function processBookCoverFile(file){
+  const bitmap=await createImageBitmap(file);
+  const {blob}=await drawToBlob(bitmap,700,0.85);
+  bitmap.close?.();
+  return blob;
+}
+async function onBookCoverChange(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  pendingBookCoverUpload=null;
+  if(file.size>MAX_IMAGE_SOURCE_BYTES){
+    $('#bookCoverHint').textContent=`Arquivo muito grande (máx. ${humanSize(MAX_IMAGE_SOURCE_BYTES)}).`;
+    e.target.value=''; return;
+  }
+  $('#bookCoverHint').textContent='Processando imagem...';
+  try{
+    const blob=await processBookCoverFile(file);
+    pendingBookCoverUpload=blob;
+    $('#bookCoverPreview').innerHTML=`<img src="${URL.createObjectURL(blob)}" alt="">`;
+    $('#bookCoverHint').textContent=`Pronto (${(blob.size/1024).toFixed(0)} KB).`;
+    $('#bookCoverRemoveBtn').hidden=false;
+  }catch(err){
+    $('#bookCoverHint').textContent='Erro ao processar imagem: '+err.message;
+  }
+}
+async function removeBookCover(){
+  const id=$('#bookId').value;
+  const book=id?books.find(b=>b.id===id):null;
+  if(!confirm('Remover a capa deste livro? A imagem será apagada do armazenamento.')) return;
+  pendingBookCoverUpload=null; $('#bookCoverFile').value='';
+  $('#bookCoverPreview').innerHTML='sem capa';
+  $('#bookCoverRemoveBtn').hidden=true;
+  if(book?.cover_path){
+    try{
+      await client.storage.from('photos').remove([book.cover_path]);
+      const {error}=await client.from('books').update({cover_path:null}).eq('id',id);
+      if(error) throw error;
+      book.cover_path=null;
+      renderBooks();
+      $('#bookCoverHint').textContent='Capa removida.';
+    }catch(err){
+      $('#bookCoverHint').textContent='Erro ao remover capa: '+err.message;
+      return;
+    }
+  } else {
+    $('#bookCoverHint').textContent='Opcional — aparece na lista de livros.';
+  }
+}
 async function loadBooks(){
-  const {data,error}=await client.from('books').select('id,title,subtitle,slug,description,status,published_at,updated_at,chapters(id,chapter_number)').order('updated_at',{ascending:false});
+  const {data,error}=await client.from('books').select('id,title,subtitle,slug,description,status,published_at,updated_at,cover_path,chapters(id,chapter_number)').order('updated_at',{ascending:false});
   if(error){$('#booksTable').innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`;return}
   books=data||[]; $('#chaptersCount').textContent=books.reduce((n,b)=>n+distinctChapterCount(b),0); renderBooks();
 }
@@ -2606,14 +2661,14 @@ function renderBooks(){
   const q=$('#searchBooks').value.trim().toLowerCase();
   const list=q?books.filter(b=>(b.title||'').toLowerCase().includes(q)):books;
   if(!list.length){$('#booksTable').innerHTML=q?'<div class="empty-state small"><div class="empty-icon">▦</div><h4>Nenhum livro encontrado</h4><p>Tente buscar por outro título.</p></div>':'<div class="empty-state small"><div class="empty-icon">▦</div><h4>Nenhum livro cadastrado</h4><p>Crie o livro principal da família.</p><button class="primary" id="emptyAddBook">+ Novo livro</button></div>';$('#emptyAddBook')?.addEventListener('click',()=>openBookModal());return}
-  const pageSize=Number($('#booksPageSize').value)||10;
+  const pageSize=Number($('#booksPageSize').value)||5;
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize));
   if(booksPage>totalPages) booksPage=totalPages;
   if(booksPage<1) booksPage=1;
   const start=(booksPage-1)*pageSize;
   const pageItems=list.slice(start,start+pageSize);
   $('#booksTable').innerHTML=tableHtml(['Título','Capítulos','Seções','Status',''],pageItems.map(b=>[
-    `<strong>${escapeHtml(b.title||'—')}</strong>${b.subtitle?`<br><small>${escapeHtml(b.subtitle)}</small>`:''}`,
+    `<div class="thumb-cell">${b.cover_path?`<img class="thumb-avatar" src="${bookCoverUrl(b.cover_path)}" alt="">`:'<div class="thumb-empty"></div>'}<span><strong>${escapeHtml(b.title||'—')}</strong>${b.subtitle?`<br><small>${escapeHtml(b.subtitle)}</small>`:''}</span></div>`,
     distinctChapterCount(b),
     (b.chapters||[]).length,
     statusCell(b.status),
@@ -2637,6 +2692,10 @@ function openBookModal(book=null){
   $('#bookSlug').value=book?.slug||'';
   $('#bookStatus').value=book?.status||'published';
   $('#bookDescription').value=book?.description||'';
+  pendingBookCoverUpload=null; $('#bookCoverFile').value='';
+  $('#bookCoverPreview').innerHTML=book?.cover_path?`<img src="${bookCoverUrl(book.cover_path)}" alt="">`:'sem capa';
+  $('#bookCoverRemoveBtn').hidden=!book?.cover_path;
+  $('#bookCoverHint').textContent='Opcional — aparece na lista de livros.';
   bookModal.classList.add('open');
 }
 function closeBookModal(){bookModal.classList.remove('open')}
@@ -2650,10 +2709,20 @@ async function saveBook(e){
   const status=$('#bookStatus').value;
   const existing=id?books.find(b=>b.id===id):null;
   const payload={title,subtitle:nn($('#bookSubtitle').value),slug,description:nn($('#bookDescription').value),status,published_at:pubAt(status,existing)};
+  let oldCoverPath=null;
+  if(pendingBookCoverUpload){
+    const uid=crypto.randomUUID();
+    const coverPath=`covers/${uid}.webp`;
+    const up=await client.storage.from('photos').upload(coverPath,pendingBookCoverUpload,{contentType:'image/webp'});
+    if(up.error){showError($('#bookFormError'),'Falha no upload da capa: '+up.error.message);return}
+    payload.cover_path=coverPath;
+    if(existing?.cover_path) oldCoverPath=existing.cover_path;
+  }
   let error, newBookId=null;
   if(id){({error}=await client.from('books').update(payload).eq('id',id));}
   else {const res=await client.from('books').insert(payload).select('id').single(); error=res.error; newBookId=res.data?.id;}
   if(error){dbErr($('#bookFormError'),error);return}
+  if(oldCoverPath) await client.storage.from('photos').remove([oldCoverPath]);
   closeBookModal(); await loadBooks();
   if(newBookId){showToast('Livro cadastrado. Agora adicione o Capítulo 1.'); await openChaptersModal(newBookId);}
   else {showToast('Livro atualizado.');}
@@ -2662,7 +2731,9 @@ async function deleteBook(id){
   const book=books.find(b=>b.id===id);
   if(!await confirmDelete(`Excluir "${book?.title||'este livro'}"?`,'Os capítulos vinculados também serão removidos. Esta ação não pode ser desfeita.')) return;
   const {error}=await client.from('books').delete().eq('id',id);
-  if(error){alert(error.message);return} showToast('Livro excluído.'); await loadBooks();
+  if(error){alert(error.message);return}
+  if(book?.cover_path) await client.storage.from('photos').remove([book.cover_path]);
+  showToast('Livro excluído.'); await loadBooks();
 }
 async function openChaptersModal(bookId){
   activeBookId=bookId;

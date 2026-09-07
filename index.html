@@ -42,7 +42,7 @@
         <h1>A história que <span style="display:block"><em>atravessou gerações</em></span></h1>
         <p class="hero-lede" id="heroLede">Pessoas, histórias, fotografias e as fontes que provam cada uma delas, reunidas em um só lugar, para durar.</p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="livro.html">Ler o livro</a>
+          <a class="btn btn-primary" href="livros.html">Ler o livro</a>
           <a class="btn btn-ghost" href="arvore.html">Abrir a árvore</a>
         </div>
       </div>
@@ -118,10 +118,12 @@ async function boot(){
     sbClient.from('sources').select('id'),
     sbClient.from('chapters').select('id,book_id,chapter_number')
   ]);
-  // "capítulos" pro leitor = números de capítulo distintos (o livro.html agrupa
-  // várias seções sob o mesmo chapter_number num único capítulo) — contar as
-  // linhas cruas da tabela conta seções, não capítulos, e infla o número.
-  const capitulosCount=new Set((books||[]).map(c=>c.chapter_number)).size;
+  // "capítulos" pro leitor = números de capítulo distintos por livro (livro.html
+  // agrupa várias seções sob o mesmo chapter_number num único capítulo) — contar
+  // as linhas cruas da tabela conta seções, não capítulos, e infla o número.
+  // A chave inclui o book_id: com mais de um livro cadastrado, o capítulo 1 de
+  // um livro e o capítulo 1 de outro são capítulos diferentes, não o mesmo.
+  const capitulosCount=new Set((books||[]).map(c=>`${c.book_id}|${c.chapter_number}`)).size;
 
   // Linhagens (calculadas a partir da árvore) — mostra só as 4 primeiras de cara
   // (limite de itens por decisão de uma vez só) e deixa "+N linhagens" pra revelar
@@ -152,7 +154,7 @@ async function boot(){
 
   // Portas de entrada
   const portas=[
-    {kicker:'O livro',titulo:'Capítulos do livro',texto:capitulosCount+' '+(capitulosCount===1?'capítulo publicado':'capítulos publicados')+' até agora.',href:'livro.html',img:'Assents/inicio-web/livro.webp'},
+    {kicker:'O livro',titulo:'Capítulos do livro',texto:capitulosCount+' '+(capitulosCount===1?'capítulo publicado':'capítulos publicados')+' até agora.',href:'livros.html',img:'Assents/inicio-web/livro.webp'},
     {kicker:'A árvore',titulo:'Árvore genealógica',texto:'Navegue por pais, cônjuges e filhos.',href:'arvore.html',img:'Assents/inicio-web/arvore.webp'},
     {kicker:'As pessoas',titulo:(people||[]).length+' pessoas',texto:'Cada pessoa reúne biografia, família, fotos e histórias.',href:'pessoas.html',img:'Assents/inicio-web/pessoas.webp'},
     {kicker:'O arquivo',titulo:(photos||[]).length+' fotografias',texto:'Digitalizadas e organizadas por data e pessoa.',href:'galeria.html',img:'Assents/inicio-web/fotos.webp'}

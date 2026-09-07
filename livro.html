@@ -123,15 +123,42 @@ function renderChapter(){
 
 async function boot(){
   renderHeader(); renderFooter();
-  const {data:book}=await sbClient.from('books').select('id,title,subtitle,description').order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  const key=new URLSearchParams(location.search).get('slug')||new URLSearchParams(location.search).get('id');
+  let book=null, multipleBooks=false;
+  if(key){
+    // Livro específico pedido por slug/id (link direto, vindo de livros.html ou
+    // compartilhado) — busca só ele, e separadamente checa se existe mais de um
+    // livro no acervo pra decidir se mostra o link "Todos os livros" no menu.
+    let query=sbClient.from('books').select('id,title,subtitle,description,slug');
+    query=/^[0-9a-f-]{36}$/i.test(key)?query.eq('id',key):query.eq('slug',key);
+    const [{data:foundBook},{count}]=await Promise.all([
+      query.maybeSingle(),
+      sbClient.from('books').select('id',{count:'exact',head:true})
+    ]);
+    book=foundBook;
+    multipleBooks=(count||0)>1;
+  } else {
+    // Sem parâmetro (link antigo, ou clique direto em "livro.html"): só faz
+    // sentido abrir um livro específico sem pedir escolha se existe exatamente
+    // um no acervo. Com dois ou mais, manda pra lista em vez de escolher um
+    // arbitrariamente e "sumir" com os outros.
+    const {data:allBooks}=await sbClient.from('books').select('id,slug,title,subtitle,description').order('updated_at',{ascending:false}).limit(2);
+    if(allBooks&&allBooks.length>1){ location.replace('livros.html'); return; }
+    book=allBooks?.[0]||null;
+  }
   if(!book){
-    $('#main').innerHTML='<div class="empty-state-public"><h3>Nenhum livro publicado ainda</h3></div>';
+    $('#main').innerHTML=`<div class="empty-state-public"><h3>${key?'Livro não encontrado':'Nenhum livro publicado ainda'}</h3>${key?'<p><a href="livros.html">← Ver todos os livros</a></p>':''}</div>`;
     return;
   }
   BOOK=book;
+  setPageMeta({
+    title:book.title+' — Olsen · Belloto · Leal',
+    description:truncate(book.description||book.subtitle,155)||`O livro ${book.title}, da família Olsen, Belloto e Leal.`,
+    url:location.href
+  });
   const {data:chapters}=await sbClient.from('chapters').select('chapter_number,title,subtitle,content,created_at').eq('book_id',book.id).order('chapter_number',{ascending:true}).order('created_at',{ascending:true});
   if(!chapters||!chapters.length){
-    $('#main').innerHTML='<div class="empty-state-public"><h3>Este livro ainda não tem capítulos publicados</h3></div>';
+    $('#main').innerHTML=`<div class="empty-state-public"><h3>Este livro ainda não tem capítulos publicados</h3>${multipleBooks?'<p><a href="livros.html">← Ver todos os livros</a></p>':''}</div>`;
     return;
   }
   const groups=new Map();
@@ -149,6 +176,7 @@ async function boot(){
         <p class="kicker">Livro da família</p>
         <h2>${escapeHtml(book.title)}</h2>
         <p class="sub">${escapeHtml(book.subtitle||book.description||'')}</p>
+        ${multipleBooks?'<a class="btn-outline-gold" href="livros.html" style="display:inline-block;margin-bottom:26px">← Todos os livros</a>':''}
         <nav class="chapter-nav" id="chapterNav">
           ${CAP_GROUPS.map((g,i)=>`<button type="button" class="chapter-nav-item" data-i="${i}"><span class="num">${escapeHtml(String(g.num))}</span><span><span class="titulo">${escapeHtml(g.titulo)}</span></span></button>`).join('')}
         </nav>

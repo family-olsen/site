@@ -1,5 +1,12 @@
 const { createClient } = supabase;
-const sbClient = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY);
+// cache:'no-store' em toda chamada — a API do Supabase não manda Cache-Control,
+// e sem isso alguns navegadores guardam a resposta por conta própria (heurística
+// de cache do HTTP), fazendo uma página recém-editada no admin (ex.: um livro que
+// virou rascunho) continuar aparecendo pro público com o dado antigo até o cache
+// expirar sozinho.
+const sbClient = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY, {
+  global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) }
+});
 
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function $(sel){return document.querySelector(sel)}
@@ -152,7 +159,7 @@ async function fetchHasRelations(personIds){
 const NAV_ITEMS=[
   {href:'index.html',label:'Início'},
   {href:'historias.html',label:'Histórias'},
-  {href:'livro.html',label:'Livro'},
+  {href:'livros.html',label:'Livros'},
   {href:'pessoas.html',label:'Pessoas'},
   {href:'arvore.html',label:'Árvore'},
   {href:'galeria.html',label:'Fotos'},
