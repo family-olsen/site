@@ -193,17 +193,17 @@ main{min-height:40vh}
 }
 
 /* ---------- Portas (entry cards) ---------- */
-.portas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:clamp(16px,2.4vw,28px)}
+.portas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:clamp(12px,1.6vw,22px)}
 .porta-card{position:relative;display:block;text-align:left;padding:0;border:1px solid var(--line-2);border-radius:14px;background:var(--bg-3);overflow:hidden;cursor:pointer;color:inherit;font-family:inherit;transition:border-color .35s,transform .35s}
 .porta-card:hover{border-color:var(--gold-dark)}
 @media not (hover:hover), not (pointer:fine){
   .porta-card:hover{transform:translateY(-4px)}
 }
-.porta-img{display:block;height:190px;overflow:hidden;background:var(--bg-2);background-size:cover;background-position:center;filter:saturate(.6) brightness(.8);transition:transform 1.1s cubic-bezier(.2,.8,.2,1),filter .6s}
+.porta-img{display:block;height:130px;overflow:hidden;background:var(--bg-2);background-size:cover;background-position:center;filter:saturate(.6) brightness(.8);transition:transform 1.1s cubic-bezier(.2,.8,.2,1),filter .6s}
 .porta-card:hover .porta-img{transform:scale(1.07);filter:saturate(.85) brightness(.92)}
-.porta-body{display:block;padding:22px 24px 26px}
-.porta-kicker{display:block;font-size:var(--fs-micro);letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
-.porta-title{display:block;font-family:var(--serif);font-size:24px;font-weight:400;margin-bottom:8px}
+.porta-body{display:block;padding:18px 20px 22px}
+.porta-kicker{display:block;font-size:var(--fs-micro);letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.porta-title{display:block;font-family:var(--serif);font-size:21px;font-weight:400;margin-bottom:8px}
 .porta-text{display:block;font-size:var(--fs-caption);line-height:1.7;color:var(--muted-2)}
 
 /* ---------- Quote ---------- */
