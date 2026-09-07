@@ -60,6 +60,9 @@ if(TTS_SUPPORTED){
 function clearReadingHighlight(){ document.querySelectorAll('[data-reading]').forEach(el=>el.removeAttribute('data-reading')); }
 function buildTtsQueue(){
   const chunks=[];
+  const kicker=$('#chapterKicker'), title=$('#chapterTitle');
+  if(kicker&&kicker.textContent.trim()) chunks.push({el:kicker,text:kicker.textContent.trim()});
+  if(title&&title.textContent.trim()) chunks.push({el:title,text:title.textContent.trim()});
   document.querySelectorAll('#chapterBody .reader-section').forEach(sec=>{
     const subtitle=sec.querySelector('.section-title');
     if(subtitle&&subtitle.textContent.trim()) chunks.push({el:subtitle,text:subtitle.textContent.trim()});
@@ -153,15 +156,15 @@ async function boot(){
       <article class="reader-article">
         <p class="kicker" id="chapterKicker"></p>
         <h1 id="chapterTitle"></h1>
-        <div class="reader-audio" ${TTS_SUPPORTED?'':'hidden'}>
-          <button type="button" class="reader-audio-btn" id="readAloudBtn">▶ Ouvir capítulo</button>
-        </div>
         <div class="reader-body" id="chapterBody"></div>
         <div class="reader-nav-buttons">
           <button type="button" class="btn-sm" id="prevChapterBtn">← Anterior</button>
           <button type="button" class="btn-dark" id="nextChapterBtn">Próximo capítulo →</button>
         </div>
       </article>
+    </div>
+    <div class="reader-audio" ${TTS_SUPPORTED?'':'hidden'}>
+      <button type="button" class="reader-audio-btn" id="readAloudBtn">▶ Ouvir capítulo</button>
     </div>
   </div>`;
 
