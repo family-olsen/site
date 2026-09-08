@@ -1,0 +1,23 @@
+name: Manter Supabase ativo
+
+# O plano gratuito do Supabase pausa o projeto depois de 7 dias sem
+# nenhuma requisição à API. Esse workflow faz uma consulta bem simples
+# (só conta linhas de uma tabela pública) uma vez por semana, apenas
+# pra manter o projeto "acordado" — não altera nada no banco.
+on:
+  schedule:
+    - cron: '0 12 * * 1' # toda segunda-feira, 12h UTC (9h de Brasília)
+  workflow_dispatch: {} # também dá pra rodar manualmente pela aba Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar a API do Supabase
+        run: |
+          curl --fail --silent --show-error \
+            "https://igglfuatavmxabffaflb.supabase.co/rest/v1/people?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}"
+        env:
+          SUPABASE_ANON_KEY: sb_publishable_Kj1x2hJwqDpmTtni-6SxVg_qxKGOIze
