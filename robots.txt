@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 
-Sitemap: https://family-olsen.github.io/site/sitemap.xml
+Sitemap: https://olsen-belloto-leal.vercel.app/sitemap.xml
