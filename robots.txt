@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 
-Sitemap: https://olsen-belloto-leal.vercel.app/sitemap.xml
+Sitemap: https://www.olsenbellotoleal.com.br/sitemap.xml
