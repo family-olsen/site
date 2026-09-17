@@ -2,11 +2,12 @@ name: Manter Supabase ativo
 
 # O plano gratuito do Supabase pausa o projeto depois de 7 dias sem
 # nenhuma requisição à API. Esse workflow faz uma consulta bem simples
-# (só conta linhas de uma tabela pública) uma vez por semana, apenas
-# pra manter o projeto "acordado" — não altera nada no banco.
+# (só conta linhas de uma tabela pública) a cada 3 dias, com boa margem
+# antes do limite de 7, apenas pra manter o projeto "acordado" — não
+# altera nada no banco.
 on:
   schedule:
-    - cron: '0 12 * * 1' # toda segunda-feira, 12h UTC (9h de Brasília)
+    - cron: '0 12 */3 * *' # a cada 3 dias, 12h UTC (9h de Brasília)
   workflow_dispatch: {} # também dá pra rodar manualmente pela aba Actions
 
 jobs:
