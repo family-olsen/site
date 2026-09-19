@@ -2,23 +2,23 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" sizes="16x16" href="/Assents/Logos-web/favicon-16.png"><link rel="icon" type="image/png" sizes="32x32" href="/Assents/Logos-web/favicon-32.png"><link rel="icon" type="image/png" sizes="48x48" href="/Assents/Logos-web/favicon-48.png"><link rel="apple-touch-icon" href="/Assents/Logos-web/apple-touch-icon.png">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://igglfuatavmxabffaflb.supabase.co; connect-src 'self' https://igglfuatavmxabffaflb.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>Família — Administração</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/admin/css/admin.css">
+<title>Família — Administração</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/admin/css/admin.css?v=6">
 </head><body>
 <div id="loginView" class="auth-screen"><div class="auth-card">
-<div class="brand-mark"><img src="/Assents/Logos-web/icon-96.webp" alt=""></div><h1>Administração da Família</h1>
+<div class="brand-mark"><img id="loginBrandLogo" src="/Assents/Logos-web/icon-96.webp" alt=""></div><h1>Administração da Família</h1>
 <p>Entre para administrar pessoas, genealogia, livro, histórias e acervo.</p>
 <form id="loginForm" novalidate><label>E-mail<input id="email" type="email" autocomplete="username" required></label>
 <label>Senha<input id="password" type="password" autocomplete="current-password" required></label>
 <button class="primary full" type="submit">Entrar</button><div id="loginError" class="error"></div></form>
 </div></div>
 <div id="appView" class="app-shell hidden">
-<aside class="sidebar"><div class="brand"><div class="brand-mark"><img src="/Assents/Logos-web/icon-96.webp" alt=""></div><div class="brand-text"><strong>Família</strong><span>Administração</span></div><button id="sidebarCollapseBtn" class="sidebar-collapse-btn" type="button" aria-label="Recolher menu" aria-expanded="true" title="Recolher menu">‹</button></div>
+<aside class="sidebar"><div class="brand"><div class="brand-mark"><img id="sidebarBrandLogo" src="/Assents/Logos-web/icon-96.webp" alt=""></div><div class="brand-text"><strong>Família</strong><span>Administração</span></div><button id="sidebarCollapseBtn" class="sidebar-collapse-btn" type="button" aria-label="Recolher menu" aria-expanded="true" title="Recolher menu">‹</button></div>
 <nav><a class="nav-item active" href="#dashboard">Dashboard</a><a class="nav-item" href="#pessoas">Pessoas</a><a class="nav-item" href="#familias">Famílias</a><a class="nav-item" href="#genealogia">Genealogia</a><a class="nav-item" href="#livro">Livro</a><a class="nav-item" href="#historias">Histórias</a><a class="nav-item" href="#fotos">Fotos</a><a class="nav-item" href="#albuns">Álbuns</a><a class="nav-item" href="#eventos">Eventos</a><a class="nav-item" href="#documentos">Documentos</a><a class="nav-item" href="#fontes">Fontes</a><a class="nav-item" href="#lugares">Lugares</a><a class="nav-item" href="#configuracoes">Configurações</a></nav>
 <div class="sidebar-footer"><span id="roleBadge" class="footer-text">—</span><button id="logoutBtn" class="logout" title="Sair"><span class="logout-icon">⏻</span><span class="footer-text">Sair</span></button></div></aside>
 <div class="sidebar-scrim" id="sidebarScrim"></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<main class="main"><header class="topbar"><button class="mobile-menu" id="mobileMenuBtn" aria-label="Abrir menu" aria-expanded="false">☰</button><h1>Gestão da História da Família</h1><div class="user-badge" id="userEmail">—</div></header>
-<section class="content" id="dashboard"><div class="hero-card"><div><span class="pill">Backoffice · Supabase</span><h2>Organize a memória da família.</h2><p>Cada pessoa, cada foto, cada história — reunidas num só lugar, para durar gerações.</p></div></div>
+<main class="main"><header class="topbar"><button class="mobile-menu" id="mobileMenuBtn" aria-label="Abrir menu" aria-expanded="false">☰</button><h1 id="topbarTitle">Gestão da História da Família</h1><div class="user-badge" id="userEmail">—</div></header>
+<section class="content" id="dashboard"><div class="hero-card"><div><span class="pill">Backoffice · Supabase</span><h2 id="dashboardHeroTitle">Organize a memória da família.</h2><p>Cada pessoa, cada foto, cada história — reunidas num só lugar, para durar gerações.</p></div></div>
 <div class="stats-grid">
 <a class="stat-card" href="#pessoas"><div class="stat-card-top"><span>Pessoas</span><span class="stat-icon stat-icon-pessoas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/></svg></span></div><strong id="peopleCount">0</strong><small>cadastros</small><small id="peopleLimitInfo" class="stat-limit" hidden></small></a>
 <a class="stat-card" href="#familias"><div class="stat-card-top"><span>Famílias</span><span class="stat-icon stat-icon-familias"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.1"/><path d="M3.8 19.5c0-3 2.3-5.2 5.3-5.2 2 0 3.7.9 4.6 2.4"/><path d="M13 19.5c.2-2.5 2-4.3 4.4-4.3 2.4 0 4.4 2 4.4 4.3"/></svg></span></div><strong id="familiesCount">0</strong><small>uniões</small></a>
@@ -89,10 +89,57 @@
 <article class="stat-card"><span>Papel</span><strong id="cfgRole">—</strong><small>permissão no painel</small></article>
 <article class="stat-card"><span>Projeto Supabase</span><strong id="cfgProject">—</strong><small>backend conectado</small></article>
 <article class="stat-card"><span>Plano atual</span><strong id="cfgPlan">—</strong><small>Legado Digital</small></article>
+<a class="stat-card support-card" id="cfgSupportCard" href="#" target="_blank" rel="noopener" hidden><span>Precisa de ajuda?</span><strong><svg class="whatsapp-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m0 1.67c2.23 0 4.33.87 5.9 2.45a8.23 8.23 0 0 1 2.43 5.87c0 4.58-3.73 8.31-8.31 8.31a8.3 8.3 0 0 1-4.22-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.25 8.25 0 0 1-1.27-4.42c0-4.58 3.73-8.35 8.26-8.35M8.53 7.15c-.17 0-.45.06-.68.32-.23.25-.9.87-.9 2.13 0 1.25.92 2.46 1.05 2.63.13.17 1.79 2.86 4.43 3.9 2.19.87 2.64.7 3.11.65.48-.04 1.53-.62 1.75-1.22.22-.6.22-1.11.15-1.22-.06-.1-.23-.17-.48-.29-.25-.13-1.53-.76-1.77-.84-.24-.09-.41-.13-.58.13-.17.25-.67.84-.82 1.02-.15.17-.3.19-.56.06-.25-.13-1.06-.39-2.02-1.25-.75-.66-1.25-1.48-1.4-1.73-.14-.25-.01-.38.11-.51.12-.12.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.58-1.42-.81-1.94-.21-.51-.43-.44-.58-.44h-.5"/></svg>Falar no WhatsApp</strong><small>Suporte da plataforma</small></a>
+</div>
+
+<div id="brandingSection" hidden>
+  <h3 class="plan-section-heading">Identidade visual do site</h3>
+  <p class="hint">Logo, título e cores exibidos no site público da família. Muda pra todo mundo que visita o site.</p>
+  <div class="form-grid">
+    <label>Título do site<input type="text" id="brandTitleInput" maxlength="80" placeholder="Ex.: Olsen · Belloto · Leal"></label>
+    <label>WhatsApp de contato do site<input type="text" id="brandContatoWhatsapp" placeholder="5511999999999"></label>
+  </div>
+  <p class="hint">O WhatsApp de contato é pra quem visita o site querer mandar uma história, foto ou documento — aparece no botão "Falar no WhatsApp" da página de Contato. Formato internacional, só números.</p>
+  <div class="avatar-field">
+    <div class="avatar-preview logo" id="brandLogoPreview"></div>
+    <div>
+      <label class="avatar-label">Logo do site<input id="brandLogoFile" type="file" accept="image/*"></label>
+      <button type="button" id="brandLogoRemoveBtn" class="danger-text" hidden>Excluir logo</button>
+      <p class="hint" id="brandLogoHint">Opcional — sem logo enviado, o site fica só com o nome, sem ícone.</p>
+    </div>
+  </div>
+  <div class="avatar-field">
+    <div class="avatar-preview logo" id="brandFaviconPreview"></div>
+    <div>
+      <label class="avatar-label">Favicon (ícone da aba do navegador)<input id="brandFaviconFile" type="file" accept="image/*"></label>
+      <button type="button" id="brandFaviconRemoveBtn" class="danger-text" hidden>Excluir favicon</button>
+      <p class="hint" id="brandFaviconHint">Opcional — sem favicon enviado, usa o ícone padrão da aba.</p>
+    </div>
+  </div>
+  <h4 style="margin:24px 0 4px">Paleta de cores</h4>
+  <p class="hint">Escolha um modelo pronto ou "Personalizado" pra editar cada cor manualmente.</p>
+  <div class="preset-swatch-grid" id="colorPresetGrid"></div>
+  <div class="color-preview-box" id="colorPreviewBox">
+    <div class="cpv-card">
+      <p class="cpv-eyebrow">PRÉVIA</p>
+      <h4 class="cpv-title">Assim vai ficar o site</h4>
+      <p class="cpv-text">Um exemplo de texto normal, pra ver o contraste com o fundo.</p>
+      <span class="cpv-btn">Botão / link</span>
+    </div>
+  </div>
+  <div class="form-grid" id="customColorsWrap" hidden>
+    <label>Fundo<input type="color" id="colorBg"></label>
+    <label>Fundo (cartões)<input type="color" id="colorBg2"></label>
+    <label>Texto<input type="color" id="colorText"></label>
+    <label>Texto secundário<input type="color" id="colorMuted"></label>
+    <label>Destaque (dourado/links)<input type="color" id="colorAccent"></label>
+  </div>
+  <div class="form-actions"><button type="button" class="primary" id="saveBrandingBtn">Salvar identidade visual</button></div>
+  <div id="brandingFormError" class="error"></div>
 </div>
 
 <div id="planSection" hidden>
-  <h3 style="margin-top:32px">Plano contratado</h3>
+  <h3 class="plan-section-heading">Plano contratado</h3>
   <div class="form-grid">
     <label>Plano<select id="planSelect">
       <option value="autonomo">Autônomo</option>
@@ -105,10 +152,34 @@
   </div>
   <p class="hint" id="planPersonalizadoHint" hidden>Plano Personalizado: preencha manualmente o limite negociado para cada recurso abaixo. Deixe em branco para "sem limite" nesse recurso.</p>
   <div class="plan-limits-grid" id="planLimitsGrid"></div>
+
+  <h3 class="plan-section-heading">Limites de tamanho de arquivo</h3>
+  <p class="hint">Padrão: 10 MB por foto (compactada automaticamente no upload) e 5 MB para documentos/outros arquivos. Vale para qualquer plano, mas pode ser personalizado por site.</p>
+  <div class="form-grid">
+    <label>Fotos — máx. por arquivo (MB)<input type="number" min="1" step="1" id="fotoMaxMb"></label>
+    <label>Documentos/outros — máx. por arquivo (MB)<input type="number" min="1" step="1" id="documentoMaxMb"></label>
+  </div>
+
+  <h3 class="plan-section-heading">Limites reais de infraestrutura (banco de dados)</h3>
+  <p class="hint">Espaço de fato ocupado no projeto Supabase — diferente dos limites de negócio acima. Ajuste conforme o plano de hospedagem contratado (padrão: Free tier do Supabase).</p>
+  <div class="form-grid">
+    <label>Banco de dados — teto (MB)<input type="number" min="1" step="1" id="dbMaxMb"></label>
+    <label>Armazenamento — teto (MB)<input type="number" min="1" step="1" id="storageMaxMb"></label>
+  </div>
+
+  <h3 class="plan-section-heading">Suporte</h3>
+  <p class="hint">WhatsApp que aparece pra família em "Precisa de ajuda?" na tela de Configurações dela. Formato internacional, só números (ex.: 5511999999999). Deixe em branco pra não mostrar o botão.</p>
+  <div class="form-grid">
+    <label>WhatsApp de suporte<input type="text" id="suporteWhatsapp" placeholder="5511999999999"></label>
+  </div>
+
   <div class="form-actions"><button type="button" class="primary" id="savePlanBtn">Salvar plano</button></div>
   <div id="planFormError" class="error"></div>
 
-  <h3 style="margin-top:32px">Uso do plano</h3>
+  <h3 class="plan-section-heading">Uso real do banco de dados</h3>
+  <div class="usage-list" id="infraUsageList"></div>
+
+  <h3 class="plan-section-heading">Uso do plano</h3>
   <div class="usage-list" id="planUsageList"></div>
 </div>
 </section>
@@ -254,5 +325,5 @@
 <div class="form-actions"><button type="button" class="secondary" id="cancelConfirmDelete">Cancelar</button><button type="button" class="primary danger-btn" id="confirmDeleteBtn">Excluir</button></div></div></div>
 <datalist id="placesList"></datalist><datalist id="photosList"></datalist><datalist id="documentsList"></datalist><datalist id="storiesQuickList"></datalist><datalist id="albumsQuickList"></datalist><datalist id="sourcesQuickList"></datalist><datalist id="chaptersQuickList"></datalist><datalist id="eventsQuickList"></datalist>
 <datalist id="peopleList"></datalist>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script><script src="/admin/js/config.js"></script><script src="/admin/js/admin.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script><script src="/admin/js/config.js"></script><script src="/admin/js/admin.js?v=3"></script>
 </body></html>

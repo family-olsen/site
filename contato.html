@@ -28,7 +28,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/site.css?v=2">
+<script src="js/branding-boot.js"></script>
 <style>
   .contato-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:clamp(20px,3vw,32px);margin-top:clamp(30px,5vw,56px)}
   .contato-card{background:var(--bg-3);border:1px solid var(--line-2);border-radius:20px;padding:clamp(28px,4vw,40px);display:flex;flex-direction:column}
@@ -69,19 +70,33 @@
           </a>
         </div>
       </div>
-      <p class="contato-note">Prefere escrever direto? O número é <strong style="color:var(--muted-3)">(41) 99722-4176</strong>, é só chamar.</p>
     </div>
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script>
 <script src="js/config.js"></script>
-<script src="js/site.js"></script>
+<script src="js/site.js?v=3"></script>
 <script>
-const WHATSAPP_NUMBER='5541997224176';
-function waLink(text){return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`}
+// Fixo de propósito — "quer um site assim" é sempre uma venda nova, fala
+// sempre com quem constrói/vende o site (Legado Digital), não com a família
+// deste acervo específico. Não vira campo de configuração.
+const BUILDER_WHATSAPP_NUMBER='5541997224176';
+function waLink(number,text){return `https://wa.me/${number}?text=${encodeURIComponent(text)}`}
 renderHeader(); renderFooter();
-$('#btnFamilia').href=waLink('Olá! Sou da família Olsen, Belloto ou Leal e tenho uma história, foto ou documento para compartilhar no site.');
-$('#btnCliente').href=waLink('Olá! Vi o site da família Olsen, Belloto e Leal e tenho interesse em um site parecido para a minha família.');
+$('#btnCliente').href=waLink(BUILDER_WHATSAPP_NUMBER,'Olá! Vi o site da família Olsen, Belloto e Leal e tenho interesse em um site parecido para a minha família.');
+// "Você é da família" fala com quem administra ESTE acervo — número vem de
+// site_config.contato_whatsapp (editável pelo admin da família), não do
+// número fixo acima. Sem número configurado, esconde o cartão em vez de
+// deixar um link quebrado.
+(async()=>{
+  await window.__siteBrandingReady;
+  const familyNumber=window.__siteConfig?.contato_whatsapp;
+  if(familyNumber){
+    $('#btnFamilia').href=waLink(familyNumber,'Olá! Sou da família Olsen, Belloto ou Leal e tenho uma história, foto ou documento para compartilhar no site.');
+  } else {
+    $('#btnFamilia').closest('.contato-card').style.display='none';
+  }
+})();
 if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
   revealWords($('main .eyebrow-gold'),{baseDelay:0,stagger:30});
   revealWords($('main h1'),{baseDelay:150,stagger:35});

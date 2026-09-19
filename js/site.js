@@ -8,6 +8,138 @@ const sbClient = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_K
   global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) }
 });
 
+// ---------- Identidade visual (site_config) ----------
+// Logo/título/cores são editáveis pela família (só papel "admin") na tela
+// de Configurações do admin. color_preset='default' significa "não
+// sobrescrever nada" — o site usa as variáveis já fixas em css/site.css,
+// então quem nunca mexeu nisso não tem NENHUMA mudança de comportamento.
+// Pros outros presets e pro "personalizado", os 5 valores-base (bg/bg2/
+// text/muted/accent) ficam guardados resolvidos no banco, e o resto das
+// ~19 variáveis CSS (tons, bordas, hover) é derivado aqui mesmo, matemática
+// idêntica à usada no admin (ver admin/js/admin.js) — se mudar uma, muda a
+// outra igual, senão o preview no admin diverge do site real.
+function hexToRgb(hex){
+  const m=/^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex||'');
+  return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:[0,0,0];
+}
+function mixHex(hex1,hex2,w){
+  const [r1,g1,b1]=hexToRgb(hex1),[r2,g2,b2]=hexToRgb(hex2);
+  const mix=(a,b)=>Math.round(a+(b-a)*w);
+  return `#${[mix(r1,r2),mix(g1,g2),mix(b1,b2)].map(v=>v.toString(16).padStart(2,'0')).join('')}`;
+}
+function rgbaHex(hex,a){const [r,g,b]=hexToRgb(hex);return `rgba(${r},${g},${b},${a})`}
+function rgbTriplet(hex){const [r,g,b]=hexToRgb(hex);return `${r},${g},${b}`}
+function deriveBrandingVars(base){
+  const {bg,bg2,text,muted,accent}=base;
+  const goldDark=mixHex(accent,'#000000',.2);
+  return {
+    '--bg':bg,'--bg-2':bg2,
+    '--bg-3':mixHex(bg2,'#ffffff',.06),'--bg-4':mixHex(bg2,'#ffffff',.14),'--bg-5':mixHex(bg2,'#ffffff',.22),
+    '--text':text,'--text-dim':mixHex(text,muted,.25),
+    '--muted':muted,'--muted-2':mixHex(muted,text,.15),'--muted-3':mixHex(muted,text,.35),
+    '--muted-4':mixHex(muted,bg,.15),'--muted-5':mixHex(muted,text,.05),'--muted-6':mixHex(muted,bg,.1),
+    '--gold':accent,'--gold-light':mixHex(accent,'#ffffff',.22),'--gold-dark':goldDark,'--gold-deep':mixHex(accent,'#000000',.45),
+    '--line':rgbaHex(text,.1),'--line-2':rgbaHex(text,.14),'--line-3':rgbaHex(text,.2),'--line-gold':rgbaHex(accent,.4),
+    // Trios RGB pra todo lugar do CSS que monta rgba(var(--x-rgb),alpha) na
+    // mão (véus, fundo translúcido do cabeçalho etc — ver css/site.css) —
+    // sem isso, esses efeitos ficavam presos na cor original mesmo com um
+    // tema novo aplicado (bug reportado: cabeçalho não mudava de cor).
+    '--bg-rgb':rgbTriplet(bg),'--text-rgb':rgbTriplet(text),'--gold-rgb':rgbTriplet(accent),'--gold-dark-rgb':rgbTriplet(goldDark)
+  };
+}
+// Cinco predefinições sugeridas, além do "Padrão" (que é simplesmente não
+// aplicar nada — os valores originais do site.css). Mesmo objeto existe
+// em admin/js/admin.js pro seletor de plano mostrar as mesmas opções.
+const SITE_COLOR_PRESETS={
+  vinho:{bg:'#1B0F12',bg2:'#271620',text:'#EDE2DD',muted:'#B09A98',accent:'#C97B6B'},
+  esmeralda:{bg:'#0D1712',bg2:'#15251C',text:'#E6EDE7',muted:'#8FA89B',accent:'#82BE93'},
+  azul:{bg:'#0A1626',bg2:'#122236',text:'#E6ECF3',muted:'#8FA0B8',accent:'#8FB4D9'},
+  terracota:{bg:'#1C130F',bg2:'#2A1D15',text:'#F0E6DC',muted:'#B39C88',accent:'#D89361'},
+  ardosia:{bg:'#14161A',bg2:'#1E2126',text:'#EDEDED',muted:'#9AA0A8',accent:'#BFAF8C'}
+};
+const DEFAULT_SITE_TITLE='Olsen · Belloto · Leal';
+// Lido de forma SÍNCRONA (não dentro da função async abaixo), porque
+// renderHeader() roda antes do fetch ao banco terminar — chamado por um
+// <script> separado, logo depois deste arquivo, na própria página. Isso é
+// usado SÓ pras cores (aplicadas de cara, evita a página inteira piscar
+// pro visual padrão antes de assentar no tema escolhido). Logo e título
+// NÃO usam esse cache pra nascer — só são aplicados depois que
+// applySiteBranding() confirma com o banco (ver patchBrandingDom). Testamos
+// cache-primeiro pra logo/título também, mas se o cache tivesse ficado
+// desatualizado (outra aba, outro dispositivo, uma troca recente no admin)
+// o visitante via o logo ANTIGO por um instante e depois via ele trocar pro
+// atual — exatamente o "pisca e troca" que a família reportou. Prefere-se
+// nascer sem logo por um instante (ver applyLogoToBrand) a nascer com o
+// errado e trocar depois.
+window.__brandingCache=(()=>{ try{ return JSON.parse(localStorage.getItem('familia_branding_v1')||'null'); }catch(e){ return null; } })();
+if(window.__brandingCache?.vars){
+  Object.entries(window.__brandingCache.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+}
+window.__siteConfig=null;
+// Cria/atualiza/remove o <img> do logo dentro de .site-brand — não existe
+// mais um "logo padrão" fixo pra cair de volta: sem logo_path configurado,
+// o cabeçalho simplesmente não tem nenhum ícone (só o nome do site),
+// exatamente como a família pediu ("excluir" precisa deixar vazio, não
+// voltar pra uma imagem antiga).
+function applyLogoToBrand(logoPath){
+  document.querySelectorAll('.site-brand').forEach(a=>{
+    let img=a.querySelector('.site-brand-icon');
+    if(logoPath){
+      if(!img){
+        img=document.createElement('img');
+        img.className='site-brand-icon'; img.width=40; img.height=40; img.alt=''; img.loading='eager';
+        a.insertBefore(img,a.firstChild);
+      }
+      img.src=photoUrl(logoPath);
+    } else if(img){
+      img.remove();
+    }
+  });
+}
+function patchBrandingDom(cfg){
+  const title=cfg.site_title||DEFAULT_SITE_TITLE;
+  document.querySelectorAll('.site-brand strong').forEach(el=>{ el.textContent=title; });
+  document.querySelectorAll('.site-footer .brand').forEach(el=>{ el.textContent=title; });
+  // Eyebrow da hero da home ("O acervo da família ...") — mesmo nome, só
+  // com esse texto extra na frente. Só existe na index.html.
+  const eyebrow=$('#heroEyebrow');
+  if(eyebrow) eyebrow.textContent='O acervo da família '+title;
+  document.title=document.title.replace(DEFAULT_SITE_TITLE,title);
+  applyLogoToBrand(cfg.logo_path||null);
+  // Favicon próprio, separado do logo do cabeçalho — sem favicon_path
+  // configurado, mantém os arquivos padrão já fixos no <head> de cada
+  // página. Só troca (nunca some) — não tem o mesmo problema do logo de
+  // precisar "ficar sem nada", porque não tem um estado de piscada aqui:
+  // o favicon só é trocado depois que o banco confirma, igual o logo.
+  if(cfg.favicon_path){
+    const url=photoUrl(cfg.favicon_path);
+    document.querySelectorAll('link[rel="icon"],link[rel="apple-touch-icon"]').forEach(link=>{ link.href=url; });
+  }
+}
+async function applySiteBranding(){
+  try{
+    const {data,error}=await sbClient.from('site_config').select('*').limit(1).maybeSingle();
+    if(error||!data) return;
+    window.__siteConfig=data;
+    const vars=data.color_preset!=='default'&&data.color_bg
+      ?deriveBrandingVars({bg:data.color_bg,bg2:data.color_bg2,text:data.color_text,muted:data.color_muted,accent:data.color_accent})
+      :null;
+    if(vars){
+      Object.entries(vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+    } else {
+      // Voltou pro padrão — remove qualquer sobreposição que tenha ficado de uma
+      // troca anterior (ex.: família testou um preset e voltou ao original).
+      Object.keys(window.__brandingCache?.vars||{}).forEach(k=>document.documentElement.style.removeProperty(k));
+    }
+    patchBrandingDom(data);
+    localStorage.setItem('familia_branding_v1',JSON.stringify({vars:vars||{},site_title:data.site_title,logo_path:data.logo_path}));
+  }catch(err){ /* falha de rede etc — mantém a identidade padrão/cacheada, sem quebrar a página */ }
+}
+// Exposto pra páginas que precisam de outros campos de site_config além do
+// que patchBrandingDom() já mexe sozinho (ex.: contato.html usa
+// contato_whatsapp) — `await window.__siteBrandingReady` garante que
+// window.__siteConfig já foi preenchido antes de ler dele.
+window.__siteBrandingReady=applySiteBranding();
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 // Usado por index.html (vídeo em destaque) e videos.html: distingue um link
 // pro arquivo de vídeo em si (ex.: .../download/.../video.mp4) de um link de
@@ -220,10 +352,15 @@ function renderHeader(){
   }).join('');
   document.body.insertAdjacentHTML('afterbegin',`
     <header class="site-header">
-      <a href="index.html" class="site-brand"><img class="site-brand-icon" src="Assents/Logos-web/icon-96.webp" srcset="Assents/Logos-web/icon-96.webp 96w, Assents/Logos-web/icon-192.webp 192w" sizes="40px" width="40" height="40" alt="" loading="eager"><span class="site-brand-text"><strong>Olsen · Belloto · Leal</strong><span>acervo da família</span></span></a>
+      <a href="index.html" class="site-brand"><span class="site-brand-text"><strong>${escapeHtml(DEFAULT_SITE_TITLE)}</strong><span>acervo da família</span></span></a>
       <button type="button" class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="siteNav"><span></span><span></span><span></span></button>
       <nav class="site-nav" id="siteNav">${nav}<button type="button" class="search-btn" id="openSearchBtn"><span class="search-dot"></span><span>Buscar</span></button></nav>
     </header>`);
+  // Título/logo reais só entram quando applySiteBranding() já tiver
+  // confirmado com o banco (ver comentário lá em cima) — se o fetch já
+  // tiver resolvido antes do cabeçalho existir (conexão rápida), aplica na
+  // hora; senão, patchBrandingDom() cuida disso assim que a resposta chegar.
+  if(window.__siteConfig) patchBrandingDom(window.__siteConfig);
   $('#openSearchBtn').addEventListener('click',()=>{closeMobileMenu(); openSearch();});
   // menu hambúrguer — só aparece no mobile (CSS), aqui só liga o clique.
   const toggle=$('#menuToggle'), navEl=$('#siteNav');
@@ -255,10 +392,11 @@ function renderHeader(){
 function renderFooter(){
   document.body.insertAdjacentHTML('beforeend',`
     <footer class="site-footer">
-      <span class="brand">Olsen · Belloto · Leal</span>
+      <span class="brand">${escapeHtml(DEFAULT_SITE_TITLE)}</span>
       <span class="note">Acervo privado da família, compartilhado publicamente com carinho. O conteúdo é mantido pelo painel administrativo da família.</span>
       <a class="footer-contact" href="contato.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m0 1.67c2.23 0 4.33.87 5.9 2.45a8.23 8.23 0 0 1 2.43 5.87c0 4.58-3.73 8.31-8.31 8.31a8.3 8.3 0 0 1-4.22-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.25 8.25 0 0 1-1.27-4.42c0-4.58 3.73-8.35 8.26-8.35M8.53 7.15c-.17 0-.45.06-.68.32-.23.25-.9.87-.9 2.13 0 1.25.92 2.46 1.05 2.63.13.17 1.79 2.86 4.43 3.9 2.19.87 2.64.7 3.11.65.48-.04 1.53-.62 1.75-1.22.22-.6.22-1.11.15-1.22-.06-.1-.23-.17-.48-.29-.25-.13-1.53-.76-1.77-.84-.24-.09-.41-.13-.58.13-.17.25-.67.84-.82 1.02-.15.17-.3.19-.56.06-.25-.13-1.06-.39-2.02-1.25-.75-.66-1.25-1.48-1.4-1.73-.14-.25-.01-.38.11-.51.12-.12.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.58-1.42-.81-1.94-.21-.51-.43-.44-.58-.44h-.5"/></svg>Contato</a>
     </footer>`);
+  if(window.__siteConfig) patchBrandingDom(window.__siteConfig);
 }
 document.addEventListener('keydown',(e)=>{
   if(e.key==='Escape'){ closeSearch(); closeLightbox(); }

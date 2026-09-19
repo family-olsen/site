@@ -125,7 +125,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible,input:focus-visibl
   .modal-card{width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;padding:20px 16px 24px}
   .form-actions{position:sticky;bottom:-24px;margin:20px -16px -24px;padding:14px 16px;background:#fff;border-top:1px solid #edf0f5;z-index:2}
 }
-.modal-card.wide{width:min(920px,100%)}.inline-form{margin-top:22px;padding-top:20px;border-top:1px solid #edf0f5}.config-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}.config-grid .stat-card strong{font-size:19px;word-break:break-word}code{background:#eef1f7;padding:2px 6px;border-radius:5px;font-size:12px}@media(max-width:900px){.config-grid{grid-template-columns:1fr}}
+.modal-card.wide{width:min(920px,100%)}.inline-form{margin-top:22px;padding-top:20px;border-top:1px solid #edf0f5}.config-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;margin-bottom:36px;padding-bottom:32px;border-bottom:1px solid #edf0f5}.config-grid .stat-card strong{font-size:19px;word-break:break-word}code{background:#eef1f7;padding:2px 6px;border-radius:5px;font-size:12px}@media(max-width:900px){.config-grid{grid-template-columns:1fr}}
 .auto-preview{background:#eef1ff;border:1px solid #d7ddfb;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;color:#3a4470;margin:2px 0 6px}
 .auto-preview b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#4d5ed0;margin-bottom:4px}
 .photo-preview{margin-top:10px}.photo-preview img{max-width:220px;max-height:220px;border-radius:12px;border:1px solid #e6eaf2;display:block;object-fit:cover}
@@ -144,6 +144,22 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 .avatar-preview.cover{width:72px;height:100px;border-radius:8px}
 .avatar-preview img{width:100%;height:100%;object-fit:cover}
 .avatar-label{margin:0}
+/* .danger-text (botão "Excluir logo/favicon") e o .hint logo abaixo dele
+   ficavam colados: .hint tem margin-top:-6px pensado pra grudar num campo
+   de texto acima, não num botão sem margem própria — aqui força espaço. */
+.avatar-field .danger-text{display:block;margin:10px 0 2px}
+.avatar-field .danger-text[hidden]{display:none}
+.avatar-field .hint{margin-top:6px}
+/* .hint tem margin-bottom:4px (pensado pra ficar coladinho num campo único
+   logo abaixo) — antes de um .form-grid (2 colunas) isso ficava apertado
+   demais, quase encostando nos campos. Só nesse caso, mais respiro. */
+.hint + .form-grid{margin-top:14px}
+/* Cabeçalhos de subseção dentro de Configurações (Plano contratado, Limites
+   de arquivo, Uso do plano etc) — antes eram só margin-top:32px inline, sem
+   nada separando visualmente do conteúdo da subseção anterior logo acima
+   (grade de campos, lista de uso). Linha divisória + mais respiro deixa
+   claro onde uma subseção termina e a próxima começa. */
+.plan-section-heading{margin:40px 0 4px;padding-top:28px;border-top:1px solid #edf0f5}
 .fam-avatar{width:56px;height:56px;border-radius:50%;margin:0 auto 8px;object-fit:cover;display:block;border:2px solid #e6eaf2;background:#eef1f7}
 .fam-avatar.gender-m{border-color:#5b8def}
 .fam-avatar.gender-f{border-color:#e0669e}
@@ -191,3 +207,23 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 .stat-limit.warn{color:#c26a1c;font-weight:700}
 .stat-limit.full{color:#b22b45;font-weight:700}
 .thumb-avatar-fallback{width:36px;height:36px;border-radius:50%;background:#eef1f7;color:#748098;font-weight:700;font-size:12px;display:grid;place-items:center;flex:none}
+
+/* ---------- Identidade visual (logo/título/cores) — só papel "admin" ---------- */
+.avatar-preview.logo{width:72px;height:72px;border-radius:12px}
+.preset-swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:14px 0}
+.preset-swatch{display:flex;align-items:center;gap:10px;padding:10px 12px;border:2px solid #e6eaf2;border-radius:12px;background:#fff;cursor:pointer;text-align:left;font:inherit}
+.preset-swatch:hover{border-color:#c7cfe6}
+.preset-swatch.active{border-color:#315cff;background:#f5f7ff}
+.preset-swatch-dots{display:flex;flex:none}
+.preset-swatch-dots span{width:16px;height:16px;border-radius:50%;border:1px solid #0002;margin-left:-6px}
+.preset-swatch-dots span:first-child{margin-left:0}
+.preset-swatch-label{font-size:13px;font-weight:700;color:#273451}
+#customColorsWrap input[type="color"]{padding:4px;height:44px;cursor:pointer}
+.support-card strong{display:flex;align-items:center;gap:8px}
+.support-card .whatsapp-icon{width:20px;height:20px;flex:none;color:#25d366}
+.color-preview-box{border-radius:14px;padding:24px;margin:4px 0 18px;transition:background .2s}
+.cpv-card{border-radius:12px;padding:22px;transition:background .2s}
+.cpv-eyebrow{font-size:11px;letter-spacing:.28em;text-transform:uppercase;margin:0 0 10px;font-weight:700}
+.cpv-title{font-size:22px;margin:0 0 8px;font-weight:700}
+.cpv-text{font-size:14px;line-height:1.6;margin:0 0 16px;max-width:420px}
+.cpv-btn{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 20px;border-radius:999px}

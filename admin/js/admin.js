@@ -5,6 +5,37 @@ const client = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY
   global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) }
 });
 const $ = s => document.querySelector(s);
+// Logo da tela de login e da barra lateral também segue o logo personalizado
+// da família (site_config), não só o site público — site_config é de leitura
+// pública, então dá pra buscar isso mesmo antes do login. Sem logo_path
+// configurado, mantém o ícone padrão que já está fixo no HTML.
+// Favicon próprio (separado do logo) — troca o href de todo <link rel="icon">
+// já presente no HTML (16/32/48px) pro mesmo arquivo enviado; navegadores
+// modernos atualizam o ícone da aba em tempo real com isso. Sem
+// favicon_path configurado, mantém os arquivos padrão fixos no HTML.
+function applyFaviconLinks(url){
+  document.querySelectorAll('link[rel="icon"],link[rel="apple-touch-icon"]').forEach(link=>{ link.href=url; });
+}
+async function applyAdminBrandLogo(){
+  try{
+    const {data,error}=await client.from('site_config').select('logo_path,favicon_path,site_title').limit(1).maybeSingle();
+    if(error) return;
+    const url=data?.logo_path?client.storage.from('photos').getPublicUrl(data.logo_path).data.publicUrl:'/Assents/Logos-web/icon-96.webp';
+    document.querySelectorAll('#loginBrandLogo,#sidebarBrandLogo').forEach(img=>{ img.src=url; });
+    if(data?.favicon_path){
+      applyFaviconLinks(client.storage.from('photos').getPublicUrl(data.favicon_path).data.publicUrl);
+    }
+    // Nome da família repetido no topo e no card do dashboard — redundante
+    // de propósito, pedido explícito: deixa claro de qual site é o painel
+    // que está aberto, principalmente útil quando o operador gerencia mais
+    // de um cliente.
+    if(data?.site_title){
+      const topbar=$('#topbarTitle'); if(topbar) topbar.textContent='Gestão da História da Família '+data.site_title;
+      const hero=$('#dashboardHeroTitle'); if(hero) hero.textContent='Organize a memória da família '+data.site_title+'.';
+    }
+  }catch(err){ /* mantém o texto padrão se a rede falhar */ }
+}
+applyAdminBrandLogo();
 const loginView=$('#loginView'), appView=$('#appView'), modal=$('#personModal'), familyModal=$('#familyModal'), childrenModal=$('#childrenModal'), linkChildrenModal=$('#linkChildrenModal'), relModal=$('#relModal'), storyModal=$('#storyModal'), storyPeopleModal=$('#storyPeopleModal'), bookModal=$('#bookModal'), chaptersModal=$('#chaptersModal'), photoModal=$('#photoModal'), photoPeopleModal=$('#photoPeopleModal'), albumModal=$('#albumModal'), albumPhotosModal=$('#albumPhotosModal'), eventModal=$('#eventModal'), eventPeopleModal=$('#eventPeopleModal'), documentModal=$('#documentModal'), sourceModal=$('#sourceModal'), placeModal=$('#placeModal'), confirmDeleteModal=$('#confirmDeleteModal');
 let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], sourceQuickPeople=[], reopenSourceAfterPersonSave=false, reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null, familiesPage=1, booksPage=1, storiesPage=1, photosPage=1, albumsPage=1, eventsPage=1, documentsPage=1, sourcesPage=1, placesPage=1;
 
@@ -1648,7 +1679,13 @@ function documentPublicUrl(path){return path?client.storage.from('documents').ge
 // Limites de upload — fotos/avatares são recomprimidos em webp de qualquer forma,
 // mas um arquivo-origem gigante ainda trava o navegador ao decodificar; PDFs não
 // passam por nenhuma compressão, então o teto vale pro arquivo final também.
-const MAX_IMAGE_SOURCE_BYTES=25*1024*1024, MAX_DOCUMENT_BYTES=20*1024*1024;
+// Valores em MB vêm de plan_limits (foto_max_mb/documento_max_mb) — o operador
+// pode personalizar por site; estes aqui são só o fallback até carregar do banco.
+let MAX_IMAGE_SOURCE_BYTES=10*1024*1024, MAX_DOCUMENT_BYTES=5*1024*1024;
+function applyFileSizeLimits(row){
+  if(row?.foto_max_mb>0) MAX_IMAGE_SOURCE_BYTES=row.foto_max_mb*1024*1024;
+  if(row?.documento_max_mb>0) MAX_DOCUMENT_BYTES=row.documento_max_mb*1024*1024;
+}
 function humanSize(bytes){return (bytes/1024/1024).toFixed(0)+'MB'}
 async function looksLikePdf(file){
   const bytes=new Uint8Array(await file.slice(0,5).arrayBuffer());
@@ -2937,7 +2974,224 @@ async function renderConfig(){
     const {data,error}=await client.rpc('get_current_plan_label');
     $('#cfgPlan').textContent=(error||!data)?'—':(PLAN_LABELS[data]||data);
   }catch{$('#cfgPlan').textContent='—';}
+  // Identidade visual (logo/título/cores) é só pro papel "admin" — nem o
+  // operador (não é dele) nem o editor (não é o dono da conta) mexem nisso.
+  $('#brandingSection').hidden=role!=='admin';
+  if(role==='admin') await loadBranding();
+  // Botão "Precisa de ajuda?" — WhatsApp do operador, com o nome do site já
+  // preenchido na mensagem (o operador atende vários clientes, então ajuda
+  // saber de qual site é assim que a mensagem chega). Só pra família
+  // (admin/editor); não faz sentido o operador ver um botão pra falar
+  // com ele mesmo.
+  const supportCard=$('#cfgSupportCard');
+  if(role==='operador'){
+    supportCard.hidden=true;
+  } else {
+    try{
+      const [{data:limits},{data:cfg}]=await Promise.all([
+        client.rpc('get_current_plan_limits'),
+        client.from('site_config').select('site_title').limit(1).maybeSingle()
+      ]);
+      const row=Array.isArray(limits)?limits[0]:limits;
+      const phone=row?.suporte_whatsapp?.replace(/\D/g,'');
+      if(phone){
+        const siteName=cfg?.site_title||'meu site';
+        const msg=`Eu sou o cliente do site ${siteName}. E preciso de ajuda.`;
+        supportCard.href=`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+        supportCard.hidden=false;
+      } else {
+        supportCard.hidden=true;
+      }
+    }catch{ supportCard.hidden=true; }
+  }
 }
+
+/* ---------- Identidade visual (site_config) — só papel "admin". Os mesmos
+   5 modelos (+ "Padrão") existem em js/site.js, que é quem de fato calcula
+   as ~19 variáveis CSS derivadas pro site público a partir dos 5 valores-
+   base abaixo — aqui só precisamos deles pra desenhar os cartões de
+   seleção e pré-preencher os campos do "Personalizado". Se mudar um dos
+   dois, muda o outro igual, senão o que a família escolhe aqui diverge do
+   que o visitante vê no site. ---------- */
+const COLOR_PRESETS={
+  default:{bg:'#0B1220',bg2:'#131D2B',text:'#EDE7DC',muted:'#98A2B0',accent:'#E3BC85'},
+  vinho:{bg:'#1B0F12',bg2:'#271620',text:'#EDE2DD',muted:'#B09A98',accent:'#C97B6B'},
+  esmeralda:{bg:'#0D1712',bg2:'#15251C',text:'#E6EDE7',muted:'#8FA89B',accent:'#82BE93'},
+  azul:{bg:'#0A1626',bg2:'#122236',text:'#E6ECF3',muted:'#8FA0B8',accent:'#8FB4D9'},
+  terracota:{bg:'#1C130F',bg2:'#2A1D15',text:'#F0E6DC',muted:'#B39C88',accent:'#D89361'},
+  ardosia:{bg:'#14161A',bg2:'#1E2126',text:'#EDEDED',muted:'#9AA0A8',accent:'#BFAF8C'}
+};
+const COLOR_PRESET_LABELS={default:'Padrão (original)',vinho:'Vinho',esmeralda:'Esmeralda',azul:'Azul-marinho',terracota:'Terracota',ardosia:'Ardósia',personalizado:'Personalizado'};
+let currentBranding=null, pendingLogoUpload=null, pendingFaviconUpload=null;
+function logoUrl(path){return path?client.storage.from('photos').getPublicUrl(path).data.publicUrl:''}
+function currentPickedColors(){
+  return {
+    bg:$('#colorBg').value||COLOR_PRESETS.default.bg, bg2:$('#colorBg2').value||COLOR_PRESETS.default.bg2,
+    text:$('#colorText').value||COLOR_PRESETS.default.text, muted:$('#colorMuted').value||COLOR_PRESETS.default.muted,
+    accent:$('#colorAccent').value||COLOR_PRESETS.default.accent
+  };
+}
+function dotsForPreset(key){
+  return key==='personalizado'?currentPickedColors():COLOR_PRESETS[key];
+}
+function renderColorPresetGrid(){
+  const opts=[...Object.keys(COLOR_PRESETS),'personalizado'];
+  $('#colorPresetGrid').innerHTML=opts.map(key=>{
+    const active=(currentBranding?.color_preset||'default')===key;
+    const d=dotsForPreset(key);
+    return `<button type="button" class="preset-swatch${active?' active':''}" data-preset-key="${key}"><span class="preset-swatch-dots"><span style="background:${d.bg}"></span><span style="background:${d.text}"></span><span style="background:${d.accent}"></span></span><span class="preset-swatch-label">${escapeHtml(COLOR_PRESET_LABELS[key])}</span></button>`;
+  }).join('');
+  document.querySelectorAll('#colorPresetGrid .preset-swatch').forEach(btn=>{
+    btn.addEventListener('click',()=>selectColorPreset(btn.dataset.presetKey));
+  });
+}
+function selectColorPreset(key){
+  currentBranding=currentBranding||{};
+  currentBranding.color_preset=key;
+  const base=key==='personalizado'?currentPickedColors():COLOR_PRESETS[key];
+  $('#colorBg').value=base.bg; $('#colorBg2').value=base.bg2; $('#colorText').value=base.text;
+  $('#colorMuted').value=base.muted; $('#colorAccent').value=base.accent;
+  $('#customColorsWrap').hidden=key!=='personalizado';
+  renderColorPresetGrid();
+  renderColorPreview();
+}
+// Mostra ao vivo como a combinação de cores fica — pedido explícito da
+// família, que não conseguia visualizar o resultado só olhando os 5 campos
+// de cor um por um. Atualiza a cada clique de preset e a cada tecla/troca
+// nos campos de cor manual (ver listener de input mais abaixo).
+function renderColorPreview(){
+  const c=currentPickedColors();
+  const box=$('#colorPreviewBox');
+  if(!box) return;
+  box.style.background=c.bg;
+  const card=box.querySelector('.cpv-card'); if(card) card.style.background=c.bg2;
+  const eyebrow=box.querySelector('.cpv-eyebrow'); if(eyebrow) eyebrow.style.color=c.accent;
+  const title=box.querySelector('.cpv-title'); if(title) title.style.color=c.text;
+  const text=box.querySelector('.cpv-text'); if(text) text.style.color=c.muted;
+  const btn=box.querySelector('.cpv-btn'); if(btn){ btn.style.background=c.accent; btn.style.color=c.bg; }
+}
+function renderBrandLogoPreview(path){
+  const el=$('#brandLogoPreview');
+  el.innerHTML=path?`<img src="${logoUrl(path)}" alt="">`:'<span style="font-size:10px;color:#98a2b0">sem logo</span>';
+  $('#brandLogoRemoveBtn').hidden=!path;
+}
+async function onBrandLogoFileChange(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  pendingLogoUpload=null;
+  if(file.size>MAX_IMAGE_SOURCE_BYTES){
+    $('#brandLogoHint').textContent=`Arquivo muito grande (máx. ${humanSize(MAX_IMAGE_SOURCE_BYTES)}).`;
+    e.target.value=''; return;
+  }
+  $('#brandLogoHint').textContent='Processando imagem...';
+  try{
+    const bitmap=await createImageBitmap(file);
+    const {blob}=await drawToBlob(bitmap,192,0.9);
+    bitmap.close?.();
+    pendingLogoUpload=blob;
+    $('#brandLogoPreview').innerHTML=`<img src="${URL.createObjectURL(blob)}" alt="">`;
+    $('#brandLogoHint').textContent=`Pronto (${(blob.size/1024).toFixed(0)} KB).`;
+    $('#brandLogoRemoveBtn').hidden=false;
+  }catch(err){
+    $('#brandLogoHint').textContent='Erro ao processar imagem: '+err.message;
+  }
+}
+function renderBrandFaviconPreview(path){
+  const el=$('#brandFaviconPreview');
+  el.innerHTML=path?`<img src="${logoUrl(path)}" alt="">`:'<span style="font-size:10px;color:#98a2b0">sem favicon</span>';
+  $('#brandFaviconRemoveBtn').hidden=!path;
+}
+async function onBrandFaviconFileChange(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  pendingFaviconUpload=null;
+  if(file.size>MAX_IMAGE_SOURCE_BYTES){
+    $('#brandFaviconHint').textContent=`Arquivo muito grande (máx. ${humanSize(MAX_IMAGE_SOURCE_BYTES)}).`;
+    e.target.value=''; return;
+  }
+  $('#brandFaviconHint').textContent='Processando imagem...';
+  try{
+    const bitmap=await createImageBitmap(file);
+    const {blob}=await drawToBlob(bitmap,96,0.9);
+    bitmap.close?.();
+    pendingFaviconUpload=blob;
+    $('#brandFaviconPreview').innerHTML=`<img src="${URL.createObjectURL(blob)}" alt="">`;
+    $('#brandFaviconHint').textContent=`Pronto (${(blob.size/1024).toFixed(0)} KB).`;
+    $('#brandFaviconRemoveBtn').hidden=false;
+  }catch(err){
+    $('#brandFaviconHint').textContent='Erro ao processar imagem: '+err.message;
+  }
+}
+async function loadBranding(){
+  const {data,error}=await client.from('site_config').select('*').limit(1).maybeSingle();
+  if(error||!data){showError($('#brandingFormError'),error?.message||'Configuração não encontrada.');return}
+  currentBranding=data;
+  pendingLogoUpload=null;
+  pendingFaviconUpload=null;
+  $('#brandTitleInput').value=data.site_title||'';
+  $('#brandContatoWhatsapp').value=data.contato_whatsapp||'';
+  renderBrandLogoPreview(data.logo_path);
+  renderBrandFaviconPreview(data.favicon_path);
+  const preset=data.color_preset||'default';
+  const base=preset==='personalizado'&&data.color_bg
+    ?{bg:data.color_bg,bg2:data.color_bg2,text:data.color_text,muted:data.color_muted,accent:data.color_accent}
+    :(COLOR_PRESETS[preset]||COLOR_PRESETS.default);
+  $('#colorBg').value=base.bg; $('#colorBg2').value=base.bg2; $('#colorText').value=base.text;
+  $('#colorMuted').value=base.muted; $('#colorAccent').value=base.accent;
+  $('#customColorsWrap').hidden=preset!=='personalizado';
+  renderColorPresetGrid();
+  renderColorPreview();
+}
+async function saveBranding(){
+  showError($('#brandingFormError'),'');
+  const title=$('#brandTitleInput').value.trim();
+  if(!title){showError($('#brandingFormError'),'Informe o título do site.');return}
+  const preset=currentBranding?.color_preset||'default';
+  const base=preset==='personalizado'?currentPickedColors():(COLOR_PRESETS[preset]||COLOR_PRESETS.default);
+  const payload={site_title:title,color_preset:preset,color_bg:base.bg,color_bg2:base.bg2,color_text:base.text,color_muted:base.muted,color_accent:base.accent,
+    contato_whatsapp:$('#brandContatoWhatsapp').value.trim().replace(/\D/g,'')||null};
+  try{
+    if(pendingLogoUpload==='REMOVE'){
+      if(currentBranding?.logo_path) await client.storage.from('photos').remove([currentBranding.logo_path]);
+      payload.logo_path=null;
+    } else if(pendingLogoUpload){
+      const oldPath=currentBranding?.logo_path;
+      const path=`site/logo-${crypto.randomUUID()}.webp`;
+      const up=await client.storage.from('photos').upload(path,pendingLogoUpload,{contentType:'image/webp'});
+      if(up.error) throw new Error(up.error.message);
+      payload.logo_path=path;
+      if(oldPath) await client.storage.from('photos').remove([oldPath]);
+    }
+    if(pendingFaviconUpload==='REMOVE'){
+      if(currentBranding?.favicon_path) await client.storage.from('photos').remove([currentBranding.favicon_path]);
+      payload.favicon_path=null;
+    } else if(pendingFaviconUpload){
+      const oldFaviconPath=currentBranding?.favicon_path;
+      const path=`site/favicon-${crypto.randomUUID()}.webp`;
+      const up=await client.storage.from('photos').upload(path,pendingFaviconUpload,{contentType:'image/webp'});
+      if(up.error) throw new Error(up.error.message);
+      payload.favicon_path=path;
+      if(oldFaviconPath) await client.storage.from('photos').remove([oldFaviconPath]);
+    }
+    const {error}=await client.from('site_config').update(payload).eq('id',currentBranding.id);
+    if(error) throw new Error(error.message);
+    pendingLogoUpload=null;
+    pendingFaviconUpload=null;
+    showToast('Identidade visual atualizada.');
+    await loadBranding();
+    await applyAdminBrandLogo();
+  }catch(err){
+    showError($('#brandingFormError'),err.message);
+  }
+}
+$('#brandLogoFile').addEventListener('change',onBrandLogoFileChange);
+$('#brandLogoRemoveBtn').addEventListener('click',()=>{ pendingLogoUpload='REMOVE'; $('#brandLogoFile').value=''; renderBrandLogoPreview(null); });
+$('#brandFaviconFile').addEventListener('change',onBrandFaviconFileChange);
+$('#brandFaviconRemoveBtn').addEventListener('click',()=>{ pendingFaviconUpload='REMOVE'; $('#brandFaviconFile').value=''; renderBrandFaviconPreview(null); });
+$('#saveBrandingBtn').addEventListener('click',saveBranding);
+document.querySelectorAll('#customColorsWrap input[type="color"]').forEach(inp=>{
+  inp.addEventListener('input',()=>{ if(currentBranding) currentBranding.color_preset='personalizado'; renderColorPresetGrid(); renderColorPreview(); });
+});
 
 /* ---------- Plano e limites (Legado Digital) — só o papel "operador" vê isto.
    admin/editor (a família) não têm RLS pra ler plan_limits — nem tentamos. ---------- */
@@ -2986,6 +3240,7 @@ async function renderDashboardLimits(){
   const {data,error}=await client.rpc('get_current_plan_limits');
   const row=Array.isArray(data)?data[0]:data;
   if(error||!row) return; // sem plano configurado, ou papel sem acesso — não mostra nada
+  applyFileSizeLimits(row);
   DASHBOARD_LIMIT_MAP.forEach(m=>{
     const el=$('#'+m.limitInfoId);
     if(!el) return;
@@ -3038,6 +3293,38 @@ function renderPlanLimitFields(){
     const v=currentPlanRow?.[r.limitCol];
     return `<label>${escapeHtml(r.label)}<input type="number" min="0" step="1" data-limit-key="${r.limitCol}" value="${v??''}" ${editable?'':'disabled'} placeholder="${editable?'sem limite':''}"></label>`;
   }).join('');
+  // Limites de TAMANHO de arquivo ficam sempre editáveis, independente do
+  // plano escolhido — é um eixo técnico separado dos limites de quantidade,
+  // que o operador pode personalizar mesmo fora do plano "Personalizado".
+  $('#fotoMaxMb').value=currentPlanRow?.foto_max_mb??10;
+  $('#documentoMaxMb').value=currentPlanRow?.documento_max_mb??5;
+  $('#dbMaxMb').value=currentPlanRow?.db_max_mb??500;
+  $('#storageMaxMb').value=currentPlanRow?.storage_max_mb??1024;
+}
+// Uso REAL de infraestrutura (banco de dados + storage) — diferente do "Uso
+// do plano" abaixo, que é contagem de registros (negócio). Aqui é espaço em
+// disco de fato ocupado no projeto Supabase, comparado ao teto configurado
+// em db_max_mb/storage_max_mb (editável acima, já que cada site pode estar
+// num plano de hospedagem Supabase diferente).
+function usageBar(label,usedBytes,maxMb){
+  const usedMb=usedBytes/1024/1024;
+  const maxBytes=maxMb*1024*1024;
+  const pct=maxBytes>0?Math.round(usedBytes/maxBytes*100):0;
+  const pctBarra=Math.min(100,pct);
+  const full=usedBytes>=maxBytes, warn=!full&&pctBarra>=70;
+  return `<div class="usage-row"><span class="usage-label">${escapeHtml(label)}</span><span class="usage-track"><span class="usage-fill${full?' full':warn?' warn':''}" style="width:${pctBarra}%"></span></span><span class="usage-count${full?' full':''}">${usedMb.toFixed(1)} MB / ${maxMb} MB <span class="usage-pct">· ${pct}%</span></span></div>`;
+}
+async function renderInfraUsage(){
+  const {data,error}=await client.rpc('get_infra_usage');
+  const row=Array.isArray(data)?data[0]:data;
+  const el=$('#infraUsageList');
+  if(error||!row||!currentPlanRow){el.innerHTML='';return}
+  const bits=[usageBar('Banco de dados',row.db_bytes||0,currentPlanRow.db_max_mb??500)];
+  const porBucket=row.storage_by_bucket||{};
+  const storageTotal=row.storage_bytes||0;
+  bits.push(usageBar('Armazenamento (total)',storageTotal,currentPlanRow.storage_max_mb??1024));
+  const detalhes=Object.entries(porBucket).map(([bucket,bytes])=>`<div class="usage-row"><span class="usage-label">— ${escapeHtml(bucket)}</span><span class="usage-unlimited">${(bytes/1024/1024).toFixed(1)} MB</span><span class="usage-count"></span></div>`).join('');
+  el.innerHTML=bits.join('')+detalhes;
 }
 function applyPlanPreset(planoKey){
   const preset=PLAN_PRESETS[planoKey];
@@ -3076,9 +3363,12 @@ async function loadPlanConfig(){
   const {data,error}=await client.from('plan_limits').select('*').limit(1).maybeSingle();
   if(error||!data){showError($('#planFormError'),error?.message||'Nenhum plano configurado ainda.');return}
   currentPlanRow=data;
+  applyFileSizeLimits(data);
   $('#planSelect').value=data.plano;
+  $('#suporteWhatsapp').value=data.suporte_whatsapp||'';
   renderPlanLimitFields();
   await renderPlanUsage();
+  await renderInfraUsage();
 }
 async function savePlan(){
   showError($('#planFormError'),'');
@@ -3089,6 +3379,15 @@ async function savePlan(){
     const raw=input?.value?.trim();
     payload[r.limitCol]=raw===''?null:Number(raw);
   });
+  const fotoMb=Number($('#fotoMaxMb').value), documentoMb=Number($('#documentoMaxMb').value);
+  if(!(fotoMb>0)||!(documentoMb>0)){showError($('#planFormError'),'Os limites de tamanho de arquivo devem ser maiores que zero.');return}
+  payload.foto_max_mb=fotoMb;
+  payload.documento_max_mb=documentoMb;
+  const dbMb=Number($('#dbMaxMb').value), storageMb=Number($('#storageMaxMb').value);
+  if(!(dbMb>0)||!(storageMb>0)){showError($('#planFormError'),'Os tetos de banco de dados e armazenamento devem ser maiores que zero.');return}
+  payload.db_max_mb=dbMb;
+  payload.storage_max_mb=storageMb;
+  payload.suporte_whatsapp=$('#suporteWhatsapp').value.trim().replace(/\D/g,'')||null;
   const {error}=await client.from('plan_limits').update(payload).eq('id',currentPlanRow.id);
   if(error){showError($('#planFormError'),error.message);return}
   showToast('Plano atualizado.');
