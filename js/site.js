@@ -281,7 +281,14 @@ function openLightbox(src,alt,meta,desc,pessoas){
   div.querySelector('.lightbox-close').addEventListener('click',closeLightbox);
   document.body.appendChild(div);
 }
-function closeLightbox(){ $('#activeLightbox')?.remove(); }
+function closeLightbox(){
+  const el=$('#activeLightbox');
+  if(!el) return;
+  el.remove();
+  // avisa quem abriu (ex: galeria.html, que usa isso pra tirar o ?foto= da
+  // URL) sem o site.js precisar saber nada de query string de página nenhuma.
+  document.dispatchEvent(new CustomEvent('lightbox:close'));
+}
 
 /* ---------- Busca global ---------- */
 let searchCache=null;

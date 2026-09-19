@@ -63,7 +63,19 @@ function openPhotoLightbox(p){
   const local=p.places?.name||'';
   const meta=[p.photo_date?p.photo_date.slice(0,4):'',local].filter(Boolean).join(' · ');
   openLightbox(photoUrl(p.optimized_path||p.thumbnail_path),p.title,meta+(p.caption?(meta?' — ':'')+p.caption:''),p.description,p.pessoasLink);
+  // atualiza a URL pra apontar direto pra essa foto — assim dá pra copiar o
+  // link da barra de endereço e compartilhar exatamente ela (mesmo link que
+  // já usamos em pessoa.html pra "ver foto"). replaceState (não pushState)
+  // pra não empilhar uma entrada de histórico por foto ao navegar no carrossel.
+  const url=new URL(location.href);
+  url.searchParams.set('foto',p.id);
+  history.replaceState(null,'',url);
 }
+document.addEventListener('lightbox:close',()=>{
+  const url=new URL(location.href);
+  url.searchParams.delete('foto');
+  history.replaceState(null,'',url);
+});
 
 function filteredPhotos(){
   return ALL_PHOTOS.filter(p=>

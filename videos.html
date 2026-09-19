@@ -82,7 +82,7 @@ async function boot(){
   $('#list').innerHTML=videos.map(v=>{
     const thumb=archiveThumbUrl(v.url);
     return `<div class="video-item">
-    <div class="frame-wrap"><div class="frame${thumb?' has-thumb':''}" data-url="${escapeHtml(v.url||'')}" data-title="${escapeHtml(v.title||'Vídeo')}"${thumb?` style="background-image:url('${escapeHtml(thumb)}')"`:''}>${v.url?playCoverHtml:''}</div></div>
+    <div class="frame-wrap"><div class="frame${thumb?' has-thumb':''}" data-id="${escapeHtml(v.id)}" data-url="${escapeHtml(v.url||'')}" data-title="${escapeHtml(v.title||'Vídeo')}"${thumb?` style="background-image:url('${escapeHtml(thumb)}')"`:''}>${v.url?playCoverHtml:''}</div></div>
     <div class="head">
       <p class="titulo">${escapeHtml(v.title||'Sem título')}</p>
       <button type="button" class="video-expand-btn">Expandir vídeo</button>
@@ -122,11 +122,27 @@ async function boot(){
       frame.innerHTML=`<iframe src="${escapeHtml(url+sep+'autoplay=1')}" allow="autoplay" allowfullscreen loading="lazy" title="${escapeHtml(frame.dataset.title)}"></iframe>`;
     }
     frame.classList.add('playing');
+    // atualiza a URL pra apontar direto pra esse vídeo — dá pra copiar o link
+    // da barra de endereço e compartilhar exatamente ele já tocando.
+    const pageUrl=new URL(location.href);
+    pageUrl.searchParams.set('video',frame.dataset.id);
+    history.replaceState(null,'',pageUrl);
   }
   function wirePlayCover(frame){
     frame.querySelector('.play-cover')?.addEventListener('click',()=>playVideo(frame));
   }
   document.querySelectorAll('.frame').forEach(wirePlayCover);
+
+  // Link direto (?video=<id>): abre a página já tocando aquele vídeo, com
+  // a página rolada até ele — mesmo padrão do ?foto= em galeria.html.
+  const focoVideo=new URLSearchParams(location.search).get('video');
+  if(focoVideo){
+    const frameAlvo=document.querySelector(`.frame[data-id="${CSS.escape(focoVideo)}"]`);
+    if(frameAlvo){
+      frameAlvo.closest('.video-item')?.scrollIntoView({block:'center'});
+      playVideo(frameAlvo);
+    }
+  }
 
   if(!reduceMotion){
     revealBlock($('#summary'));

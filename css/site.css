@@ -257,6 +257,10 @@ main{min-height:40vh}
 /* quando a biografia automática e a manual aparecem juntas, um respiro entre
    os dois parágrafos deixa claro que são blocos distintos, mesmo lendo corrido */
 .profile-bio+.profile-bio{margin-top:14px}
+.profile-bio+.profile-bio-wrap{margin-top:14px}
+.profile-bio-clamp{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.profile-bio-toggle{display:block;margin-top:10px;font-family:var(--sans);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);background:none;border:0;cursor:pointer;padding:0}
+.profile-bio-toggle:hover{color:var(--gold-light)}
 .profile-cols{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:clamp(24px,4vw,52px)}
 .col-heading{font-size:var(--fs-micro);letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin:0 0 22px;padding-bottom:14px;border-bottom:1px solid var(--line-2)}
 .rel-group{margin-bottom:26px}
@@ -500,9 +504,14 @@ figcaption{font-size:var(--fs-label);color:var(--muted);margin-top:12px;line-hei
 .search-result-type{font-size:var(--fs-micro);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 
 /* ---------- Lightbox ---------- */
-.lightbox{position:fixed;inset:0;z-index:210;background:rgba(6,10,18,.95);animation:fadeIn .3s both;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:clamp(16px,4vw,48px);overflow-y:auto}
-.lightbox img{display:block;max-width:min(100%,900px);max-height:70vh;width:auto;height:auto;border-radius:16px;animation:popIn .5s both;filter:saturate(.8);cursor:default}
-.lightbox-caption{text-align:center;margin:0;max-width:620px}
+.lightbox{position:fixed;inset:0;z-index:210;background:rgba(6,10,18,.95);animation:fadeIn .3s both;display:flex;flex-direction:column;align-items:center;gap:18px;padding:clamp(16px,4vw,48px);overflow-y:auto}
+/* Centraliza verticalmente com margin:auto (não justify-content:center) de propósito:
+   quando a foto + legenda são mais altas que a tela, justify-content:center empurra o
+   topo da imagem pra fora da área visível e não dá pra rolar até lá (bug conhecido de
+   flexbox+overflow). Com margin-top/bottom:auto, esses respiros somem sozinhos quando
+   não cabe espaço, e o conteúdo some rolar normal a partir do topo. */
+.lightbox img{display:block;max-width:min(100%,900px);max-height:70vh;width:auto;height:auto;border-radius:16px;animation:popIn .5s both;filter:saturate(.8);cursor:default;margin-top:auto}
+.lightbox-caption{text-align:center;margin:0 0 auto;max-width:620px}
 .lightbox-caption .alt{display:block;font-family:var(--serif);font-size:21px;margin-bottom:8px}
 .lightbox-caption .meta{display:block;font-size:var(--fs-label);letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
 .lightbox-caption .desc{display:block;font-size:var(--fs-caption);line-height:1.7;color:var(--muted-2);margin-top:14px;text-align:left}

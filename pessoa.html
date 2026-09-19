@@ -88,14 +88,13 @@ async function boot(){
       <div class="profile-grid">
         <div>
           <div class="profile-portrait">${person.avatar_path?`<img src="${photoUrl(person.avatar_path)}" alt="Retrato de ${escapeHtml(person.full_name)}">`:`<div class="profile-portrait-fallback">${escapeHtml(initials(person.full_name))}</div>`}</div>
-          ${person.birth_date||person.death_date||person.birth_place_id||person.death_place_id?`<p class="profile-caption">${escapeHtml([eventLine('Nasceu',person.birth_date,placeName(person.birth_place_id)),eventLine('Faleceu',person.death_date,placeName(person.death_place_id))].filter(Boolean).join(' · '))}</p>`:''}
         </div>
         <div>
           <p class="eyebrow-gold">Pessoa</p>
           <h1 class="profile-name">${escapeHtml(person.full_name)}</h1>
           <p class="profile-dates">${escapeHtml(yearsLabel(person)||'Datas não registradas')}</p>
           ${biografiaAutomatica?`<p class="profile-bio">${escapeHtml(biografiaAutomatica)}</p>`:''}
-          ${person.biography?`<p class="profile-bio">${escapeHtml(person.biography)}</p>`:''}
+          ${person.biography?`<div class="profile-bio-wrap"><p class="profile-bio profile-bio-clamp" id="personBioText">${escapeHtml(person.biography)}</p><button type="button" class="profile-bio-toggle" id="personBioToggle" hidden>Ver mais ↓</button></div>`:''}
         </div>
       </div>
     </section>
@@ -123,6 +122,25 @@ async function boot(){
     revealWords($('.profile-name'),{baseDelay:150,stagger:35});
     revealBlock($('.profile-dates'),650);
     revealBlock($('.profile-bio'),780);
+  }
+
+  // Biografia longa (texto escrito à mão, não a automática): começa
+  // mostrando só a 1ª linha, com "Ver mais/Ver menos" pra expandir/
+  // recolher. Só mostra o botão se o texto realmente estourar 1 linha.
+  const bioText=$('#personBioText'), bioToggle=$('#personBioToggle');
+  if(bioText&&bioToggle){
+    let collapsed=true;
+    const checkBioOverflow=()=>{
+      if(!collapsed) return;
+      bioToggle.hidden=bioText.scrollHeight<=bioText.clientHeight+1;
+    };
+    checkBioOverflow();
+    if(document.fonts?.ready) document.fonts.ready.then(checkBioOverflow);
+    bioToggle.addEventListener('click',()=>{
+      collapsed=!collapsed;
+      bioText.classList.toggle('profile-bio-clamp',collapsed);
+      bioToggle.textContent=collapsed?'Ver mais ↓':'Ver menos ↑';
+    });
   }
 
   const tabs=[
