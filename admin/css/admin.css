@@ -179,4 +179,15 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 .usage-summary.warn strong{color:#e07a2a}
 .usage-summary.full{background:#fbe7ea}
 .usage-summary.full strong{color:#b22b45}
+
+/* Limite + % dentro de cada cartão do dashboard (Pessoas, Fotos, etc.) —
+   visível pra qualquer papel logado (admin/editor/operador), só o número
+   do plano, sem dar acesso à tabela de limites em si.
+   .stat-card small{display:block} já existente empataria com [hidden] em
+   especificidade e venceria por vir depois — por isso o [hidden] explícito
+   abaixo, mesmo ajuste já feito antes pra .nav-item/.hero-card/.stats-grid. */
+.stat-limit{color:#8892a8;font-size:11px;margin-top:2px}
+.stat-limit[hidden]{display:none}
+.stat-limit.warn{color:#c26a1c;font-weight:700}
+.stat-limit.full{color:#b22b45;font-weight:700}
 .thumb-avatar-fallback{width:36px;height:36px;border-radius:50%;background:#eef1f7;color:#748098;font-weight:700;font-size:12px;display:grid;place-items:center;flex:none}

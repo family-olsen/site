@@ -2965,6 +2965,57 @@ const PLAN_PRESETS={
 };
 let currentPlanRow=null;
 
+// Mostra limite+% dentro de cada cartão do dashboard, pra admin/editor (a
+// família) também — não dá acesso à tabela plan_limits, só aos números via
+// get_current_plan_limits() (RPC restrita a quem está logado). "Famílias"
+// não tem recurso comercial correspondente, fica sem cartão de limite
+// mesmo. "Fontes" é especial: o cartão soma sources de todo tipo, mas o
+// plano trava "Vídeos" e "Fontes bibliográficas" separado — por isso mostra
+// os dois ali dentro, cada um com sua própria contagem.
+const DASHBOARD_LIMIT_MAP=[
+  {countId:'peopleCount',limitInfoId:'peopleLimitInfo',limitKey:'pessoas_max'},
+  {countId:'photosCount',limitInfoId:'photosLimitInfo',limitKey:'fotos_max'},
+  {countId:'albumsCount',limitInfoId:'albumsLimitInfo',limitKey:'albuns_max'},
+  {countId:'storiesCount',limitInfoId:'storiesLimitInfo',limitKey:'historias_max'},
+  {countId:'eventsCount',limitInfoId:'eventsLimitInfo',limitKey:'eventos_max'},
+  {countId:'chaptersCount',limitInfoId:'chaptersLimitInfo',limitKey:'capitulos_max'},
+  {countId:'documentsCount',limitInfoId:'documentsLimitInfo',limitKey:'documentos_max'},
+  {countId:'placesCount',limitInfoId:'placesLimitInfo',limitKey:'locais_max'}
+];
+async function renderDashboardLimits(){
+  const {data,error}=await client.rpc('get_current_plan_limits');
+  const row=Array.isArray(data)?data[0]:data;
+  if(error||!row) return; // sem plano configurado, ou papel sem acesso — não mostra nada
+  DASHBOARD_LIMIT_MAP.forEach(m=>{
+    const el=$('#'+m.limitInfoId);
+    if(!el) return;
+    const max=row[m.limitKey];
+    if(max==null){el.hidden=true;return}
+    const count=Number($('#'+m.countId)?.textContent)||0;
+    const pct=max>0?Math.round(count/max*100):100;
+    el.textContent=`Limite: ${max} · ${pct}%`;
+    el.classList.toggle('warn',pct>=70&&pct<100);
+    el.classList.toggle('full',pct>=100);
+    el.hidden=false;
+  });
+  const fontesEl=$('#sourcesLimitInfo');
+  if(fontesEl){
+    const fontesDef=PLAN_RESOURCE_DEFS.find(r=>r.key==='fontes');
+    const videosDef=PLAN_RESOURCE_DEFS.find(r=>r.key==='videos');
+    const [fontesCount,videosCount]=await Promise.all([countResource(fontesDef),countResource(videosDef)]);
+    const bits=[];
+    let piorPct=0;
+    if(row.fontes_max!=null){const p=row.fontes_max>0?Math.round(fontesCount/row.fontes_max*100):100; bits.push(`Fontes ${fontesCount}/${row.fontes_max} · ${p}%`); piorPct=Math.max(piorPct,p);}
+    if(row.videos_max!=null){const p=row.videos_max>0?Math.round(videosCount/row.videos_max*100):100; bits.push(`Vídeos ${videosCount}/${row.videos_max} · ${p}%`); piorPct=Math.max(piorPct,p);}
+    if(bits.length){
+      fontesEl.textContent=bits.join(' · ');
+      fontesEl.classList.toggle('warn',piorPct>=70&&piorPct<100);
+      fontesEl.classList.toggle('full',piorPct>=100);
+      fontesEl.hidden=false;
+    } else fontesEl.hidden=true;
+  }
+}
+
 // Papel "operador": some com tudo que ele não tem acesso (nem faz sentido
 // mostrar um painel de Pessoas/Fotos vazio pra quem não pode ver nada disso)
 // e deixa só a tela de Configurações, já na área de plano.
@@ -3058,6 +3109,7 @@ async function loadAcervo(){
   await Promise.all([loadPhotos(),loadDocuments()]);
   await Promise.all([loadAlbums(),loadEvents(),loadSources(),loadBooks(),loadAllChapters()]);
   await renderConfig();
+  if(role!=='operador') await renderDashboardLimits();
 }
 function chapterQuickLabel(c){return `Cap. ${c.chapter_number} — ${c.title}${c.subtitle?' · '+c.subtitle:''}`}
 async function loadAllChapters(){
