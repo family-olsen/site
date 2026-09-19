@@ -3005,15 +3005,21 @@ async function countResource(def){
 }
 async function renderPlanUsage(){
   const counts=await Promise.all(PLAN_RESOURCE_DEFS.map(countResource));
+  const pctsParaMedia=[];
   const rows=PLAN_RESOURCE_DEFS.map((r,i)=>{
     const max=currentPlanRow?.[r.limitCol];
     const count=counts[i];
     if(max==null) return `<div class="usage-row"><span class="usage-label">${escapeHtml(r.label)}</span><span class="usage-unlimited">Sem limite definido</span><span class="usage-count">${count}</span></div>`;
-    const pct=Math.min(100,max>0?Math.round(count/max*100):100);
-    const full=count>=max, warn=!full&&pct>=70;
-    return `<div class="usage-row"><span class="usage-label">${escapeHtml(r.label)}</span><span class="usage-track"><span class="usage-fill${full?' full':warn?' warn':''}" style="width:${pct}%"></span></span><span class="usage-count${full?' full':''}">${count} / ${max}</span></div>`;
+    const pctReal=max>0?Math.round(count/max*100):100; // pode passar de 100 se o limite foi reduzido depois do cadastro
+    const pctBarra=Math.min(100,pctReal);
+    pctsParaMedia.push(pctBarra);
+    const full=count>=max, warn=!full&&pctBarra>=70;
+    return `<div class="usage-row"><span class="usage-label">${escapeHtml(r.label)}</span><span class="usage-track"><span class="usage-fill${full?' full':warn?' warn':''}" style="width:${pctBarra}%"></span></span><span class="usage-count${full?' full':''}">${count} / ${max} <span class="usage-pct">· ${pctReal}%</span></span></div>`;
   }).join('');
-  $('#planUsageList').innerHTML=rows+`<div class="usage-row"><span class="usage-label">Links externos</span><span class="usage-unlimited">Ilimitado</span><span class="usage-count">—</span></div>`;
+  const media=pctsParaMedia.length?Math.round(pctsParaMedia.reduce((a,b)=>a+b,0)/pctsParaMedia.length):0;
+  const mediaClasse=media>=90?'full':media>=70?'warn':'';
+  const resumo=`<div class="usage-summary${mediaClasse?' '+mediaClasse:''}">Uso médio do plano <strong>${media}%</strong><span class="usage-summary-hint">média entre os ${pctsParaMedia.length} recursos com limite definido — links externos não entram na conta, por serem sempre ilimitados</span></div>`;
+  $('#planUsageList').innerHTML=resumo+rows+`<div class="usage-row"><span class="usage-label">Links externos</span><span class="usage-unlimited">Ilimitado</span><span class="usage-count">—</span></div>`;
 }
 async function loadPlanConfig(){
   const {data,error}=await client.from('plan_limits').select('*').limit(1).maybeSingle();
