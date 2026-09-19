@@ -149,4 +149,25 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 .fam-avatar.gender-f{border-color:#e0669e}
 .fam-avatar-fallback{width:56px;height:56px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;background:#eef1f7;color:#748098;font-weight:700;font-size:15px;border:2px solid #e6eaf2}
 .thumb-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:none;border:1px solid #e6eaf2}
+
+/* .nav-item/.hero-card/.stats-grid já definem display — sem isto, [hidden] é
+   ignorado (mesma pegadinha de especificidade já resolvida no site público,
+   em site.css: uma regra de classe com display: explícito empata em
+   especificidade com o [hidden] do navegador e vence por vir depois). */
+.nav-item[hidden],.hero-card[hidden],.stats-grid[hidden]{display:none}
+
+/* ---------- Configurações: plano e limites (só papel "operador") ---------- */
+.plan-limits-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin:15px 0}
+.plan-limits-grid label{margin:0}
+.plan-limits-grid input:disabled{background:#f5f7fb;color:#8892a8;cursor:not-allowed}
+.usage-list{display:grid;gap:12px;margin-top:15px}
+.usage-row{display:grid;grid-template-columns:170px 1fr 90px;align-items:center;gap:14px;font-size:13px}
+.usage-row .usage-label{color:#273451;font-weight:700}
+.usage-track{height:10px;border-radius:999px;background:#eef1f7;overflow:hidden}
+.usage-fill{height:100%;border-radius:999px;background:#315cff;transition:width .3s ease}
+.usage-fill.warn{background:#e07a2a}
+.usage-fill.full{background:#b22b45}
+.usage-count{text-align:right;color:#5c6580;font-variant-numeric:tabular-nums}
+.usage-count.full{color:#b22b45;font-weight:700}
+.usage-unlimited{color:#5c6580;font-style:italic}
 .thumb-avatar-fallback{width:36px;height:36px;border-radius:50%;background:#eef1f7;color:#748098;font-weight:700;font-size:12px;display:grid;place-items:center;flex:none}

@@ -920,12 +920,18 @@ async function login(e){
     await ensureAdmin();
     loginView.classList.add('hidden');
     appView.classList.remove('hidden');
-    await loadPeople();
-    await loadPeopleOptions();
-    await loadFamilies();
-    await loadStories();
-    await loadAcervo();
-    initGenealogyView();
+    if(role==='operador'){
+      setupOperadorView();
+      renderConfig();
+      await loadPlanConfig();
+    } else {
+      await loadPeople();
+      await loadPeopleOptions();
+      await loadFamilies();
+      await loadStories();
+      await loadAcervo();
+      initGenealogyView();
+    }
   }catch(err){
     showError($('#loginError'),`Erro inesperado: ${err?.message || err}`);
     console.error(err);
@@ -949,7 +955,17 @@ function tableHtml(columns,rows){
 async function boot(){
   if(window.SUPABASE_PUBLISHABLE_KEY.includes('COLOQUE_AQUI')){showError($('#loginError'),'Configure a chave publishable do Supabase em js/config.js antes de entrar.');return}
   const {data:{session}}=await client.auth.getSession();
-  if(session){try{await ensureAdmin();loginView.classList.add('hidden');appView.classList.remove('hidden');await loadPeople();await loadPeopleOptions();await loadFamilies();await loadStories();await loadAcervo();initGenealogyView()}catch(e){showError($('#loginError'),e.message)}}
+  if(session){try{
+    await ensureAdmin();
+    loginView.classList.add('hidden');appView.classList.remove('hidden');
+    if(role==='operador'){
+      setupOperadorView();
+      renderConfig();
+      await loadPlanConfig();
+    } else {
+      await loadPeople();await loadPeopleOptions();await loadFamilies();await loadStories();await loadAcervo();initGenealogyView();
+    }
+  }catch(e){showError($('#loginError'),e.message)}}
 }
 document.addEventListener('DOMContentLoaded',()=>{
   $('#loginForm').addEventListener('submit',login);
@@ -2915,6 +2931,113 @@ function renderConfig(){
   $('#cfgEmail').textContent=$('#userEmail').textContent||'—';
   try{$('#cfgProject').textContent=new URL(window.SUPABASE_URL).hostname.split('.')[0];}catch{$('#cfgProject').textContent='—';}
 }
+
+/* ---------- Plano e limites (Legado Digital) — só o papel "operador" vê isto.
+   admin/editor (a família) não têm RLS pra ler plan_limits — nem tentamos. ---------- */
+const PLAN_RESOURCE_DEFS=[
+  {key:'pessoas',label:'Pessoas',table:'people',limitCol:'pessoas_max'},
+  {key:'fotos',label:'Fotos',table:'photos',limitCol:'fotos_max'},
+  {key:'albuns',label:'Álbuns',table:'albums',limitCol:'albuns_max'},
+  {key:'historias',label:'Histórias',table:'stories',limitCol:'historias_max'},
+  {key:'eventos',label:'Eventos históricos',table:'events',limitCol:'eventos_max'},
+  {key:'livros',label:'Livros',table:'books',limitCol:'livros_max'},
+  {key:'capitulos',label:'Capítulos',table:'chapters',limitCol:'capitulos_max'},
+  {key:'documentos',label:'Documentos/arquivos',table:'documents',limitCol:'documentos_max'},
+  {key:'videos',label:'Vídeos',table:'sources',limitCol:'videos_max',eqFilter:{source_type:'video'}},
+  {key:'locais',label:'Locais',table:'places',limitCol:'locais_max'},
+  {key:'fontes',label:'Fontes bibliográficas',table:'sources',limitCol:'fontes_max',neqFilter:{source_type:'video'}}
+];
+// Números oficiais da TABELA_LIMITES_PLANOS.md — não alterar sem validar com o
+// documento comercial (seção 28 do documento mestre: limites não se mexem por aqui).
+const PLAN_PRESETS={
+  autonomo:{pessoas_max:100,fotos_max:300,albuns_max:10,historias_max:20,eventos_max:200,livros_max:1,capitulos_max:50,documentos_max:10,videos_max:10,locais_max:50,fontes_max:50},
+  essencial:{pessoas_max:100,fotos_max:300,albuns_max:10,historias_max:20,eventos_max:200,livros_max:1,capitulos_max:50,documentos_max:10,videos_max:10,locais_max:50,fontes_max:50},
+  familia:{pessoas_max:200,fotos_max:600,albuns_max:20,historias_max:40,eventos_max:400,livros_max:2,capitulos_max:100,documentos_max:25,videos_max:25,locais_max:100,fontes_max:100},
+  ampliado:{pessoas_max:500,fotos_max:1200,albuns_max:40,historias_max:100,eventos_max:800,livros_max:5,capitulos_max:300,documentos_max:50,videos_max:50,locais_max:250,fontes_max:250},
+  historico:{pessoas_max:1000,fotos_max:2000,albuns_max:80,historias_max:200,eventos_max:1500,livros_max:10,capitulos_max:600,documentos_max:100,videos_max:100,locais_max:500,fontes_max:500}
+};
+let currentPlanRow=null;
+
+// Papel "operador": some com tudo que ele não tem acesso (nem faz sentido
+// mostrar um painel de Pessoas/Fotos vazio pra quem não pode ver nada disso)
+// e deixa só a tela de Configurações, já na área de plano.
+function setupOperadorView(){
+  document.querySelectorAll('.nav-item').forEach(a=>{ a.hidden=a.getAttribute('href').slice(1)!=='configuracoes'; });
+  // #configuracoes (como todo painel) fica DENTRO de #dashboard — não dá pra
+  // esconder o #dashboard inteiro, só o que é conteúdo próprio dele (hero +
+  // cartões de número) e os demais painéis, um a um.
+  document.querySelector('#dashboard .hero-card')?.setAttribute('hidden','');
+  document.querySelector('#dashboard .stats-grid')?.setAttribute('hidden','');
+  document.querySelectorAll('.panel[id]').forEach(s=>{ s.hidden=s.id!=='configuracoes'; });
+  setActiveNav('configuracoes');
+  $('#planSection').hidden=false;
+}
+
+function renderPlanLimitFields(){
+  const editable=currentPlanRow?.plano==='personalizado';
+  $('#planPersonalizadoHint').hidden=!editable;
+  $('#planLimitsGrid').innerHTML=PLAN_RESOURCE_DEFS.map(r=>{
+    const v=currentPlanRow?.[r.limitCol];
+    return `<label>${escapeHtml(r.label)}<input type="number" min="0" step="1" data-limit-key="${r.limitCol}" value="${v??''}" ${editable?'':'disabled'} placeholder="${editable?'sem limite':''}"></label>`;
+  }).join('');
+}
+function applyPlanPreset(planoKey){
+  const preset=PLAN_PRESETS[planoKey];
+  if(!preset) return; // personalizado: mantém os valores atuais, só libera edição
+  PLAN_RESOURCE_DEFS.forEach(r=>{
+    const input=document.querySelector(`[data-limit-key="${r.limitCol}"]`);
+    if(input) input.value=preset[r.limitCol];
+  });
+}
+async function countResource(def){
+  let q=client.from(def.table).select('id',{count:'exact',head:true});
+  if(def.eqFilter) Object.entries(def.eqFilter).forEach(([k,v])=>{q=q.eq(k,v)});
+  if(def.neqFilter) Object.entries(def.neqFilter).forEach(([k,v])=>{q=q.neq(k,v)});
+  const {count,error}=await q;
+  return error?0:(count||0);
+}
+async function renderPlanUsage(){
+  const counts=await Promise.all(PLAN_RESOURCE_DEFS.map(countResource));
+  const rows=PLAN_RESOURCE_DEFS.map((r,i)=>{
+    const max=currentPlanRow?.[r.limitCol];
+    const count=counts[i];
+    if(max==null) return `<div class="usage-row"><span class="usage-label">${escapeHtml(r.label)}</span><span class="usage-unlimited">Sem limite definido</span><span class="usage-count">${count}</span></div>`;
+    const pct=Math.min(100,max>0?Math.round(count/max*100):100);
+    const full=count>=max, warn=!full&&pct>=70;
+    return `<div class="usage-row"><span class="usage-label">${escapeHtml(r.label)}</span><span class="usage-track"><span class="usage-fill${full?' full':warn?' warn':''}" style="width:${pct}%"></span></span><span class="usage-count${full?' full':''}">${count} / ${max}</span></div>`;
+  }).join('');
+  $('#planUsageList').innerHTML=rows+`<div class="usage-row"><span class="usage-label">Links externos</span><span class="usage-unlimited">Ilimitado</span><span class="usage-count">—</span></div>`;
+}
+async function loadPlanConfig(){
+  const {data,error}=await client.from('plan_limits').select('*').limit(1).maybeSingle();
+  if(error||!data){showError($('#planFormError'),error?.message||'Nenhum plano configurado ainda.');return}
+  currentPlanRow=data;
+  $('#planSelect').value=data.plano;
+  renderPlanLimitFields();
+  await renderPlanUsage();
+}
+async function savePlan(){
+  showError($('#planFormError'),'');
+  const plano=$('#planSelect').value;
+  const payload={plano};
+  PLAN_RESOURCE_DEFS.forEach(r=>{
+    const input=document.querySelector(`[data-limit-key="${r.limitCol}"]`);
+    const raw=input?.value?.trim();
+    payload[r.limitCol]=raw===''?null:Number(raw);
+  });
+  const {error}=await client.from('plan_limits').update(payload).eq('id',currentPlanRow.id);
+  if(error){showError($('#planFormError'),error.message);return}
+  showToast('Plano atualizado.');
+  await loadPlanConfig();
+}
+$('#planSelect').addEventListener('change',()=>{
+  const val=$('#planSelect').value;
+  const editable=val==='personalizado';
+  $('#planPersonalizadoHint').hidden=!editable;
+  document.querySelectorAll('#planLimitsGrid input').forEach(inp=>{inp.disabled=!editable;});
+  if(!editable) applyPlanPreset(val);
+});
+$('#savePlanBtn').onclick=savePlan;
 
 /* ---------- Carga geral ---------- */
 async function loadAcervo(){

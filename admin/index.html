@@ -90,6 +90,27 @@
 <article class="stat-card"><span>Projeto Supabase</span><strong id="cfgProject">—</strong><small>backend conectado</small></article>
 </div>
 <p class="hint">Os dados deste painel vêm diretamente do banco. Para alterar permissões, edite a tabela <code>admin_users</code> no Supabase.</p>
+
+<div id="planSection" hidden>
+  <h3 style="margin-top:32px">Plano contratado</h3>
+  <div class="form-grid">
+    <label>Plano<select id="planSelect">
+      <option value="autonomo">Autônomo</option>
+      <option value="essencial">Essencial</option>
+      <option value="familia">Família</option>
+      <option value="ampliado">Ampliado</option>
+      <option value="historico">Histórico</option>
+      <option value="personalizado">Personalizado</option>
+    </select></label>
+  </div>
+  <p class="hint" id="planPersonalizadoHint" hidden>Plano Personalizado: preencha manualmente o limite negociado para cada recurso abaixo. Deixe em branco para "sem limite" nesse recurso.</p>
+  <div class="plan-limits-grid" id="planLimitsGrid"></div>
+  <div class="form-actions"><button type="button" class="primary" id="savePlanBtn">Salvar plano</button></div>
+  <div id="planFormError" class="error"></div>
+
+  <h3 style="margin-top:32px">Uso do plano</h3>
+  <div class="usage-list" id="planUsageList"></div>
+</div>
 </section>
 </section></main></div>
 <div class="modal" id="personModal"><div class="modal-card"><button class="modal-close" id="closeModal">×</button><span class="eyebrow">CADASTRO DE PESSOA</span><h2 id="formTitle">Nova pessoa</h2><form id="personForm" novalidate><input type="hidden" id="personId">
