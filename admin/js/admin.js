@@ -922,7 +922,7 @@ async function login(e){
     appView.classList.remove('hidden');
     if(role==='operador'){
       setupOperadorView();
-      renderConfig();
+      await renderConfig();
       await loadPlanConfig();
     } else {
       await loadPeople();
@@ -960,7 +960,7 @@ async function boot(){
     loginView.classList.add('hidden');appView.classList.remove('hidden');
     if(role==='operador'){
       setupOperadorView();
-      renderConfig();
+      await renderConfig();
       await loadPlanConfig();
     } else {
       await loadPeople();await loadPeopleOptions();await loadFamilies();await loadStories();await loadAcervo();initGenealogyView();
@@ -2926,10 +2926,17 @@ async function deleteChapter(id){
 }
 
 /* ---------- Configurações ---------- */
-function renderConfig(){
+const PLAN_LABELS={autonomo:'Autônomo',essencial:'Essencial',familia:'Família',ampliado:'Ampliado',historico:'Histórico',personalizado:'Personalizado'};
+async function renderConfig(){
   $('#cfgRole').textContent=role?String(role).toUpperCase():'—';
   $('#cfgEmail').textContent=$('#userEmail').textContent||'—';
   try{$('#cfgProject').textContent=new URL(window.SUPABASE_URL).hostname.split('.')[0];}catch{$('#cfgProject').textContent='—';}
+  // Só o nome do plano (via RPC restrita) — os limites/uso continuam só
+  // visíveis pro papel operador, em #planSection.
+  try{
+    const {data,error}=await client.rpc('get_current_plan_label');
+    $('#cfgPlan').textContent=(error||!data)?'—':(PLAN_LABELS[data]||data);
+  }catch{$('#cfgPlan').textContent='—';}
 }
 
 /* ---------- Plano e limites (Legado Digital) — só o papel "operador" vê isto.
@@ -3044,7 +3051,7 @@ async function loadAcervo(){
   await loadPlaces();
   await Promise.all([loadPhotos(),loadDocuments()]);
   await Promise.all([loadAlbums(),loadEvents(),loadSources(),loadBooks(),loadAllChapters()]);
-  renderConfig();
+  await renderConfig();
 }
 function chapterQuickLabel(c){return `Cap. ${c.chapter_number} — ${c.title}${c.subtitle?' · '+c.subtitle:''}`}
 async function loadAllChapters(){
