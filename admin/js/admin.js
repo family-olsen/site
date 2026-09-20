@@ -3619,10 +3619,13 @@ $('#confirmSetTempPassword').addEventListener('click',async()=>{
     btn.disabled=false; btn.textContent='Definir senha';
   }
 });
-async function sendResetLinkTo(email){
+async function sendResetLinkTo(email,kind){
   if(!confirm(`Mandar e-mail de redefinição de senha pra ${email}?`)) return;
+  // Visitante comum nunca abre o painel admin — o link tem que cair no site
+  // público, onde existe a tela de "definir senha" feita pra isso.
+  const redirectTo=window.location.origin+(kind==='visitor'?'/index.html':'/admin/index.html');
   try{
-    const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/admin/index.html'});
+    const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo});
     if(error) throw error;
     showToast('E-mail de redefinição enviado pra '+email+'.');
   }catch(err){
@@ -3728,7 +3731,7 @@ function renderVisitorsList(){
     btn.addEventListener('click',()=>openSetTempPasswordModal(btn.dataset.setTempPasswordVisitor,btn.dataset.name,'visitor'));
   });
   document.querySelectorAll('#visitorsTableWrap [data-send-reset]').forEach(btn=>{
-    btn.addEventListener('click',()=>sendResetLinkTo(btn.dataset.sendReset));
+    btn.addEventListener('click',()=>sendResetLinkTo(btn.dataset.sendReset,'visitor'));
   });
   if(totalPages>1){
     $('#visitorsPagination').innerHTML=`<button type="button" class="secondary" id="visitorsPrevPage"${visitorsPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${visitorsPage} de ${totalPages} (${rows.length} usuários)</span><button type="button" class="secondary" id="visitorsNextPage"${visitorsPage>=totalPages?' disabled':''}>Próxima ›</button>`;
@@ -3765,7 +3768,7 @@ async function submitNewVisitor(sendInvite){
     const {data,error}=await client.functions.invoke('create-site-visitor',{body:{
       name,login,email,sendInvite,
       password:sendInvite?undefined:password,
-      redirectTo:window.location.origin+'/admin/index.html'
+      redirectTo:window.location.origin+'/index.html'
     }});
     if(error){
       let msg=error.message;
