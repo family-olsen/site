@@ -539,6 +539,27 @@ figcaption{font-size:var(--fs-label);color:var(--muted);margin-top:12px;line-hei
 .empty-state-public{padding:60px 24px;text-align:center;color:var(--muted)}
 .empty-state-public h3{font-family:var(--serif);font-weight:300;color:var(--text);font-size:24px;margin:0 0 10px}
 
+/* ---------- Portão de acesso (site marcado como privado) ---------- */
+/* html.site-checking-access esconde o body inteiro (ver branding-boot.js) —
+   esse overlay é a ÚNICA exceção: visibility:visible reverte a herança só
+   pra ele, então é a única coisa visível enquanto a checagem não termina. */
+html.site-checking-access body{visibility:hidden}
+.access-gate{position:fixed;inset:0;z-index:9999;visibility:visible;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.access-gate-card{max-width:380px;width:100%;background:var(--bg-2);border:1px solid var(--line-2);border-radius:18px;padding:36px 30px;text-align:center}
+.access-gate-card h1{font-family:var(--serif);font-weight:300;font-size:28px;margin:0 0 10px;color:var(--text)}
+.access-gate-card p{font-size:14px;line-height:1.6;color:var(--muted-2);margin:0 0 26px}
+.access-gate-card form{text-align:left;display:grid;gap:16px}
+.access-gate-card label{display:grid;gap:6px;font-size:13px;color:var(--text-dim);font-weight:600}
+.access-gate-card input{background:var(--bg-3);border:1px solid var(--line-3);border-radius:10px;padding:11px 12px;color:var(--text);font:inherit}
+.access-gate-card input:focus{outline:none;border-color:var(--gold-dark)}
+.access-gate-card .btn{width:100%;text-align:center}
+.access-gate-card .access-gate-error{color:#e2574c;font-size:12px;min-height:16px;margin:0}
+.access-gate-forgot-confirm{display:grid;gap:10px;margin-top:14px;text-align:left}
+.access-gate-forgot-confirm[hidden]{display:none}
+.access-gate-links{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:20px}
+.link-gate{background:none;border:0;padding:0;color:var(--gold);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;font-family:inherit}
+.link-gate:hover{color:var(--gold-light);text-decoration:underline}
+
 @media(max-width:720px){
   .masonry{columns:2 160px}
   .reader-article{grid-column:span 1}

@@ -56,6 +56,14 @@ Deno.serve(async (req: Request) => {
       return json({ error: "A senha precisa ter pelo menos 8 caracteres." }, 400);
     }
 
+    // Checa duplicidade ANTES de criar o login no Auth — email já vem
+    // normalizado em minúsculas (linha acima), igual ao que é salvo.
+    const { data: existingEmail } = await adminClient
+      .from("admin_users").select("user_id").eq("email", email).maybeSingle();
+    if (existingEmail) {
+      return json({ error: "Já existe um usuário cadastrado com esse e-mail." }, 409);
+    }
+
     let newUserId: string;
     if (sendInvite) {
       const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
@@ -93,6 +101,13 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, user_id: newUserId });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    // Rede de segurança: o pré-checa acima cobre duplicidade dentro de
+    // admin_users, mas o mesmo e-mail já usado por um visitante comum
+    // também esbarra na unicidade do próprio Supabase Auth — troca o erro
+    // cru dele por algo que o operador entende.
+    if (/already.*registered|already.*exists|email_exists|duplicate key/i.test(message)) {
+      return json({ error: "Já existe um usuário cadastrado com esse e-mail." }, 409);
+    }
     return json({ error: message }, 500);
   }
 });

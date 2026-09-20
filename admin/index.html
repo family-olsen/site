@@ -2,7 +2,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" sizes="16x16" href="/Assents/Logos-web/favicon-16.png"><link rel="icon" type="image/png" sizes="32x32" href="/Assents/Logos-web/favicon-32.png"><link rel="icon" type="image/png" sizes="48x48" href="/Assents/Logos-web/favicon-48.png"><link rel="apple-touch-icon" href="/Assents/Logos-web/apple-touch-icon.png">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://igglfuatavmxabffaflb.supabase.co; connect-src 'self' https://igglfuatavmxabffaflb.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>Família — Administração</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/admin/css/admin.css?v=10">
+<title>Família — Administração</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/admin/css/admin.css?v=12">
 </head><body>
 <div id="loginView" class="auth-screen"><div class="auth-card">
 <div class="brand-mark"><img id="loginBrandLogo" src="/Assents/Logos-web/icon-96.webp" alt=""></div><h1>Administração da Família</h1>
@@ -29,7 +29,7 @@
 </div></div>
 <div id="appView" class="app-shell hidden">
 <aside class="sidebar"><div class="brand"><div class="brand-mark"><img id="sidebarBrandLogo" src="/Assents/Logos-web/icon-96.webp" alt=""></div><div class="brand-text"><strong>Família</strong><span>Administração</span></div><button id="sidebarCollapseBtn" class="sidebar-collapse-btn" type="button" aria-label="Recolher menu" aria-expanded="true" title="Recolher menu">‹</button></div>
-<nav><a class="nav-item active" href="#dashboard">Dashboard</a><a class="nav-item" href="#pessoas">Pessoas</a><a class="nav-item" href="#familias">Famílias</a><a class="nav-item" href="#genealogia">Genealogia</a><a class="nav-item" href="#livro">Livro</a><a class="nav-item" href="#historias">Histórias</a><a class="nav-item" href="#fotos">Fotos</a><a class="nav-item" href="#albuns">Álbuns</a><a class="nav-item" href="#eventos">Eventos</a><a class="nav-item" href="#documentos">Documentos</a><a class="nav-item" href="#fontes">Fontes</a><a class="nav-item" href="#lugares">Lugares</a><a class="nav-item" href="#configuracoes">Configurações</a><a class="nav-item" href="#usuarios" hidden>Usuários</a></nav>
+<nav><a class="nav-item active" href="#dashboard">Dashboard</a><a class="nav-item" href="#pessoas">Pessoas</a><a class="nav-item" href="#familias">Famílias</a><a class="nav-item" href="#genealogia">Genealogia</a><a class="nav-item" href="#livro">Livro</a><a class="nav-item" href="#historias">Histórias</a><a class="nav-item" href="#fotos">Fotos</a><a class="nav-item" href="#albuns">Álbuns</a><a class="nav-item" href="#eventos">Eventos</a><a class="nav-item" href="#documentos">Documentos</a><a class="nav-item" href="#fontes">Fontes</a><a class="nav-item" href="#lugares">Lugares</a><a class="nav-item" href="#configuracoes">Configurações</a><a class="nav-item" href="#usuarios" hidden>Usuários</a><a class="nav-item" href="#visitantes" hidden>Usuários</a></nav>
 <div class="sidebar-footer"><span id="roleBadge" class="footer-text">—</span><button id="changePasswordBtn" class="logout" title="Trocar senha"><span class="logout-icon">🔑</span><span class="footer-text">Trocar senha</span></button><button id="logoutBtn" class="logout" title="Sair"><span class="logout-icon">⏻</span><span class="footer-text">Sair</span></button></div></aside>
 <div class="sidebar-scrim" id="sidebarScrim"></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -46,6 +46,7 @@
 <a class="stat-card" href="#documentos"><div class="stat-card-top"><span>Documentos</span><span class="stat-icon stat-icon-documentos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M8.5 12.5h7M8.5 15.5h7"/></svg></span></div><strong id="documentsCount">0</strong><small>arquivos</small><small id="documentsLimitInfo" class="stat-limit" hidden></small></a>
 <a class="stat-card" href="#fontes"><div class="stat-card-top"><span>Fontes</span><span class="stat-icon stat-icon-fontes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4-6.5 4V5a1 1 0 0 1 1-1Z"/></svg></span></div><strong id="sourcesCount">0</strong><small>referências</small><small id="sourcesLimitInfo" class="stat-limit" hidden></small></a>
 <a class="stat-card" href="#lugares"><div class="stat-card-top"><span>Lugares</span><span class="stat-icon stat-icon-lugares"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg></span></div><strong id="placesCount">0</strong><small>locais</small><small id="placesLimitInfo" class="stat-limit" hidden></small></a>
+<a class="stat-card" href="#visitantes" id="visitorsStatCard" hidden><div class="stat-card-top"><span>Usuários</span><span class="stat-icon stat-icon-usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.1"/><path d="M3.8 19.5c0-3 2.3-5.2 5.3-5.2 2 0 3.7.9 4.6 2.4"/><path d="M13 19.5c.2-2.5 2-4.3 4.4-4.3 2.4 0 4.4 2 4.4 4.3"/></svg></span></div><strong id="visitorsCount">0</strong><small>com acesso ao site</small></a>
 </div>
 <section class="panel" id="pessoas"><div class="panel-header"><div class="panel-title"><span class="stat-icon stat-icon-pessoas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/></svg></span><div><span class="eyebrow">PESSOAS</span><h3>Cadastro de pessoas</h3></div></div><div class="toolbar"><input id="searchPeople" placeholder="Buscar por nome..."><select id="peoplePageSize"><option value="5" selected>5 por página</option><option value="15">15 por página</option><option value="30">30 por página</option></select><button class="secondary" id="refreshPeople">Atualizar</button><button class="primary" id="newPersonBtn">+ Nova pessoa</button></div></div>
 <div id="peopleTable" class="table-wrap"></div>
@@ -106,6 +107,19 @@
 <article class="stat-card"><span>Projeto Supabase</span><strong id="cfgProject">—</strong><small>backend conectado</small></article>
 <article class="stat-card"><span>Plano atual</span><strong id="cfgPlan">—</strong><small>Legado Digital</small></article>
 <a class="stat-card support-card" id="cfgSupportCard" href="#" target="_blank" rel="noopener" hidden><span>Precisa de ajuda?</span><strong><svg class="whatsapp-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m0 1.67c2.23 0 4.33.87 5.9 2.45a8.23 8.23 0 0 1 2.43 5.87c0 4.58-3.73 8.31-8.31 8.31a8.3 8.3 0 0 1-4.22-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.25 8.25 0 0 1-1.27-4.42c0-4.58 3.73-8.35 8.26-8.35M8.53 7.15c-.17 0-.45.06-.68.32-.23.25-.9.87-.9 2.13 0 1.25.92 2.46 1.05 2.63.13.17 1.79 2.86 4.43 3.9 2.19.87 2.64.7 3.11.65.48-.04 1.53-.62 1.75-1.22.22-.6.22-1.11.15-1.22-.06-.1-.23-.17-.48-.29-.25-.13-1.53-.76-1.77-.84-.24-.09-.41-.13-.58.13-.17.25-.67.84-.82 1.02-.15.17-.3.19-.56.06-.25-.13-1.06-.39-2.02-1.25-.75-.66-1.25-1.48-1.4-1.73-.14-.25-.01-.38.11-.51.12-.12.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.58-1.42-.81-1.94-.21-.51-.43-.44-.58-.44h-.5"/></svg>Falar no WhatsApp</strong><small>Suporte da plataforma</small></a>
+</div>
+
+<div id="privacySection" hidden>
+  <h3 class="plan-section-heading">Acesso ao site</h3>
+  <p class="hint">Controla se qualquer pessoa na internet pode ver o site, ou só quem tiver um login de visitante cadastrado (aba "Usuários").</p>
+  <div class="form-grid">
+    <label>Visibilidade<select id="sitePrivacySelect">
+      <option value="false">Público — qualquer um pode ver</option>
+      <option value="true">Privado — exige login pra ver</option>
+    </select></label>
+  </div>
+  <div class="form-actions"><button type="button" class="primary" id="savePrivacyBtn">Salvar</button></div>
+  <div id="privacyFormError" class="error"></div>
 </div>
 
 <div id="brandingSection" hidden>
@@ -235,6 +249,41 @@
   </div>
   <div class="table-wrap" id="usersTableWrap"></div>
   <div class="pagination" id="usersPagination"></div>
+</section>
+
+<section class="panel" id="visitantes" hidden><div class="panel-header"><div class="panel-title"><span class="stat-icon stat-icon-usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.1"/><path d="M3.8 19.5c0-3 2.3-5.2 5.3-5.2 2 0 3.7.9 4.6 2.4"/><path d="M13 19.5c.2-2.5 2-4.3 4.4-4.3 2.4 0 4.4 2 4.4 4.3"/></svg></span><div><span class="eyebrow">USUÁRIOS</span><h3>Acesso ao site</h3></div></div></div>
+  <h3 class="plan-section-heading" style="border-top:0;padding-top:0;margin-top:0">Criar acesso de visitante</h3>
+  <p class="hint">Cria um login de "usuário comum" — só serve pra ver o site quando ele estiver marcado como privado em Configurações. Não abre o painel admin. Pra criar na mão, preencha nome, login e senha. Pra só enviar convite por e-mail (ex.: uma lista de e-mails), basta preencher o e-mail — nome e login ficam em branco até a pessoa entrar.</p>
+  <div class="form-grid">
+    <label>Nome (opcional se for só convite)<input type="text" id="newVisitorName" placeholder="Ex.: Maria Silva"></label>
+    <label>Login (opcional se for só convite)<input type="text" id="newVisitorLogin" placeholder="Ex.: maria (sem espaço)"></label>
+  </div>
+  <div class="form-grid">
+    <label>E-mail (obrigatório só pra convite)<input type="email" id="newVisitorEmail" placeholder="maria@exemplo.com"></label>
+    <label>&nbsp;<span class="hint" style="margin:0">Sem e-mail, a pessoa entra só com o login. "Convite/reset por e-mail" exigem um e-mail de verdade aqui.</span></label>
+  </div>
+  <div class="form-grid">
+    <label>Senha<input type="text" id="newVisitorPassword" placeholder="Gere ou digite uma senha" autocomplete="new-password"></label>
+    <label>&nbsp;<button type="button" class="secondary full" id="genVisitorPasswordBtn">Gerar senha automática</button></label>
+  </div>
+  <div class="form-actions">
+    <button type="button" class="secondary" id="inviteVisitorBtn">Enviar convite por e-mail</button>
+    <button type="button" class="primary" id="createVisitorBtn">Criar usuário com essa senha</button>
+  </div>
+  <div id="newVisitorError" class="error"></div>
+  <p class="hint" id="newVisitorSuccess" style="display:none;color:#2f9e6e;font-weight:700"></p>
+
+  <h3 class="plan-section-heading">Usuários cadastrados</h3>
+  <div class="toolbar">
+    <input id="searchVisitors" placeholder="Buscar por nome ou e-mail...">
+    <label style="margin:0">Por página<select id="visitorsPageSize">
+      <option value="5" selected>5 por página</option>
+      <option value="10">10 por página</option>
+      <option value="30">30 por página</option>
+    </select></label>
+  </div>
+  <div class="table-wrap" id="visitorsTableWrap"></div>
+  <div class="pagination" id="visitorsPagination"></div>
 </section>
 </section></main></div>
 <div class="modal" id="personModal"><div class="modal-card"><button class="modal-close" id="closeModal">×</button><span class="eyebrow">CADASTRO DE PESSOA</span><h2 id="formTitle">Nova pessoa</h2><form id="personForm" novalidate><input type="hidden" id="personId">
@@ -392,5 +441,5 @@
 <div class="form-actions"><button type="button" class="secondary" id="cancelConfirmDelete">Cancelar</button><button type="button" class="primary danger-btn" id="confirmDeleteBtn">Excluir</button></div></div></div>
 <datalist id="placesList"></datalist><datalist id="photosList"></datalist><datalist id="documentsList"></datalist><datalist id="storiesQuickList"></datalist><datalist id="albumsQuickList"></datalist><datalist id="sourcesQuickList"></datalist><datalist id="chaptersQuickList"></datalist><datalist id="eventsQuickList"></datalist>
 <datalist id="peopleList"></datalist>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script><script src="/admin/js/config.js"></script><script src="/admin/js/admin.js?v=16"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script><script src="/admin/js/config.js"></script><script src="/admin/js/admin.js?v=22"></script>
 </body></html>

@@ -1041,6 +1041,8 @@ async function login(e){
       await loadStories();
       await loadAcervo();
       initGenealogyView();
+      $('#visitorsStatCard').hidden=role!=='admin';
+      if(role==='admin') await loadVisitorsList();
     }
   }catch(err){
     showError($('#loginError'),`Erro inesperado: ${err?.message || err}`);
@@ -1121,6 +1123,8 @@ async function boot(){
       await loadPlanConfig();
     } else {
       await loadPeople();await loadPeopleOptions();await loadFamilies();await loadStories();await loadAcervo();initGenealogyView();
+      $('#visitorsStatCard').hidden=role!=='admin';
+      if(role==='admin') await loadVisitorsList();
     }
   }catch(e){showError($('#loginError'),e.message)}}
 }
@@ -3110,10 +3114,19 @@ async function renderConfig(){
     const {data,error}=await client.rpc('get_current_plan_label');
     $('#cfgPlan').textContent=(error||!data)?'—':(PLAN_LABELS[data]||data);
   }catch{$('#cfgPlan').textContent='—';}
-  // Identidade visual (logo/título/cores) é só pro papel "admin" — nem o
+  // Identidade visual (logo/título/cores), acesso público/privado e a tela
+  // de Usuários (comuns/visitantes) são só pro papel "admin" — nem o
   // operador (não é dele) nem o editor (não é o dono da conta) mexem nisso.
   $('#brandingSection').hidden=role!=='admin';
-  if(role==='admin') await loadBranding();
+  $('#privacySection').hidden=role!=='admin';
+  const navVisitantes=document.querySelector('.nav-item[href="#visitantes"]');
+  if(navVisitantes) navVisitantes.hidden=role!=='admin';
+  $('#visitantes').hidden=role!=='admin';
+  if(role==='admin'){
+    await loadBranding();
+    await loadPrivacyConfig();
+    await loadVisitorsList();
+  }
   // Botão "Precisa de ajuda?" — WhatsApp do operador, com o nome do site já
   // preenchido na mensagem (o operador atende vários clientes, então ajuda
   // saber de qual site é assim que a mensagem chega). Só pra família
@@ -3258,6 +3271,28 @@ async function onBrandFaviconFileChange(e){
     $('#brandFaviconHint').textContent='Erro ao processar imagem: '+err.message;
   }
 }
+/* ---------- Site público/privado (site_config.is_private) — só "admin".
+   Reaproveita currentBranding (mesma linha de site_config já carregada por
+   loadBranding(), chamada logo antes desta) — não precisa buscar de novo. ---------- */
+async function loadPrivacyConfig(){
+  if(!currentBranding) return;
+  $('#sitePrivacySelect').value=String(!!currentBranding.is_private);
+}
+$('#savePrivacyBtn').addEventListener('click',async()=>{
+  showError($('#privacyFormError'),'');
+  if(!currentBranding?.id){ showError($('#privacyFormError'),'Configuração ainda não carregada — recarregue a página.'); return }
+  const isPrivate=$('#sitePrivacySelect').value==='true';
+  // Muda o jogo pra qualquer visitante do site — confirma antes, não deixa
+  // mudar sem querer (ex.: clique errado no seletor + Salvar sem reparar).
+  const msg=isPrivate
+    ?'Tem certeza que quer tornar o site PRIVADO? Qualquer visitante sem login (usuário comum cadastrado) vai deixar de ver o site.'
+    :'Tem certeza que quer tornar o site PÚBLICO? Qualquer pessoa na internet vai poder ver o site, sem precisar de login.';
+  if(!confirm(msg)) return;
+  const {error}=await client.from('site_config').update({is_private:isPrivate}).eq('id',currentBranding.id);
+  if(error){ showError($('#privacyFormError'),error.message); return }
+  currentBranding.is_private=isPrivate;
+  showToast(isPrivate?'Site agora é privado — exige login.':'Site agora é público.');
+});
 async function loadBranding(){
   const {data,error}=await client.from('site_config').select('*').limit(1).maybeSingle();
   if(error||!data){showError($('#brandingFormError'),error?.message||'Configuração não encontrada.');return}
@@ -3441,7 +3476,50 @@ function generatePassword(){
   return Array.from(bytes,b=>chars[b%chars.length]).join('');
 }
 $('#genPasswordBtn').addEventListener('click',()=>{ $('#newUserPassword').value=generatePassword(); });
-let allUsersRows=[], usersPage=1;
+let allUsersRows=[], usersPage=1, allVisitorsRows=[], visitorsPage=1;
+// Menu flutuante de ações (⋮) — usado nas duas tabelas de usuários (admin
+// e operador), pra não espalhar 3 botões lado a lado em cada linha e
+// estourar a largura do grid. Delegação de clique (um listener só, em vez
+// de recriar a cada render): abre/fecha o menu clicado, fecha os outros,
+// e fecha tudo ao clicar fora ou numa ação dentro do menu (deixa a própria
+// ação seguir normal — ela já tem seu próprio listener via data-attribute).
+function actionMenuHtml(buttonsHtml){
+  return `<div class="action-menu"><button type="button" class="action-menu-btn" aria-label="Ações" title="Ações">⋮</button><div class="action-menu-list">${buttonsHtml}</div></div>`;
+}
+function positionActionMenu(trigger,menu){
+  const rect=trigger.getBoundingClientRect();
+  const menuWidth=menu.offsetWidth||200;
+  let left=rect.right-menuWidth;
+  if(left<8) left=8;
+  if(left+menuWidth>window.innerWidth-8) left=window.innerWidth-menuWidth-8;
+  menu.style.left=left+'px';
+  menu.style.top=(rect.bottom+4)+'px';
+  const menuHeight=menu.offsetHeight||160;
+  if(rect.bottom+4+menuHeight>window.innerHeight){
+    menu.style.top=Math.max(8,rect.top-menuHeight-4)+'px';
+  }
+}
+document.addEventListener('click',(e)=>{
+  const trigger=e.target.closest('.action-menu-btn');
+  if(trigger){
+    const menu=trigger.nextElementSibling;
+    const wasOpen=menu.classList.contains('open');
+    document.querySelectorAll('.action-menu-list.open').forEach(m=>m.classList.remove('open'));
+    if(!wasOpen){
+      menu.classList.add('open');
+      positionActionMenu(trigger,menu);
+    }
+    e.stopPropagation();
+    return;
+  }
+  document.querySelectorAll('.action-menu-list.open').forEach(m=>m.classList.remove('open'));
+});
+// Fecha ao rolar — a posição (fixed, calculada na abertura) ia ficar
+// desalinhada do botão que a abriu. captura=true pra pegar rolagem de
+// dentro de .table-wrap também, não só da janela.
+window.addEventListener('scroll',()=>{
+  document.querySelectorAll('.action-menu-list.open').forEach(m=>m.classList.remove('open'));
+},true);
 async function loadUsersList(){
   const wrap=$('#usersTableWrap');
   const {data,error}=await client.from('admin_users').select('user_id,role,display_name,email,active,created_at').order('created_at',{ascending:false});
@@ -3477,7 +3555,7 @@ function renderUsersList(){
       escapeHtml(u.role),
       statusBadge,
       new Date(u.created_at).toLocaleDateString('pt-BR'),
-      `<div class="actions">${toggleBtn}${resetBtn}${tempPassBtn}</div>`
+      actionMenuHtml(toggleBtn+resetBtn+tempPassBtn)
     ];
   }));
   document.querySelectorAll('[data-toggle-active]').forEach(btn=>{
@@ -3505,9 +3583,10 @@ function renderUsersList(){
 // à caixa de entrada, etc). Define a senha na hora, via Edge Function
 // (set-user-password, service role) — o operador repassa essa senha pra
 // pessoa manualmente (WhatsApp, por exemplo).
-let pendingTempPasswordUserId=null;
-function openSetTempPasswordModal(userId,name){
+let pendingTempPasswordUserId=null, pendingTempPasswordKind='admin';
+function openSetTempPasswordModal(userId,name,kind='admin'){
   pendingTempPasswordUserId=userId;
+  pendingTempPasswordKind=kind;
   $('#setTempPasswordIntro').textContent=`Define uma senha nova pra ${name||'este usuário'} — sem precisar de e-mail. Repasse essa senha pra ele manualmente.`;
   $('#setTempPasswordValue').value='';
   showError($('#setTempPasswordError'),''); $('#setTempPasswordSuccess').style.display='none';
@@ -3524,7 +3603,8 @@ $('#confirmSetTempPassword').addEventListener('click',async()=>{
   const btn=$('#confirmSetTempPassword');
   btn.disabled=true; btn.textContent='Salvando...';
   try{
-    const {data,error}=await client.functions.invoke('set-user-password',{body:{user_id:pendingTempPasswordUserId,password}});
+    const fnName=pendingTempPasswordKind==='visitor'?'set-visitor-password':'set-user-password';
+    const {data,error}=await client.functions.invoke(fnName,{body:{user_id:pendingTempPasswordUserId,password}});
     if(error){
       let msg=error.message;
       try{ const body=await error.context.json(); if(body?.error) msg=body.error; }catch{}
@@ -3596,6 +3676,116 @@ async function submitNewUser(sendInvite){
 }
 $('#createUserBtn').addEventListener('click',()=>submitNewUser(false));
 $('#inviteUserBtn').addEventListener('click',()=>submitNewUser(true));
+
+/* ---------- Usuários comuns / visitantes (papel "admin" cria login de
+   LEITURA do site público — nunca abre o painel). Mesmo modelo da tela do
+   operador (criar/listar/buscar/paginar/ativar/resetar senha), só que lendo
+   e escrevendo em site_visitors em vez de admin_users, e via as Edge
+   Functions create-site-visitor / set-visitor-password (exigem "admin", não
+   "operador"). ---------- */
+async function loadVisitorsList(){
+  const wrap=$('#visitorsTableWrap');
+  const {data,error}=await client.from('site_visitors').select('user_id,display_name,login,email,active,created_at').order('created_at',{ascending:false});
+  if(error){ wrap.innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`; return }
+  allVisitorsRows=data;
+  $('#visitorsCount').textContent=data.length;
+  renderVisitorsList();
+}
+function renderVisitorsList(){
+  const wrap=$('#visitorsTableWrap');
+  $('#visitorsPagination').innerHTML='';
+  const q=$('#searchVisitors').value.trim().toLowerCase();
+  let rows=allVisitorsRows;
+  if(q) rows=rows.filter(u=>(u.display_name||'').toLowerCase().includes(q)||(u.login||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q));
+  if(!rows.length){ wrap.innerHTML='<div class="empty-state small"><div class="empty-icon">◎</div><h4>Nenhum usuário encontrado</h4></div>'; return }
+  const pageSize=Number($('#visitorsPageSize').value)||5;
+  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));
+  if(visitorsPage>totalPages) visitorsPage=totalPages;
+  if(visitorsPage<1) visitorsPage=1;
+  const start=(visitorsPage-1)*pageSize;
+  const pageItems=rows.slice(start,start+pageSize);
+  wrap.innerHTML=tableHtml(['Nome','Login','E-mail','Status','Criado em',''],pageItems.map(u=>{
+    const statusBadge=u.active?'<span class="status">ativo</span>':'<span class="status" style="background:#fdeaea;color:#b22b45">inativo</span>';
+    const toggleBtn=`<button type="button" class="danger-text" data-toggle-visitor-active="${u.user_id}" data-next="${!u.active}">${u.active?'Desativar':'Ativar'}</button>`;
+    // Convite/reset por e-mail só fazem sentido com um e-mail de VERDADE
+    // cadastrado — sem isso, o "e-mail" é só o interno sintético
+    // (login@visitante.local), que ninguém recebe nada ali.
+    const resetBtn=u.email?`<button type="button" data-send-reset="${escapeHtml(u.email)}">Reset de senha por e-mail</button>`:'<span class="hint" style="margin:0">Sem e-mail cadastrado — use "Definir senha temporária"</span>';
+    const tempPassBtn=`<button type="button" data-set-temp-password-visitor="${u.user_id}" data-name="${escapeHtml(u.display_name||u.login||'')}">Definir senha temporária</button>`;
+    return [
+      escapeHtml(u.display_name||'—'),
+      escapeHtml(u.login||'—'),
+      escapeHtml(u.email||'—'),
+      statusBadge,
+      new Date(u.created_at).toLocaleDateString('pt-BR'),
+      actionMenuHtml(toggleBtn+resetBtn+tempPassBtn)
+    ];
+  }));
+  document.querySelectorAll('[data-toggle-visitor-active]').forEach(btn=>{
+    btn.addEventListener('click',()=>toggleVisitorActive(btn.dataset.toggleVisitorActive,btn.dataset.next==='true'));
+  });
+  document.querySelectorAll('[data-set-temp-password-visitor]').forEach(btn=>{
+    btn.addEventListener('click',()=>openSetTempPasswordModal(btn.dataset.setTempPasswordVisitor,btn.dataset.name,'visitor'));
+  });
+  document.querySelectorAll('#visitorsTableWrap [data-send-reset]').forEach(btn=>{
+    btn.addEventListener('click',()=>sendResetLinkTo(btn.dataset.sendReset));
+  });
+  if(totalPages>1){
+    $('#visitorsPagination').innerHTML=`<button type="button" class="secondary" id="visitorsPrevPage"${visitorsPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${visitorsPage} de ${totalPages} (${rows.length} usuários)</span><button type="button" class="secondary" id="visitorsNextPage"${visitorsPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#visitorsPrevPage')?.addEventListener('click',()=>{visitorsPage--; renderVisitorsList();});
+    $('#visitorsNextPage')?.addEventListener('click',()=>{visitorsPage++; renderVisitorsList();});
+  }
+}
+$('#visitorsPageSize').addEventListener('change',()=>{ visitorsPage=1; renderVisitorsList(); });
+$('#searchVisitors').addEventListener('input',()=>{ visitorsPage=1; renderVisitorsList(); });
+async function toggleVisitorActive(userId,nextActive){
+  const acao=nextActive?'ativar':'desativar';
+  if(!confirm(`Quer mesmo ${acao} este usuário?`)) return;
+  const {error}=await client.from('site_visitors').update({active:nextActive}).eq('user_id',userId);
+  if(error){ showToast('Erro: '+error.message); return }
+  showToast(nextActive?'Usuário ativado.':'Usuário desativado — perde acesso ao site na próxima ação dele.');
+  await loadVisitorsList();
+}
+async function submitNewVisitor(sendInvite){
+  showError($('#newVisitorError'),''); $('#newVisitorSuccess').style.display='none';
+  const name=$('#newVisitorName').value.trim();
+  const login=$('#newVisitorLogin').value.trim().toLowerCase();
+  const email=$('#newVisitorEmail').value.trim();
+  const password=$('#newVisitorPassword').value;
+  if(sendInvite){
+    if(!email){ showError($('#newVisitorError'),'Informe o e-mail pra enviar o convite.'); return }
+  }else{
+    if(!name||!login){ showError($('#newVisitorError'),'Informe nome e login.'); return }
+    if(password.length<8){ showError($('#newVisitorError'),'A senha precisa ter pelo menos 8 caracteres (ou use "Enviar convite por e-mail").'); return }
+  }
+  const btn=sendInvite?$('#inviteVisitorBtn'):$('#createVisitorBtn');
+  const originalText=btn.textContent;
+  btn.disabled=true; btn.textContent='Enviando...';
+  try{
+    const {data,error}=await client.functions.invoke('create-site-visitor',{body:{
+      name,login,email,sendInvite,
+      password:sendInvite?undefined:password,
+      redirectTo:window.location.origin+'/admin/index.html'
+    }});
+    if(error){
+      let msg=error.message;
+      try{ const body=await error.context.json(); if(body?.error) msg=body.error; }catch{}
+      throw new Error(msg);
+    }
+    if(data?.error) throw new Error(data.error);
+    $('#newVisitorName').value=''; $('#newVisitorLogin').value=''; $('#newVisitorEmail').value=''; $('#newVisitorPassword').value='';
+    const successMsg=sendInvite?'Convite enviado por e-mail.':'Usuário criado — repasse o login e a senha pra pessoa.';
+    $('#newVisitorSuccess').textContent=successMsg; $('#newVisitorSuccess').style.display='block';
+    await loadVisitorsList();
+  }catch(err){
+    showError($('#newVisitorError'),err.message);
+  }finally{
+    btn.disabled=false; btn.textContent=originalText;
+  }
+}
+$('#genVisitorPasswordBtn').addEventListener('click',()=>{ $('#newVisitorPassword').value=generatePassword(); });
+$('#createVisitorBtn').addEventListener('click',()=>submitNewVisitor(false));
+$('#inviteVisitorBtn').addEventListener('click',()=>submitNewVisitor(true));
 
 function renderPlanLimitFields(){
   const editable=currentPlanRow?.plano==='personalizado';

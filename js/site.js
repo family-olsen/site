@@ -7,6 +7,15 @@ const { createClient } = supabase;
 const sbClient = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY, {
   global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) }
 });
+// Mesma checagem do admin/js/admin.js — um link de "esqueci minha senha" do
+// portão de acesso (ver renderAccessGate) chega aqui com esse tipo no hash
+// da URL. Lido AGORA, antes do supabase-js consumir/limpar o hash sozinho.
+const siteAuthRedirectType=(()=>{
+  const h=window.location.hash;
+  if(h.includes('type=recovery')) return 'recovery';
+  if(h.includes('type=invite')) return 'invite';
+  return null;
+})();
 
 // ---------- Identidade visual (site_config) ----------
 // Logo/título/cores são editáveis pela família (só papel "admin") na tela
@@ -132,7 +141,7 @@ async function applySiteBranding(){
       Object.keys(window.__brandingCache?.vars||{}).forEach(k=>document.documentElement.style.removeProperty(k));
     }
     patchBrandingDom(data);
-    localStorage.setItem('familia_branding_v1',JSON.stringify({vars:vars||{},site_title:data.site_title,logo_path:data.logo_path}));
+    localStorage.setItem('familia_branding_v1',JSON.stringify({vars:vars||{},site_title:data.site_title,logo_path:data.logo_path,mightBePrivate:!!data.is_private}));
   }catch(err){ /* falha de rede etc — mantém a identidade padrão/cacheada, sem quebrar a página */ }
 }
 // Exposto pra páginas que precisam de outros campos de site_config além do
@@ -140,6 +149,190 @@ async function applySiteBranding(){
 // contato_whatsapp) — `await window.__siteBrandingReady` garante que
 // window.__siteConfig já foi preenchido antes de ler dele.
 window.__siteBrandingReady=applySiteBranding();
+
+// ---------- Portão de acesso (site público/privado) ----------
+// can_view_site() é a MESMA função que já trava (via RLS) a leitura de
+// pessoas/fotos/histórias etc quando o site está privado — chamar ela aqui
+// só decide SE MOSTRA a página ou o formulário de login; quem garante de
+// verdade que ninguém vê dado sem permissão é o banco, não este código
+// (podia até nem existir esse portão que o conteúdo continuaria protegido —
+// ele só existe pra dar uma experiência decente em vez de uma tela vazia).
+async function applyAccessGate(){
+  try{
+    await window.__siteBrandingReady;
+    // Veio de um link de convite/recuperação — pede a senha nova antes de
+    // qualquer outra coisa, independente do site estar público ou privado
+    // (o link já autenticou a pessoa; só falta ela escolher a senha).
+    if(siteAuthRedirectType){
+      const {data:{session}}=await sbClient.auth.getSession();
+      if(session){ renderSetPasswordGate(siteAuthRedirectType); return; }
+    }
+    const {data:canView,error}=await sbClient.rpc('can_view_site');
+    if(error) throw error;
+    if(canView===false){ renderAccessGate(); return; }
+    document.documentElement.classList.remove('site-checking-access');
+  }catch(err){
+    // falha de rede etc — melhor mostrar o site do que travar o visitante
+    // numa tela em branco pra sempre.
+    document.documentElement.classList.remove('site-checking-access');
+  }
+}
+function renderSetPasswordGate(type){
+  document.body.insertAdjacentHTML('beforeend',`
+    <div class="access-gate">
+      <div class="access-gate-card">
+        <h1>Defina sua senha</h1>
+        <p>${type==='invite'?'Bem-vindo(a)! Escolha a senha que você vai usar pra entrar daqui pra frente.':'Escolha sua nova senha.'}</p>
+        <form id="siteSetPasswordForm" novalidate>
+          <label>Nova senha<input id="siteSetPasswordNew" type="password" autocomplete="new-password" required minlength="8"></label>
+          <label>Confirmar senha<input id="siteSetPasswordConfirm" type="password" autocomplete="new-password" required minlength="8"></label>
+          <button type="submit" class="btn btn-primary">Salvar senha</button>
+          <p class="access-gate-error" id="siteSetPasswordError"></p>
+        </form>
+      </div>
+    </div>`);
+  document.documentElement.classList.remove('site-checking-access');
+  $('#siteSetPasswordForm').addEventListener('submit',async(e)=>{
+    e.preventDefault();
+    const errEl=$('#siteSetPasswordError');
+    errEl.textContent='';
+    const p1=$('#siteSetPasswordNew').value, p2=$('#siteSetPasswordConfirm').value;
+    if(p1.length<8){ errEl.textContent='A senha precisa ter pelo menos 8 caracteres.'; return }
+    if(p1!==p2){ errEl.textContent='As senhas não coincidem.'; return }
+    const btn=e.target.querySelector('button[type="submit"]');
+    btn.disabled=true;
+    try{
+      const {error}=await sbClient.auth.updateUser({password:p1});
+      if(error) throw error;
+      window.location.href=window.location.pathname;
+    }catch(err){
+      errEl.textContent=err.message;
+      btn.disabled=false;
+    }
+  });
+}
+function renderAccessGate(){
+  // WhatsApp de contato DA FAMÍLIA (site_config.contato_whatsapp) — não o
+  // do operador (suporte_whatsapp, esse é outro botão, na tela de login do
+  // ADMIN). Aqui é pra quem não consegue entrar no site pedir ajuda pra
+  // quem administra ESTE acervo. Sem número cadastrado, o link some.
+  const contatoNumero=window.__siteConfig?.contato_whatsapp?.replace(/\D/g,'');
+  const helpLinkHtml=contatoNumero
+    ?`<a class="link-gate" id="accessGateHelp" href="https://wa.me/${contatoNumero}?text=${encodeURIComponent('Não estou conseguindo acessar o site. Pode me ajudar com o login?')}" target="_blank" rel="noopener">Não consegue entrar? Falar no WhatsApp</a>`
+    :'';
+  document.body.insertAdjacentHTML('beforeend',`
+    <div class="access-gate">
+      <div class="access-gate-card">
+        <h1>Acesso restrito</h1>
+        <p>Este acervo é privado. Entre com o login que você recebeu pra continuar.</p>
+        <form id="accessGateForm" novalidate>
+          <label>Login ou e-mail<input id="accessGateEmail" type="text" autocomplete="username" required></label>
+          <label>Senha<input id="accessGatePassword" type="password" autocomplete="current-password" required></label>
+          <button type="submit" class="btn btn-primary">Entrar</button>
+          <p class="access-gate-error" id="accessGateError"></p>
+        </form>
+        <p class="access-gate-error" id="accessGateForgotSuccess" style="color:#82be93"></p>
+        <div id="accessGateForgotConfirm" class="access-gate-forgot-confirm" hidden>
+          <label>Confirme seu e-mail cadastrado<input id="accessGateForgotEmail" type="email" autocomplete="off"></label>
+          <button type="button" class="btn btn-ghost" id="accessGateForgotSubmit">Enviar link de redefinição</button>
+        </div>
+        <div class="access-gate-links">
+          <button type="button" class="link-gate" id="accessGateForgotBtn">Esqueci minha senha</button>
+          ${helpLinkHtml}
+        </div>
+      </div>
+    </div>`);
+  $('#accessGateForm').addEventListener('submit',async(e)=>{
+    e.preventDefault();
+    const btn=e.target.querySelector('button[type="submit"]');
+    const errEl=$('#accessGateError');
+    errEl.textContent='';
+    const raw=$('#accessGateEmail').value.trim().toLowerCase();
+    // Usuário comum entra com um "login" livre, não precisa ser um e-mail
+    // de verdade — quem digitou algo sem @ recebe o mesmo sufixo sintético
+    // usado na hora de criar a conta (ver create-site-visitor). Quem tem
+    // e-mail de verdade cadastrado (ou é admin/editor/operador) digita
+    // normalmente, com @.
+    const email=raw.includes('@')?raw:`${raw}@visitante.local`;
+    const password=$('#accessGatePassword').value;
+    btn.disabled=true;
+    try{
+      const {error}=await sbClient.auth.signInWithPassword({email,password});
+      if(error) throw error;
+      window.location.reload();
+    }catch(err){
+      errEl.textContent='Falha no login: '+err.message;
+      btn.disabled=false;
+    }
+  });
+  // "Esqueci minha senha" — só funciona pra quem tem um e-mail de VERDADE
+  // cadastrado (visitante só-login não tem como, precisa pedir ajuda pelo
+  // WhatsApp acima). Mesma fricção de 3 tentativas + bloqueio crescente do
+  // login do admin, pelo mesmo motivo (evitar spam de e-mail de reset).
+  let forgotFailStreak=0, forgotBlockedUntil=0;
+  $('#accessGateForgotBtn').addEventListener('click',()=>{
+    $('#accessGateError').textContent=''; $('#accessGateForgotSuccess').textContent='';
+    $('#accessGateForgotConfirm').hidden=false;
+    $('#accessGateForgotEmail').value='';
+    $('#accessGateForgotEmail').focus();
+  });
+  $('#accessGateForgotSubmit').addEventListener('click',async()=>{
+    const errEl=$('#accessGateError');
+    errEl.textContent=''; $('#accessGateForgotSuccess').textContent='';
+    const agora=Date.now();
+    if(agora<forgotBlockedUntil){
+      errEl.textContent=`Muitas tentativas — aguarde ${Math.ceil((forgotBlockedUntil-agora)/1000)}s.`;
+      return;
+    }
+    const typedLogin=$('#accessGateEmail').value.trim().toLowerCase();
+    const confirmEmail=$('#accessGateForgotEmail').value.trim().toLowerCase();
+    if(!typedLogin.includes('@')){
+      errEl.textContent='Preencha seu e-mail de verdade no campo "Login ou e-mail" acima primeiro (sem e-mail cadastrado, use o WhatsApp).';
+      return;
+    }
+    if(!confirmEmail||confirmEmail!==typedLogin){
+      forgotFailStreak++;
+      if(forgotFailStreak>=3) forgotBlockedUntil=Date.now()+Math.min(60000,5000*2**(forgotFailStreak-3));
+      errEl.textContent='O e-mail de confirmação não bate com o e-mail digitado acima.';
+      return;
+    }
+    forgotFailStreak=0;
+    const btn=$('#accessGateForgotSubmit');
+    btn.disabled=true;
+    try{
+      const {error}=await sbClient.auth.resetPasswordForEmail(typedLogin,{redirectTo:window.location.origin+'/index.html'});
+      if(error) throw error;
+      $('#accessGateForgotSuccess').textContent='Enviamos um e-mail pra '+typedLogin+' com um link pra você criar uma senha nova.';
+      $('#accessGateForgotConfirm').hidden=true;
+    }catch(err){
+      errEl.textContent=err.message;
+    }finally{
+      btn.disabled=false;
+    }
+  });
+}
+applyAccessGate();
+
+// Botão "Sair" no cabeçalho — só aparece quando o site está privado E tem
+// alguém logado (usuário comum OU staff navegando o site público). Site
+// público não precisa disso (não tem sessão relevante pra encerrar aqui).
+async function maybeShowLogoutButton(){
+  try{
+    await window.__siteBrandingReady;
+    if(!window.__siteConfig?.is_private) return;
+    const {data:{session}}=await sbClient.auth.getSession();
+    if(!session) return;
+    if(document.getElementById('siteLogoutBtn')) return;
+    const nav=document.querySelector('.site-nav');
+    if(!nav){ setTimeout(maybeShowLogoutButton,300); return; }
+    const btn=document.createElement('button');
+    btn.type='button'; btn.id='siteLogoutBtn'; btn.className='search-btn';
+    btn.innerHTML='<span>Sair</span>';
+    btn.addEventListener('click',async()=>{ await sbClient.auth.signOut(); window.location.reload(); });
+    nav.appendChild(btn);
+  }catch(err){ /* sem sessão, sem rede etc — sem botão, sem quebrar a página */ }
+}
+maybeShowLogoutButton();
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 // Usado por index.html (vídeo em destaque) e videos.html: distingue um link
 // pro arquivo de vídeo em si (ex.: .../download/.../video.mp4) de um link de
