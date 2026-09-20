@@ -2,19 +2,35 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" sizes="16x16" href="/Assents/Logos-web/favicon-16.png"><link rel="icon" type="image/png" sizes="32x32" href="/Assents/Logos-web/favicon-32.png"><link rel="icon" type="image/png" sizes="48x48" href="/Assents/Logos-web/favicon-48.png"><link rel="apple-touch-icon" href="/Assents/Logos-web/apple-touch-icon.png">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://igglfuatavmxabffaflb.supabase.co; connect-src 'self' https://igglfuatavmxabffaflb.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>Família — Administração</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/admin/css/admin.css?v=6">
+<title>Família — Administração</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/admin/css/admin.css?v=10">
 </head><body>
 <div id="loginView" class="auth-screen"><div class="auth-card">
 <div class="brand-mark"><img id="loginBrandLogo" src="/Assents/Logos-web/icon-96.webp" alt=""></div><h1>Administração da Família</h1>
 <p>Entre para administrar pessoas, genealogia, livro, histórias e acervo.</p>
 <form id="loginForm" novalidate><label>E-mail<input id="email" type="email" autocomplete="username" required></label>
-<label>Senha<input id="password" type="password" autocomplete="current-password" required></label>
+<label>Senha<div class="password-field"><input id="password" type="password" autocomplete="current-password" required><button type="button" class="password-toggle" data-target="password" aria-label="Mostrar senha">👁</button></div></label>
 <button class="primary full" type="submit">Entrar</button><div id="loginError" class="error"></div></form>
+<p class="hint" id="forgotPasswordSuccess" style="display:none;color:#2f9e6e;font-weight:700"></p>
+<div id="forgotPasswordConfirm" class="hint" hidden style="text-align:left;margin-top:14px">
+  <label>Confirme o e-mail cadastrado<input type="email" id="forgotPasswordConfirmEmail" autocomplete="off"></label>
+  <button type="button" class="secondary full" id="forgotPasswordSubmitBtn" style="margin-top:8px">Enviar link de redefinição</button>
+</div>
+<div class="auth-links">
+  <button type="button" id="forgotPasswordBtn" class="link-btn">Esqueci minha senha</button>
+  <a id="loginSupportLink" href="#" target="_blank" rel="noopener" class="link-btn" hidden>Precisa de ajuda? Falar no WhatsApp</a>
+</div>
+</div></div>
+<div id="setPasswordView" class="auth-screen hidden"><div class="auth-card">
+<div class="brand-mark"><img src="/Assents/Logos-web/icon-96.webp" alt=""></div><h1>Defina sua senha</h1>
+<p id="setPasswordIntro">Escolha a senha que você vai usar pra entrar daqui pra frente.</p>
+<form id="setPasswordForm" novalidate><label>Nova senha<div class="password-field"><input id="setPasswordNew" type="password" autocomplete="new-password" required minlength="8"><button type="button" class="password-toggle" data-target="setPasswordNew" aria-label="Mostrar senha">👁</button></div></label>
+<label>Confirmar senha<div class="password-field"><input id="setPasswordConfirm" type="password" autocomplete="new-password" required minlength="8"><button type="button" class="password-toggle" data-target="setPasswordConfirm" aria-label="Mostrar senha">👁</button></div></label>
+<button class="primary full" type="submit">Salvar senha</button><div id="setPasswordError" class="error"></div></form>
 </div></div>
 <div id="appView" class="app-shell hidden">
 <aside class="sidebar"><div class="brand"><div class="brand-mark"><img id="sidebarBrandLogo" src="/Assents/Logos-web/icon-96.webp" alt=""></div><div class="brand-text"><strong>Família</strong><span>Administração</span></div><button id="sidebarCollapseBtn" class="sidebar-collapse-btn" type="button" aria-label="Recolher menu" aria-expanded="true" title="Recolher menu">‹</button></div>
-<nav><a class="nav-item active" href="#dashboard">Dashboard</a><a class="nav-item" href="#pessoas">Pessoas</a><a class="nav-item" href="#familias">Famílias</a><a class="nav-item" href="#genealogia">Genealogia</a><a class="nav-item" href="#livro">Livro</a><a class="nav-item" href="#historias">Histórias</a><a class="nav-item" href="#fotos">Fotos</a><a class="nav-item" href="#albuns">Álbuns</a><a class="nav-item" href="#eventos">Eventos</a><a class="nav-item" href="#documentos">Documentos</a><a class="nav-item" href="#fontes">Fontes</a><a class="nav-item" href="#lugares">Lugares</a><a class="nav-item" href="#configuracoes">Configurações</a></nav>
-<div class="sidebar-footer"><span id="roleBadge" class="footer-text">—</span><button id="logoutBtn" class="logout" title="Sair"><span class="logout-icon">⏻</span><span class="footer-text">Sair</span></button></div></aside>
+<nav><a class="nav-item active" href="#dashboard">Dashboard</a><a class="nav-item" href="#pessoas">Pessoas</a><a class="nav-item" href="#familias">Famílias</a><a class="nav-item" href="#genealogia">Genealogia</a><a class="nav-item" href="#livro">Livro</a><a class="nav-item" href="#historias">Histórias</a><a class="nav-item" href="#fotos">Fotos</a><a class="nav-item" href="#albuns">Álbuns</a><a class="nav-item" href="#eventos">Eventos</a><a class="nav-item" href="#documentos">Documentos</a><a class="nav-item" href="#fontes">Fontes</a><a class="nav-item" href="#lugares">Lugares</a><a class="nav-item" href="#configuracoes">Configurações</a><a class="nav-item" href="#usuarios" hidden>Usuários</a></nav>
+<div class="sidebar-footer"><span id="roleBadge" class="footer-text">—</span><button id="changePasswordBtn" class="logout" title="Trocar senha"><span class="logout-icon">🔑</span><span class="footer-text">Trocar senha</span></button><button id="logoutBtn" class="logout" title="Sair"><span class="logout-icon">⏻</span><span class="footer-text">Sair</span></button></div></aside>
 <div class="sidebar-scrim" id="sidebarScrim"></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <main class="main"><header class="topbar"><button class="mobile-menu" id="mobileMenuBtn" aria-label="Abrir menu" aria-expanded="false">☰</button><h1 id="topbarTitle">Gestão da História da Família</h1><div class="user-badge" id="userEmail">—</div></header>
@@ -183,6 +199,43 @@
   <div class="usage-list" id="planUsageList"></div>
 </div>
 </section>
+
+<section class="panel" id="usuarios" hidden><div class="panel-header"><div class="panel-title"><span class="stat-icon stat-icon-usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.1"/><path d="M3.8 19.5c0-3 2.3-5.2 5.3-5.2 2 0 3.7.9 4.6 2.4"/><path d="M13 19.5c.2-2.5 2-4.3 4.4-4.3 2.4 0 4.4 2 4.4 4.3"/></svg></span><div><span class="eyebrow">USUÁRIOS</span><h3>Acesso ao painel</h3></div></div></div>
+  <h3 class="plan-section-heading" style="border-top:0;padding-top:0;margin-top:0">Criar acesso admin</h3>
+  <p class="hint">Cria o login da família pra administrar este site. Só cria usuários do tipo "admin" — depois de logado, o admin poderá criar outros tipos de acesso.</p>
+  <div class="form-grid">
+    <label>Nome<input type="text" id="newUserName" placeholder="Ex.: Maria Silva"></label>
+    <label>E-mail<input type="email" id="newUserEmail" placeholder="maria@exemplo.com"></label>
+  </div>
+  <div class="form-grid">
+    <label>Senha<input type="text" id="newUserPassword" placeholder="Gere ou digite uma senha" autocomplete="new-password"></label>
+    <label>&nbsp;<button type="button" class="secondary full" id="genPasswordBtn">Gerar senha automática</button></label>
+  </div>
+  <div class="form-actions">
+    <button type="button" class="secondary" id="inviteUserBtn">Enviar convite por e-mail</button>
+    <button type="button" class="primary" id="createUserBtn">Criar usuário com essa senha</button>
+  </div>
+  <div id="newUserError" class="error"></div>
+  <p class="hint" id="newUserSuccess" style="display:none;color:#2f9e6e;font-weight:700"></p>
+
+  <h3 class="plan-section-heading">Usuários cadastrados</h3>
+  <div class="toolbar">
+    <input id="searchUsers" placeholder="Buscar por nome ou e-mail...">
+    <label style="margin:0">Papel<select id="usersRoleFilter">
+      <option value="">Todos</option>
+      <option value="admin">Só admin</option>
+      <option value="editor">Só editor</option>
+      <option value="operador">Só operador</option>
+    </select></label>
+    <label style="margin:0">Por página<select id="usersPageSize">
+      <option value="5" selected>5 por página</option>
+      <option value="10">10 por página</option>
+      <option value="30">30 por página</option>
+    </select></label>
+  </div>
+  <div class="table-wrap" id="usersTableWrap"></div>
+  <div class="pagination" id="usersPagination"></div>
+</section>
 </section></main></div>
 <div class="modal" id="personModal"><div class="modal-card"><button class="modal-close" id="closeModal">×</button><span class="eyebrow">CADASTRO DE PESSOA</span><h2 id="formTitle">Nova pessoa</h2><form id="personForm" novalidate><input type="hidden" id="personId">
 <div class="form-grid"><label>Nome<input id="givenName" required></label><label>Sobrenome<input id="surname"></label><label>Apelido<input id="nickname"></label><label>Data de nascimento<input id="birthDate" type="date"></label><label>Data de falecimento<input id="deathDate" type="date"></label></div>
@@ -320,10 +373,24 @@
 <label>Descrição<textarea id="placeDescription" rows="3"></textarea></label>
 <div class="form-actions"><button type="button" class="secondary" id="cancelPlaceForm">Cancelar</button><button type="submit" class="primary">Salvar</button></div><div id="placeFormError" class="error"></div></form></div></div>
 
+<div class="modal" id="changePasswordModal"><div class="modal-card" style="width:min(440px,100%)"><button class="modal-close" id="closeChangePasswordModal">×</button><span class="eyebrow">CONTA</span><h2>Trocar senha</h2>
+<form id="changePasswordForm" novalidate><label>Nova senha<div class="password-field"><input id="changePasswordNew" type="password" autocomplete="new-password" required minlength="8"><button type="button" class="password-toggle" data-target="changePasswordNew" aria-label="Mostrar senha">👁</button></div></label>
+<label>Confirmar nova senha<div class="password-field"><input id="changePasswordConfirm" type="password" autocomplete="new-password" required minlength="8"><button type="button" class="password-toggle" data-target="changePasswordConfirm" aria-label="Mostrar senha">👁</button></div></label>
+<div class="form-actions"><button type="button" class="secondary" id="cancelChangePassword">Cancelar</button><button class="primary full" type="submit">Salvar</button></div><div id="changePasswordError" class="error"></div></form>
+</div></div>
+
+<div class="modal" id="setTempPasswordModal"><div class="modal-card" style="width:min(440px,100%)"><button class="modal-close" id="closeSetTempPasswordModal">×</button><span class="eyebrow">USUÁRIOS</span><h2>Definir senha temporária</h2>
+<p class="hint" id="setTempPasswordIntro"></p>
+<label>Nova senha<input type="text" id="setTempPasswordValue" autocomplete="off"></label>
+<button type="button" class="secondary full" id="genTempPasswordBtn">Gerar senha automática</button>
+<div class="form-actions"><button type="button" class="secondary" id="cancelSetTempPassword">Cancelar</button><button type="button" class="primary" id="confirmSetTempPassword">Definir senha</button></div>
+<div id="setTempPasswordError" class="error"></div>
+<p class="hint" id="setTempPasswordSuccess" style="display:none;color:#2f9e6e;font-weight:700"></p>
+</div></div>
 <div class="modal" id="confirmDeleteModal"><div class="modal-card" style="width:min(440px,100%)"><button class="modal-close" id="closeConfirmDeleteModal">×</button><span class="eyebrow">CONFIRMAR EXCLUSÃO</span><h2 id="confirmDeleteTitle">Excluir registro?</h2>
 <p id="confirmDeleteMessage" class="hint"></p>
 <div class="form-actions"><button type="button" class="secondary" id="cancelConfirmDelete">Cancelar</button><button type="button" class="primary danger-btn" id="confirmDeleteBtn">Excluir</button></div></div></div>
 <datalist id="placesList"></datalist><datalist id="photosList"></datalist><datalist id="documentsList"></datalist><datalist id="storiesQuickList"></datalist><datalist id="albumsQuickList"></datalist><datalist id="sourcesQuickList"></datalist><datalist id="chaptersQuickList"></datalist><datalist id="eventsQuickList"></datalist>
 <datalist id="peopleList"></datalist>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script><script src="/admin/js/config.js"></script><script src="/admin/js/admin.js?v=3"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script><script src="/admin/js/config.js"></script><script src="/admin/js/admin.js?v=16"></script>
 </body></html>

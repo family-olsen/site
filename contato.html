@@ -77,17 +77,15 @@
 <script src="js/config.js"></script>
 <script src="js/site.js?v=3"></script>
 <script>
-// Fixo de propósito — "quer um site assim" é sempre uma venda nova, fala
-// sempre com quem constrói/vende o site (Legado Digital), não com a família
-// deste acervo específico. Não vira campo de configuração.
-const BUILDER_WHATSAPP_NUMBER='5541997224176';
 function waLink(number,text){return `https://wa.me/${number}?text=${encodeURIComponent(text)}`}
 renderHeader(); renderFooter();
-$('#btnCliente').href=waLink(BUILDER_WHATSAPP_NUMBER,'Olá! Vi o site da família Olsen, Belloto e Leal e tenho interesse em um site parecido para a minha família.');
 // "Você é da família" fala com quem administra ESTE acervo — número vem de
-// site_config.contato_whatsapp (editável pelo admin da família), não do
-// número fixo acima. Sem número configurado, esconde o cartão em vez de
-// deixar um link quebrado.
+// site_config.contato_whatsapp (editável pelo admin da família). "Quer um
+// site assim" fala com o operador da plataforma (quem vende/constrói sites
+// Legado Digital) — número vem de plan_limits.suporte_whatsapp (editável só
+// pelo operador), lido via get_public_support_whatsapp() porque essa página
+// é pública, sem login. Nenhum dos dois números fica mais fixo no código —
+// sem número configurado, some o cartão em vez de deixar um link quebrado.
 (async()=>{
   await window.__siteBrandingReady;
   const familyNumber=window.__siteConfig?.contato_whatsapp;
@@ -95,6 +93,14 @@ $('#btnCliente').href=waLink(BUILDER_WHATSAPP_NUMBER,'Olá! Vi o site da famíli
     $('#btnFamilia').href=waLink(familyNumber,'Olá! Sou da família Olsen, Belloto ou Leal e tenho uma história, foto ou documento para compartilhar no site.');
   } else {
     $('#btnFamilia').closest('.contato-card').style.display='none';
+  }
+})();
+(async()=>{
+  const {data:builderNumber}=await sbClient.rpc('get_public_support_whatsapp');
+  if(builderNumber){
+    $('#btnCliente').href=waLink(builderNumber,'Olá! Vi o site da família Olsen, Belloto e Leal e tenho interesse em um site parecido para a minha família.');
+  } else {
+    $('#btnCliente').closest('.contato-card').style.display='none';
   }
 })();
 if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){

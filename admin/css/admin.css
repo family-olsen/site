@@ -17,6 +17,14 @@ a.stat-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px #0001;border
 .stat-icon-lugares{background:#e2574c1a;color:#e2574c}
 .stat-icon-genealogia{background:#0284c71a;color:#0284c7}
 .stat-icon-configuracoes{background:#64748b1a;color:#64748b}
+.stat-icon-usuarios{background:#9333ea1a;color:#9333ea}
+.auth-links{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:18px}
+.link-btn{background:none;border:0;padding:0;color:#315cff;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none}
+.link-btn:hover{text-decoration:underline}
+.password-field{position:relative}
+.password-field input{padding-right:42px}
+.password-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;font-size:16px;padding:8px;line-height:1;opacity:.6}
+.password-toggle:hover{opacity:1}
 /* Mesmos ícones do dashboard, repetidos no cabeçalho de cada seção — ajuda a
    identificar rápido em qual área do painel você está. */
 .panel-title{display:flex;align-items:center;gap:14px}

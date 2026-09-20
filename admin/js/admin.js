@@ -5,6 +5,16 @@ const client = createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY
   global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) }
 });
 const $ = s => document.querySelector(s);
+// Lido AGORA (antes de qualquer coisa assíncrona rodar) — um link de convite/
+// recuperação de senha chega com esse tipo no hash da URL (#...&type=invite),
+// e o supabase-js consome/limpa esse hash sozinho ao processar a sessão. Se a
+// gente checasse isso mais tarde (ex. dentro de boot()), podia já ter sumido.
+const authRedirectType=(()=>{
+  const h=window.location.hash;
+  if(h.includes('type=invite')) return 'invite';
+  if(h.includes('type=recovery')) return 'recovery';
+  return null;
+})();
 // Logo da tela de login e da barra lateral também segue o logo personalizado
 // da família (site_config), não só o site público — site_config é de leitura
 // pública, então dá pra buscar isso mesmo antes do login. Sem logo_path
@@ -36,8 +46,31 @@ async function applyAdminBrandLogo(){
   }catch(err){ /* mantém o texto padrão se a rede falhar */ }
 }
 applyAdminBrandLogo();
+document.querySelectorAll('.password-toggle').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const input=document.getElementById(btn.dataset.target);
+    const show=input.type==='password';
+    input.type=show?'text':'password';
+    btn.textContent=show?'🙈':'👁';
+    btn.setAttribute('aria-label',show?'Esconder senha':'Mostrar senha');
+  });
+});
+// Botão de ajuda na TELA DE LOGIN — antes de logar, então só pode ler algo
+// público. get_public_support_whatsapp() devolve só o telefone (mesma fonte
+// do card "Precisa de ajuda?" de dentro do painel), sem exigir sessão.
+(async()=>{
+  try{
+    const {data:phone}=await client.rpc('get_public_support_whatsapp');
+    const digits=phone?.replace(/\D/g,'');
+    if(digits){
+      const msg='Preciso de ajuda com o login.';
+      $('#loginSupportLink').href=`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+      $('#loginSupportLink').hidden=false;
+    }
+  }catch(err){ /* sem suporte configurado — fica escondido, sem quebrar a tela */ }
+})();
 const loginView=$('#loginView'), appView=$('#appView'), modal=$('#personModal'), familyModal=$('#familyModal'), childrenModal=$('#childrenModal'), linkChildrenModal=$('#linkChildrenModal'), relModal=$('#relModal'), storyModal=$('#storyModal'), storyPeopleModal=$('#storyPeopleModal'), bookModal=$('#bookModal'), chaptersModal=$('#chaptersModal'), photoModal=$('#photoModal'), photoPeopleModal=$('#photoPeopleModal'), albumModal=$('#albumModal'), albumPhotosModal=$('#albumPhotosModal'), eventModal=$('#eventModal'), eventPeopleModal=$('#eventPeopleModal'), documentModal=$('#documentModal'), sourceModal=$('#sourceModal'), placeModal=$('#placeModal'), confirmDeleteModal=$('#confirmDeleteModal');
-let role=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], sourceQuickPeople=[], reopenSourceAfterPersonSave=false, reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null, familiesPage=1, booksPage=1, storiesPage=1, photosPage=1, albumsPage=1, eventsPage=1, documentsPage=1, sourcesPage=1, placesPage=1;
+let role=null, currentUserId=null, people=[], families=[], stories=[], activeStoryId=null, currentStoryPeople=[], places=[], photos=[], albums=[], events=[], documents=[], sources=[], books=[], currentChapters=[], currentPhotoPeople=[], currentEventPeople=[], currentAlbumPhotos=[], activePhotoId=null, activeAlbumId=null, activeEventId=null, activeBookId=null, placesLabelMap=new Map(), photosLabelMap=new Map(), documentsLabelMap=new Map(), peopleOptions=[], activeFamilyId=null, currentChildrenMap=new Map(), currentFocusId=null, relMode=null, relTargetId=null, relTargetFamilyUnits=[], reopenRelModeAfterPersonSave=null, peopleLabelMap=new Map(), storiesQuickLabelMap=new Map(), photoQuickPeople=[], photoQuickStories=[], storyQuickPeople=[], albumsQuickLabelMap=new Map(), photoQuickAlbums=[], chapterQuickPhotos=[], reopenChaptersAfterPhotoSave=false, storyQuickPhotos=[], reopenStoryAfterPersonSave=false, reopenStoryAfterPhotoSave=false, eventQuickPeople=[], eventQuickDocuments=[], sourceQuickStories=[], sourceQuickChapters=[], sourceQuickPeople=[], reopenSourceAfterPersonSave=false, reopenEventAfterPersonSave=false, reopenEventAfterPhotoSave=false, placeShortcutTarget=null, sourcesQuickLabelMap=new Map(), storyQuickSources=[], eventQuickSources=[], chapterQuickSources=[], reopenStoryAfterSourceSave=false, reopenEventAfterSourceSave=false, reopenChaptersAfterSourceSave=false, chaptersQuickLabelMap=new Map(), eventsQuickLabelMap=new Map(), pendingDocumentUpload=null, documentQuickPeople=[], documentQuickStories=[], documentQuickChapters=[], documentQuickEvents=[], reopenDocumentAfterPersonSave=false, peoplePage=1, pendingLinkChildren=[], pendingLinkFamilyId=null, familiesPage=1, booksPage=1, storiesPage=1, photosPage=1, albumsPage=1, eventsPage=1, documentsPage=1, sourcesPage=1, placesPage=1;
 
 /* ---------- Pré-visualização da biografia automática ----------
    Mesmo gerador de texto usado em pessoa.html (js/site.js) — duplicado aqui de
@@ -312,7 +345,7 @@ async function ensureAdmin(){
   if(!user) return false;
   const {data,error}=await client.from('admin_users').select('role,display_name,active').eq('user_id',user.id).maybeSingle();
   if(error || !data || !data.active){await client.auth.signOut(); throw new Error('Usuário autenticado sem permissão no painel.');}
-  role=data.role; $('#roleBadge').textContent=data.role.toUpperCase(); $('#userEmail').textContent=user.email||'';
+  role=data.role; currentUserId=user.id; $('#roleBadge').textContent=data.role.toUpperCase(); $('#userEmail').textContent=user.email||'';
   return true;
 }
 async function loadPeople(){
@@ -927,6 +960,52 @@ function resetZoom(){zoomScale=1; panX=0; panY=0; applyZoom();}
 // batendo direto na API). A defesa de verdade é o rate limit do próprio
 // Supabase Auth no servidor — isso aqui só cria fricção no navegador.
 let loginFailStreak=0, loginBlockedUntil=0;
+// Mesma lógica de fricção do login (3 tentativas, depois bloqueio que
+// aumenta) — aqui protege contra alguém ficar mandando e-mail de
+// redefinição pra endereços ao acaso (spam/enumeração de contas). Pedir
+// que a pessoa DIGITE o e-mail de novo (em vez de só reusar o campo de
+// cima) também evita mandar o link pro endereço errado por autofill/typo.
+let forgotPasswordFailStreak=0, forgotPasswordBlockedUntil=0;
+$('#forgotPasswordBtn').addEventListener('click',()=>{
+  showError($('#loginError'),''); $('#forgotPasswordSuccess').style.display='none';
+  const email=$('#email').value.trim();
+  if(!email){ showError($('#loginError'),'Preencha o e-mail acima primeiro.'); return }
+  $('#forgotPasswordConfirm').hidden=false;
+  $('#forgotPasswordConfirmEmail').value='';
+  $('#forgotPasswordConfirmEmail').focus();
+});
+async function forgotPassword(){
+  showError($('#loginError'),''); $('#forgotPasswordSuccess').style.display='none';
+  const agora=Date.now();
+  if(agora<forgotPasswordBlockedUntil){
+    showError($('#loginError'),`Muitas tentativas — aguarde ${Math.ceil((forgotPasswordBlockedUntil-agora)/1000)}s.`);
+    return;
+  }
+  const email=$('#email').value.trim();
+  const confirmEmail=$('#forgotPasswordConfirmEmail').value.trim();
+  if(!email){ showError($('#loginError'),'Preencha o e-mail acima primeiro.'); return }
+  if(!confirmEmail||confirmEmail.toLowerCase()!==email.toLowerCase()){
+    forgotPasswordFailStreak++;
+    if(forgotPasswordFailStreak>=3) forgotPasswordBlockedUntil=Date.now()+Math.min(60000,5000*2**(forgotPasswordFailStreak-3));
+    showError($('#loginError'),'O e-mail de confirmação não bate com o e-mail cadastrado acima.');
+    return;
+  }
+  forgotPasswordFailStreak=0;
+  const btn=$('#forgotPasswordSubmitBtn');
+  btn.disabled=true;
+  try{
+    const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/admin/index.html'});
+    if(error) throw error;
+    $('#forgotPasswordSuccess').textContent='Enviamos um e-mail pra '+email+' com um link pra você criar uma senha nova.';
+    $('#forgotPasswordSuccess').style.display='block';
+    $('#forgotPasswordConfirm').hidden=true;
+  }catch(err){
+    showError($('#loginError'),err.message);
+  }finally{
+    btn.disabled=false;
+  }
+}
+$('#forgotPasswordSubmitBtn').addEventListener('click',forgotPassword);
 async function login(e){
   if(e) e.preventDefault();
   showError($('#loginError'),'');
@@ -983,9 +1062,56 @@ function tableHtml(columns,rows){
   const tbody='<tbody>'+rows.map(cells=>'<tr>'+cells.map((cell,i)=>`<td data-label="${escapeHtml(columns[i]||'')}">${cell}</td>`).join('')+'</tr>').join('')+'</tbody>';
   return `<table>${thead}${tbody}</table>`;
 }
+async function submitSetPassword(e){
+  e.preventDefault();
+  showError($('#setPasswordError'),'');
+  const p1=$('#setPasswordNew').value, p2=$('#setPasswordConfirm').value;
+  if(p1.length<8){ showError($('#setPasswordError'),'A senha precisa ter pelo menos 8 caracteres.'); return }
+  if(p1!==p2){ showError($('#setPasswordError'),'As senhas não coincidem.'); return }
+  const btn=e.target.querySelector('button[type="submit"]');
+  btn.disabled=true; btn.textContent='Salvando...';
+  try{
+    const {error}=await client.auth.updateUser({password:p1});
+    if(error) throw error;
+    // Recarrega sem o hash do convite/recuperação — cai direto no boot()
+    // normal, já autenticado com a senha nova.
+    window.location.href=window.location.pathname;
+  }catch(err){
+    showError($('#setPasswordError'),err.message);
+    btn.disabled=false; btn.textContent='Salvar senha';
+  }
+}
+function closeChangePasswordModal(){ $('#changePasswordModal').classList.remove('open'); }
+async function submitChangePassword(e){
+  e.preventDefault();
+  showError($('#changePasswordError'),'');
+  const p1=$('#changePasswordNew').value, p2=$('#changePasswordConfirm').value;
+  if(p1.length<8){ showError($('#changePasswordError'),'A senha precisa ter pelo menos 8 caracteres.'); return }
+  if(p1!==p2){ showError($('#changePasswordError'),'As senhas não coincidem.'); return }
+  const btn=e.target.querySelector('button[type="submit"]');
+  btn.disabled=true;
+  try{
+    const {error}=await client.auth.updateUser({password:p1});
+    if(error) throw error;
+    closeChangePasswordModal();
+    showToast('Senha atualizada.');
+  }catch(err){
+    showError($('#changePasswordError'),err.message);
+  }finally{
+    btn.disabled=false;
+  }
+}
+function showSetPasswordView(type){
+  loginView.classList.add('hidden');
+  $('#setPasswordIntro').textContent=type==='invite'
+    ?'Bem-vindo(a)! Escolha a senha que você vai usar pra entrar daqui pra frente.'
+    :'Escolha sua nova senha.';
+  $('#setPasswordView').classList.remove('hidden');
+}
 async function boot(){
   if(window.SUPABASE_PUBLISHABLE_KEY.includes('COLOQUE_AQUI')){showError($('#loginError'),'Configure a chave publishable do Supabase em js/config.js antes de entrar.');return}
   const {data:{session}}=await client.auth.getSession();
+  if(authRedirectType&&session){ showSetPasswordView(authRedirectType); return }
   if(session){try{
     await ensureAdmin();
     loginView.classList.add('hidden');appView.classList.remove('hidden');
@@ -1013,7 +1139,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#documentForm').addEventListener('submit',saveDocument);
   $('#sourceForm').addEventListener('submit',saveSource);
   $('#placeForm').addEventListener('submit',savePlace);
+  $('#setPasswordForm').addEventListener('submit',submitSetPassword);
+  $('#changePasswordForm').addEventListener('submit',submitChangePassword);
 });
+$('#changePasswordBtn').onclick=()=>{
+  $('#changePasswordNew').value=''; $('#changePasswordConfirm').value='';
+  showError($('#changePasswordError'),'');
+  $('#changePasswordModal').classList.add('open');
+};
+$('#closeChangePasswordModal').onclick=closeChangePasswordModal;
+$('#cancelChangePassword').onclick=closeChangePasswordModal;
 $('#newPersonBtn').onclick=()=>openModal();$('#closeModal').onclick=closeModal;$('#cancelForm').onclick=closeModal;$('#refreshPeople').onclick=loadPeople;
 $('#personAvatarFile').addEventListener('change',onPersonAvatarChange);
 $('#personAvatarRemoveBtn').addEventListener('click',removePersonAvatar);
@@ -1158,7 +1293,8 @@ const navIconMap={
   documentos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M8.5 12.5h7M8.5 15.5h7"/></svg>',
   fontes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4-6.5 4V5a1 1 0 0 1 1-1Z"/></svg>',
   lugares:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>',
-  configuracoes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 3.5v2.3M12 18.2v2.3M4.6 7.3l2 1.2M17.4 15.5l2 1.2M4.6 16.7l2-1.2M17.4 8.5l2-1.2M3.5 12h2.3M18.2 12h2.3"/></svg>'
+  configuracoes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 3.5v2.3M12 18.2v2.3M4.6 7.3l2 1.2M17.4 15.5l2 1.2M4.6 16.7l2-1.2M17.4 8.5l2-1.2M3.5 12h2.3M18.2 12h2.3"/></svg>',
+  usuarios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.1"/><path d="M3.8 19.5c0-3 2.3-5.2 5.3-5.2 2 0 3.7.9 4.6 2.4"/><path d="M13 19.5c.2-2.5 2-4.3 4.4-4.3 2.4 0 4.4 2 4.4 4.3"/></svg>'
 };
 document.querySelectorAll('.nav-item').forEach(a=>{
   const id=a.getAttribute('href').slice(1);
@@ -3274,17 +3410,192 @@ async function renderDashboardLimits(){
 // Papel "operador": some com tudo que ele não tem acesso (nem faz sentido
 // mostrar um painel de Pessoas/Fotos vazio pra quem não pode ver nada disso)
 // e deixa só a tela de Configurações, já na área de plano.
+// Únicos dois painéis que o operador enxerga — Configurações (plano/marca) e
+// Usuários (criar login da família), cada um seu próprio item de menu agora
+// (antes "Usuários" vivia dentro de Configurações, misturado — separado por
+// pedido explícito, pra não confundir com o resto).
+const OPERADOR_PANELS=['configuracoes','usuarios'];
 function setupOperadorView(){
-  document.querySelectorAll('.nav-item').forEach(a=>{ a.hidden=a.getAttribute('href').slice(1)!=='configuracoes'; });
-  // #configuracoes (como todo painel) fica DENTRO de #dashboard — não dá pra
-  // esconder o #dashboard inteiro, só o que é conteúdo próprio dele (hero +
-  // cartões de número) e os demais painéis, um a um.
+  document.querySelectorAll('.nav-item').forEach(a=>{ a.hidden=!OPERADOR_PANELS.includes(a.getAttribute('href').slice(1)); });
+  // #configuracoes/#usuarios (como todo painel) ficam DENTRO de #dashboard —
+  // não dá pra esconder o #dashboard inteiro, só o que é conteúdo próprio
+  // dele (hero + cartões de número) e os demais painéis, um a um.
   document.querySelector('#dashboard .hero-card')?.setAttribute('hidden','');
   document.querySelector('#dashboard .stats-grid')?.setAttribute('hidden','');
-  document.querySelectorAll('.panel[id]').forEach(s=>{ s.hidden=s.id!=='configuracoes'; });
+  document.querySelectorAll('.panel[id]').forEach(s=>{ s.hidden=!OPERADOR_PANELS.includes(s.id); });
   setActiveNav('configuracoes');
   $('#planSection').hidden=false;
+  loadUsersList();
 }
+
+/* ---------- Usuários (papel "operador" cria logins reais de admin) ----------
+   Criar um login de verdade (Supabase Auth) exige a service role key, que
+   nunca pode rodar no navegador — por isso isso passa por uma Edge Function
+   (create-admin-user), que confere de novo, do lado do servidor, que quem tá
+   chamando é mesmo operador antes de criar qualquer coisa. Aqui no admin.js
+   só montamos o pedido e mostramos o resultado. */
+function generatePassword(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+  const bytes=new Uint32Array(14);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes,b=>chars[b%chars.length]).join('');
+}
+$('#genPasswordBtn').addEventListener('click',()=>{ $('#newUserPassword').value=generatePassword(); });
+let allUsersRows=[], usersPage=1;
+async function loadUsersList(){
+  const wrap=$('#usersTableWrap');
+  const {data,error}=await client.from('admin_users').select('user_id,role,display_name,email,active,created_at').order('created_at',{ascending:false});
+  if(error){ wrap.innerHTML=`<div class="error box">${escapeHtml(error.message)}</div>`; return }
+  allUsersRows=data;
+  renderUsersList();
+}
+function renderUsersList(){
+  const wrap=$('#usersTableWrap');
+  $('#usersPagination').innerHTML='';
+  const filter=$('#usersRoleFilter').value;
+  const q=$('#searchUsers').value.trim().toLowerCase();
+  let rows=filter?allUsersRows.filter(u=>u.role===filter):allUsersRows;
+  if(q) rows=rows.filter(u=>(u.display_name||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q));
+  if(!rows.length){ wrap.innerHTML='<div class="empty-state small"><div class="empty-icon">◎</div><h4>Nenhum usuário encontrado</h4></div>'; return }
+  const pageSize=Number($('#usersPageSize').value)||5;
+  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));
+  if(usersPage>totalPages) usersPage=totalPages;
+  if(usersPage<1) usersPage=1;
+  const start=(usersPage-1)*pageSize;
+  const pageItems=rows.slice(start,start+pageSize);
+  wrap.innerHTML=tableHtml(['Nome','E-mail','Papel','Status','Criado em',''],pageItems.map(u=>{
+    const isSelf=u.user_id===currentUserId;
+    const statusBadge=u.active?'<span class="status">ativo</span>':'<span class="status" style="background:#fdeaea;color:#b22b45">inativo</span>';
+    const toggleBtn=isSelf
+      ?'<span class="hint" style="margin:0">você</span>'
+      :`<button type="button" class="danger-text" data-toggle-active="${u.user_id}" data-next="${!u.active}">${u.active?'Desativar':'Ativar'}</button>`;
+    const resetBtn=u.email?`<button type="button" data-send-reset="${escapeHtml(u.email)}">Reset de senha por e-mail</button>`:'';
+    const tempPassBtn=`<button type="button" data-set-temp-password="${u.user_id}" data-name="${escapeHtml(u.display_name||u.email||'')}">Definir senha temporária</button>`;
+    return [
+      escapeHtml(u.display_name||'—'),
+      escapeHtml(u.email||'—'),
+      escapeHtml(u.role),
+      statusBadge,
+      new Date(u.created_at).toLocaleDateString('pt-BR'),
+      `<div class="actions">${toggleBtn}${resetBtn}${tempPassBtn}</div>`
+    ];
+  }));
+  document.querySelectorAll('[data-toggle-active]').forEach(btn=>{
+    btn.addEventListener('click',()=>toggleUserActive(btn.dataset.toggleActive,btn.dataset.next==='true'));
+  });
+  document.querySelectorAll('[data-set-temp-password]').forEach(btn=>{
+    btn.addEventListener('click',()=>openSetTempPasswordModal(btn.dataset.setTempPassword,btn.dataset.name));
+  });
+  document.querySelectorAll('[data-send-reset]').forEach(btn=>{
+    btn.addEventListener('click',()=>sendResetLinkTo(btn.dataset.sendReset));
+  });
+  if(totalPages>1){
+    $('#usersPagination').innerHTML=`<button type="button" class="secondary" id="usersPrevPage"${usersPage<=1?' disabled':''}>‹ Anterior</button><span class="page-info">Página ${usersPage} de ${totalPages} (${rows.length} usuários)</span><button type="button" class="secondary" id="usersNextPage"${usersPage>=totalPages?' disabled':''}>Próxima ›</button>`;
+    $('#usersPrevPage')?.addEventListener('click',()=>{usersPage--; renderUsersList();});
+    $('#usersNextPage')?.addEventListener('click',()=>{usersPage++; renderUsersList();});
+  }
+}
+// Operador manda o link de redefinição pra qualquer usuário — útil quando a
+// pessoa avisa (por WhatsApp, por exemplo) que perdeu acesso: reativa o
+// usuário se precisar e já dispara o e-mail com um clique, sem precisar
+// saber a senha de ninguém nem pedir pra pessoa mesma clicar em "Esqueci
+// minha senha" (útil sobretudo se ela nem lembra mais qual e-mail usava).
+// Alternativa ao "Reset de senha por e-mail" — pra quando o e-mail não é
+// uma opção viável (limite de envio do Supabase batido, pessoa sem acesso
+// à caixa de entrada, etc). Define a senha na hora, via Edge Function
+// (set-user-password, service role) — o operador repassa essa senha pra
+// pessoa manualmente (WhatsApp, por exemplo).
+let pendingTempPasswordUserId=null;
+function openSetTempPasswordModal(userId,name){
+  pendingTempPasswordUserId=userId;
+  $('#setTempPasswordIntro').textContent=`Define uma senha nova pra ${name||'este usuário'} — sem precisar de e-mail. Repasse essa senha pra ele manualmente.`;
+  $('#setTempPasswordValue').value='';
+  showError($('#setTempPasswordError'),''); $('#setTempPasswordSuccess').style.display='none';
+  $('#setTempPasswordModal').classList.add('open');
+}
+function closeSetTempPasswordModal(){ $('#setTempPasswordModal').classList.remove('open'); }
+$('#genTempPasswordBtn').addEventListener('click',()=>{ $('#setTempPasswordValue').value=generatePassword(); });
+$('#closeSetTempPasswordModal').onclick=closeSetTempPasswordModal;
+$('#cancelSetTempPassword').onclick=closeSetTempPasswordModal;
+$('#confirmSetTempPassword').addEventListener('click',async()=>{
+  showError($('#setTempPasswordError'),''); $('#setTempPasswordSuccess').style.display='none';
+  const password=$('#setTempPasswordValue').value;
+  if(password.length<8){ showError($('#setTempPasswordError'),'A senha precisa ter pelo menos 8 caracteres.'); return }
+  const btn=$('#confirmSetTempPassword');
+  btn.disabled=true; btn.textContent='Salvando...';
+  try{
+    const {data,error}=await client.functions.invoke('set-user-password',{body:{user_id:pendingTempPasswordUserId,password}});
+    if(error){
+      let msg=error.message;
+      try{ const body=await error.context.json(); if(body?.error) msg=body.error; }catch{}
+      throw new Error(msg);
+    }
+    if(data?.error) throw new Error(data.error);
+    $('#setTempPasswordSuccess').textContent='Senha definida — repasse pra pessoa manualmente.';
+    $('#setTempPasswordSuccess').style.display='block';
+  }catch(err){
+    showError($('#setTempPasswordError'),err.message);
+  }finally{
+    btn.disabled=false; btn.textContent='Definir senha';
+  }
+});
+async function sendResetLinkTo(email){
+  if(!confirm(`Mandar e-mail de redefinição de senha pra ${email}?`)) return;
+  try{
+    const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/admin/index.html'});
+    if(error) throw error;
+    showToast('E-mail de redefinição enviado pra '+email+'.');
+  }catch(err){
+    showToast('Erro: '+err.message);
+  }
+}
+async function toggleUserActive(userId,nextActive){
+  const acao=nextActive?'ativar':'desativar';
+  if(!confirm(`Quer mesmo ${acao} este usuário?`)) return;
+  const {error}=await client.from('admin_users').update({active:nextActive}).eq('user_id',userId);
+  if(error){ showToast('Erro: '+error.message); return }
+  showToast(nextActive?'Usuário ativado.':'Usuário desativado — perde o acesso na próxima ação dele no painel.');
+  await loadUsersList();
+}
+$('#usersRoleFilter').addEventListener('change',()=>{ usersPage=1; renderUsersList(); });
+$('#usersPageSize').addEventListener('change',()=>{ usersPage=1; renderUsersList(); });
+$('#searchUsers').addEventListener('input',()=>{ usersPage=1; renderUsersList(); });
+async function submitNewUser(sendInvite){
+  showError($('#newUserError'),''); $('#newUserSuccess').style.display='none';
+  const name=$('#newUserName').value.trim();
+  const email=$('#newUserEmail').value.trim();
+  const password=$('#newUserPassword').value;
+  if(!name||!email){ showError($('#newUserError'),'Informe nome e e-mail.'); return }
+  if(!sendInvite&&password.length<8){ showError($('#newUserError'),'A senha precisa ter pelo menos 8 caracteres (ou use "Enviar convite por e-mail").'); return }
+  const btn=sendInvite?$('#inviteUserBtn'):$('#createUserBtn');
+  const originalText=btn.textContent;
+  btn.disabled=true; btn.textContent='Enviando...';
+  try{
+    const {data,error}=await client.functions.invoke('create-admin-user',{body:{
+      name,email,sendInvite,
+      password:sendInvite?undefined:password,
+      redirectTo:window.location.origin+'/admin/index.html'
+    }});
+    if(error){
+      // supabase-js só traz o corpo do erro em error.context — tenta extrair
+      // a mensagem real que a função mandou, senão cai pro erro genérico.
+      let msg=error.message;
+      try{ const body=await error.context.json(); if(body?.error) msg=body.error; }catch{}
+      throw new Error(msg);
+    }
+    if(data?.error) throw new Error(data.error);
+    $('#newUserName').value=''; $('#newUserEmail').value=''; $('#newUserPassword').value='';
+    const successMsg=sendInvite?'Convite enviado por e-mail.':'Usuário criado — repasse o e-mail e a senha pra família.';
+    $('#newUserSuccess').textContent=successMsg; $('#newUserSuccess').style.display='block';
+    await loadUsersList();
+  }catch(err){
+    showError($('#newUserError'),err.message);
+  }finally{
+    btn.disabled=false; btn.textContent=originalText;
+  }
+}
+$('#createUserBtn').addEventListener('click',()=>submitNewUser(false));
+$('#inviteUserBtn').addEventListener('click',()=>submitNewUser(true));
 
 function renderPlanLimitFields(){
   const editable=currentPlanRow?.plano==='personalizado';
