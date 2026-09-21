@@ -218,6 +218,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 
 /* ---------- Identidade visual (logo/título/cores) — só papel "admin" ---------- */
 .avatar-preview.logo{width:72px;height:72px;border-radius:12px}
+.avatar-preview.wide{width:128px;height:80px;border-radius:10px}
 .preset-swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:14px 0}
 .preset-swatch{display:flex;align-items:center;gap:10px;padding:10px 12px;border:2px solid #e6eaf2;border-radius:12px;background:#fff;cursor:pointer;text-align:left;font:inherit}
 .preset-swatch:hover{border-color:#c7cfe6}

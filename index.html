@@ -123,14 +123,21 @@ async function boot(){
   // não depende dos dados do banco).
   initScrollReveal('.section-head');
 
-  const [{data:people},{data:photos},{data:stories},{data:events},{data:sources},{data:books}]=await Promise.all([
+  const [{data:people},{data:photos},{data:stories},{data:events},{data:sources},{data:books},{data:heroConfig}]=await Promise.all([
     sbClient.from('people').select('id,birth_date,death_date').then(r=>r),
     sbClient.from('photos').select('id,title,thumbnail_path,photo_date,updated_at').order('updated_at',{ascending:false}),
     sbClient.from('stories').select('id,slug,title,summary,content').order('updated_at',{ascending:false}),
     sbClient.from('events').select('id'),
     sbClient.from('sources').select('id,title,url,show_on_home'),
-    sbClient.from('chapters').select('id,book_id,chapter_number')
+    sbClient.from('chapters').select('id,book_id,chapter_number'),
+    sbClient.from('site_config').select('hero_livro_path,hero_arvore_path,hero_pessoas_path,hero_fotos_path').limit(1).maybeSingle()
   ]);
+  // Foto de capa configurável (Configurações → Imagens da página inicial) —
+  // sem nada enviado, cai na foto padrão do modelo (fixa em Assents/inicio-web).
+  const heroImg=(key,fallback)=>{
+    const path=heroConfig?.[`hero_${key}_path`];
+    return path?sbClient.storage.from('photos').getPublicUrl(path).data.publicUrl:fallback;
+  };
   // "capítulos" pro leitor = números de capítulo distintos por livro (livro.html
   // agrupa várias seções sob o mesmo chapter_number num único capítulo) — contar
   // as linhas cruas da tabela conta seções, não capítulos, e infla o número.
@@ -167,10 +174,10 @@ async function boot(){
 
   // Portas de entrada
   const portas=[
-    {kicker:'O livro',titulo:'Capítulos do livro',texto:capitulosCount+' '+(capitulosCount===1?'capítulo publicado':'capítulos publicados')+' até agora.',href:'livros.html',img:'Assents/inicio-web/livro.webp'},
-    {kicker:'A árvore',titulo:'Árvore genealógica',texto:'Navegue por pais, cônjuges e filhos.',href:'arvore.html',img:'Assents/inicio-web/arvore.webp'},
-    {kicker:'As pessoas',titulo:(people||[]).length+' pessoas',texto:'Cada pessoa reúne biografia, família, fotos e histórias.',href:'pessoas.html',img:'Assents/inicio-web/pessoas.webp'},
-    {kicker:'O arquivo',titulo:(photos||[]).length+' fotografias',texto:'Digitalizadas e organizadas por data e pessoa.',href:'galeria.html',img:'Assents/inicio-web/fotos.webp'}
+    {kicker:'O livro',titulo:'Capítulos do livro',texto:capitulosCount+' '+(capitulosCount===1?'capítulo publicado':'capítulos publicados')+' até agora.',href:'livros.html',img:heroImg('livro','Assents/inicio-web/livro.webp')},
+    {kicker:'A árvore',titulo:'Árvore genealógica',texto:'Navegue por pais, cônjuges e filhos.',href:'arvore.html',img:heroImg('arvore','Assents/inicio-web/arvore.webp')},
+    {kicker:'As pessoas',titulo:(people||[]).length+' pessoas',texto:'Cada pessoa reúne biografia, família, fotos e histórias.',href:'pessoas.html',img:heroImg('pessoas','Assents/inicio-web/pessoas.webp')},
+    {kicker:'O arquivo',titulo:(photos||[]).length+' fotografias',texto:'Digitalizadas e organizadas por data e pessoa.',href:'galeria.html',img:heroImg('fotos','Assents/inicio-web/fotos.webp')}
   ];
   $('#portasGrid').innerHTML=portas.map(p=>`
     <a class="porta-card" href="${p.href}">

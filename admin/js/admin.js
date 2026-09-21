@@ -3343,6 +3343,59 @@ async function onBrandFaviconFileChange(e){
     $('#brandFaviconHint').textContent='Erro ao processar imagem: '+err.message;
   }
 }
+// As 4 fotos de capa de "Comece por aqui" (site público) — mesmo padrão de
+// logo/favicon acima, só que em vez de 2 campos repetidos na mão, um único
+// conjunto de funções genéricas por "key" (livro/arvore/pessoas/fotos),
+// já que são 4 campos idênticos em tudo menos o nome. Diferente de
+// logo/favicon (que podem ficar vazios), aqui sempre tem uma imagem — a
+// do modelo, quando ninguém enviou nada — então o botão de desfazer diz
+// "usar imagem padrão", não "excluir".
+const HERO_IMAGE_KEYS=['livro','arvore','pessoas','fotos'];
+const HERO_IMAGE_DEFAULTS={
+  livro:'/Assents/inicio-web/livro.webp',
+  arvore:'/Assents/inicio-web/arvore.webp',
+  pessoas:'/Assents/inicio-web/pessoas.webp',
+  fotos:'/Assents/inicio-web/fotos.webp'
+};
+const pendingHeroUploads={};
+function heroIds(key){
+  const cap=key.charAt(0).toUpperCase()+key.slice(1);
+  return {file:`hero${cap}File`,preview:`hero${cap}Preview`,removeBtn:`hero${cap}RemoveBtn`,hint:`hero${cap}Hint`};
+}
+function heroColumn(key){return `hero_${key}_path`}
+function renderHeroImagePreview(key,path){
+  const ids=heroIds(key);
+  $('#'+ids.preview).innerHTML=`<img src="${path?logoUrl(path):HERO_IMAGE_DEFAULTS[key]}" alt="">`;
+  $('#'+ids.removeBtn).hidden=!path;
+}
+async function onHeroFileChange(key,e){
+  const file=e.target.files[0];
+  if(!file) return;
+  pendingHeroUploads[key]=null;
+  const ids=heroIds(key);
+  if(file.size>MAX_IMAGE_SOURCE_BYTES){
+    $('#'+ids.hint).textContent=`Arquivo muito grande (máx. ${humanSize(MAX_IMAGE_SOURCE_BYTES)}).`;
+    e.target.value=''; return;
+  }
+  $('#'+ids.hint).textContent='Processando imagem...';
+  try{
+    const bitmap=await createImageBitmap(file);
+    const {blob}=await drawToBlob(bitmap,1200,0.85);
+    bitmap.close?.();
+    pendingHeroUploads[key]=blob;
+    $('#'+ids.preview).innerHTML=`<img src="${URL.createObjectURL(blob)}" alt="">`;
+    $('#'+ids.hint).textContent=`Pronto (${(blob.size/1024).toFixed(0)} KB).`;
+    $('#'+ids.removeBtn).hidden=false;
+  }catch(err){
+    $('#'+ids.hint).textContent='Erro ao processar imagem: '+err.message;
+  }
+}
+HERO_IMAGE_KEYS.forEach(key=>{
+  const ids=heroIds(key);
+  $('#'+ids.file).addEventListener('change',e=>onHeroFileChange(key,e));
+  $('#'+ids.removeBtn).addEventListener('click',()=>{ pendingHeroUploads[key]='REMOVE'; $('#'+ids.file).value=''; renderHeroImagePreview(key,null); });
+});
+
 /* ---------- Site público/privado (site_config.is_private) — só "admin".
    Reaproveita currentBranding (mesma linha de site_config já carregada por
    loadBranding(), chamada logo antes desta) — não precisa buscar de novo. ---------- */
@@ -3383,6 +3436,7 @@ async function loadBranding(){
   $('#brandContatoWhatsapp').value=data.contato_whatsapp||'';
   renderBrandLogoPreview(data.logo_path);
   renderBrandFaviconPreview(data.favicon_path);
+  HERO_IMAGE_KEYS.forEach(key=>{ pendingHeroUploads[key]=null; renderHeroImagePreview(key,data[heroColumn(key)]); });
   const preset=data.color_preset||'default';
   const base=preset==='personalizado'&&data.color_bg
     ?{bg:data.color_bg,bg2:data.color_bg2,text:data.color_text,muted:data.color_muted,accent:data.color_accent}
@@ -3424,10 +3478,25 @@ async function saveBranding(){
       payload.favicon_path=path;
       if(oldFaviconPath) await client.storage.from('photos').remove([oldFaviconPath]);
     }
+    for(const key of HERO_IMAGE_KEYS){
+      const col=heroColumn(key);
+      if(pendingHeroUploads[key]==='REMOVE'){
+        if(currentBranding?.[col]) await client.storage.from('photos').remove([currentBranding[col]]);
+        payload[col]=null;
+      } else if(pendingHeroUploads[key]){
+        const oldPath=currentBranding?.[col];
+        const path=`site/hero-${key}-${crypto.randomUUID()}.webp`;
+        const up=await client.storage.from('photos').upload(path,pendingHeroUploads[key],{contentType:'image/webp'});
+        if(up.error) throw new Error(up.error.message);
+        payload[col]=path;
+        if(oldPath) await client.storage.from('photos').remove([oldPath]);
+      }
+    }
     const {error}=await client.from('site_config').update(payload).eq('id',currentBranding.id);
     if(error) throw new Error(error.message);
     pendingLogoUpload=null;
     pendingFaviconUpload=null;
+    HERO_IMAGE_KEYS.forEach(key=>{ pendingHeroUploads[key]=null; });
     showToast('Identidade visual atualizada.');
     await loadBranding();
     await applyAdminBrandLogo();

@@ -2,7 +2,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" sizes="16x16" href="/Assents/Logos-web/favicon-16.png"><link rel="icon" type="image/png" sizes="32x32" href="/Assents/Logos-web/favicon-32.png"><link rel="icon" type="image/png" sizes="48x48" href="/Assents/Logos-web/favicon-48.png"><link rel="apple-touch-icon" href="/Assents/Logos-web/apple-touch-icon.png">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://igglfuatavmxabffaflb.supabase.co; connect-src 'self' https://igglfuatavmxabffaflb.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>Família — Administração</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/admin/css/admin.css?v=13">
+<title>Família — Administração</title><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/admin/css/admin.css?v=14">
 </head><body>
 <div id="loginView" class="auth-screen"><div class="auth-card">
 <div class="brand-mark"><img id="loginBrandLogo" src="/Assents/Logos-web/icon-96.webp" alt=""></div><h1>Administração da Família</h1>
@@ -144,6 +144,40 @@
       <label class="avatar-label">Favicon (ícone da aba do navegador)<input id="brandFaviconFile" type="file" accept="image/*"></label>
       <button type="button" id="brandFaviconRemoveBtn" class="danger-text" hidden>Excluir favicon</button>
       <p class="hint" id="brandFaviconHint">Opcional — sem favicon enviado, usa o ícone padrão da aba.</p>
+    </div>
+  </div>
+  <h4 style="margin:24px 0 4px">Imagens da página inicial</h4>
+  <p class="hint">As 4 fotos de capa da seção "Comece por aqui" no site público (Livro, Árvore, Pessoas, Arquivo). Sem imagem enviada, usa a foto padrão do modelo.</p>
+  <div class="avatar-field">
+    <div class="avatar-preview wide" id="heroLivroPreview"></div>
+    <div>
+      <label class="avatar-label">"O Livro"<input id="heroLivroFile" type="file" accept="image/*"></label>
+      <button type="button" id="heroLivroRemoveBtn" class="danger-text" hidden>Usar imagem padrão</button>
+      <p class="hint" id="heroLivroHint"></p>
+    </div>
+  </div>
+  <div class="avatar-field">
+    <div class="avatar-preview wide" id="heroArvorePreview"></div>
+    <div>
+      <label class="avatar-label">"A Árvore"<input id="heroArvoreFile" type="file" accept="image/*"></label>
+      <button type="button" id="heroArvoreRemoveBtn" class="danger-text" hidden>Usar imagem padrão</button>
+      <p class="hint" id="heroArvoreHint"></p>
+    </div>
+  </div>
+  <div class="avatar-field">
+    <div class="avatar-preview wide" id="heroPessoasPreview"></div>
+    <div>
+      <label class="avatar-label">"As Pessoas"<input id="heroPessoasFile" type="file" accept="image/*"></label>
+      <button type="button" id="heroPessoasRemoveBtn" class="danger-text" hidden>Usar imagem padrão</button>
+      <p class="hint" id="heroPessoasHint"></p>
+    </div>
+  </div>
+  <div class="avatar-field">
+    <div class="avatar-preview wide" id="heroFotosPreview"></div>
+    <div>
+      <label class="avatar-label">"O Arquivo"<input id="heroFotosFile" type="file" accept="image/*"></label>
+      <button type="button" id="heroFotosRemoveBtn" class="danger-text" hidden>Usar imagem padrão</button>
+      <p class="hint" id="heroFotosHint"></p>
     </div>
   </div>
   <h4 style="margin:24px 0 4px">Paleta de cores</h4>
@@ -441,5 +475,5 @@
 <div class="form-actions"><button type="button" class="secondary" id="cancelConfirmDelete">Cancelar</button><button type="button" class="primary danger-btn" id="confirmDeleteBtn">Excluir</button></div></div></div>
 <datalist id="placesList"></datalist><datalist id="photosList"></datalist><datalist id="documentsList"></datalist><datalist id="storiesQuickList"></datalist><datalist id="albumsQuickList"></datalist><datalist id="sourcesQuickList"></datalist><datalist id="chaptersQuickList"></datalist><datalist id="eventsQuickList"></datalist>
 <datalist id="peopleList"></datalist>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script><script src="/admin/js/config.js"></script><script src="/admin/js/admin.js?v=25"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script><script src="/admin/js/config.js"></script><script src="/admin/js/admin.js?v=26"></script>
 </body></html>
