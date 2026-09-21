@@ -218,13 +218,53 @@ async function carregarPreviewBiografia(personId){
   box.innerHTML=`<b>Pré-visualização automática (o que aparece publicamente)</b>${escapeHtml(texto)}`;
 }
 
-function showError(el,msg){el.textContent=msg||''}
+// Traduz os erros técnicos mais comuns (Postgres/Supabase Auth) pra
+// linguagem simples — quem usa este painel é a família, não gente de TI, e
+// "duplicate key value violates unique constraint" não ajuda ninguém a
+// entender o que fazer. Erro não reconhecido continua aparecendo (melhor
+// mostrar o texto cru do que travar o usuário sem pista nenhuma), só que já
+// avisando que é algo técnico, em vez de fingir que é uma frase normal.
+const ERROR_TRANSLATIONS=[
+  [/invalid login credentials/i,'E-mail ou senha incorretos.'],
+  [/email not confirmed/i,'Esse e-mail ainda não foi confirmado.'],
+  [/rate limit/i,'Muitas tentativas em pouco tempo — espere alguns minutos e tente de novo.'],
+  [/jwt expired|session.*expired/i,'Sua sessão expirou. Atualize a página e entre de novo.'],
+  [/duplicate key value violates unique constraint/i,'Já existe um registro com esse mesmo valor.'],
+  [/violates foreign key constraint/i,'Não é possível concluir: existe outro registro vinculado a este.'],
+  [/violates not-null constraint/i,'Preencha todos os campos obrigatórios.'],
+  [/violates check constraint/i,'Um dos valores informados não é válido.'],
+  [/failed to fetch|networkerror|network request failed/i,'Não foi possível conectar. Verifique sua internet e tente de novo.'],
+];
+function friendlyError(msg){
+  if(!msg) return '';
+  for(const [pattern,friendly] of ERROR_TRANSLATIONS){
+    if(pattern.test(msg)) return friendly;
+  }
+  // Erro sem tradução conhecida — mostra mesmo assim, mas deixa claro que é
+  // um detalhe técnico, não uma instrução do que fazer.
+  return `Não foi possível concluir (detalhe técnico: ${msg})`;
+}
+function showError(el,msg){el.textContent=msg?friendlyError(msg):''}
 let confirmDeleteResolver=null;
-function confirmDelete(title,message){
+// Modal de confirmação genérico — nasceu só pra exclusão (daí os IDs
+// "confirmDelete*"), mas serve pra qualquer ação de alto risco que precise
+// de um "tem certeza?" real. confirmDelete() abaixo é só o caso mais comum
+// (exclusão) com os textos padrão; outras ações de risco (ex.: mudar o site
+// pra privado) chamam confirmAction() direto com seus próprios textos, em
+// vez de usar um window.confirm() nativo — que quebra o padrão visual e
+// não é acessível do mesmo jeito que este modal (foco, Esc, leitor de tela).
+function confirmAction({eyebrow,title,message,confirmLabel,danger=true}){
+  $('#confirmDeleteEyebrow').textContent=eyebrow;
   $('#confirmDeleteTitle').textContent=title;
   $('#confirmDeleteMessage').textContent=message;
+  const btn=$('#confirmDeleteBtn');
+  btn.textContent=confirmLabel;
+  btn.classList.toggle('danger-btn',danger);
   confirmDeleteModal.classList.add('open');
   return new Promise(resolve=>{confirmDeleteResolver=resolve;});
+}
+function confirmDelete(title,message){
+  return confirmAction({eyebrow:'CONFIRMAR EXCLUSÃO',title,message,confirmLabel:'Excluir',danger:true});
 }
 function resolveConfirmDelete(result){
   confirmDeleteModal.classList.remove('open');
@@ -1043,6 +1083,7 @@ async function login(e){
       initGenealogyView();
       $('#visitorsStatCard').hidden=role!=='admin';
       if(role==='admin') await loadVisitorsList();
+      showPanel(window.location.hash.slice(1));
     }
   }catch(err){
     showError($('#loginError'),`Erro inesperado: ${err?.message || err}`);
@@ -1125,6 +1166,7 @@ async function boot(){
       await loadPeople();await loadPeopleOptions();await loadFamilies();await loadStories();await loadAcervo();initGenealogyView();
       $('#visitorsStatCard').hidden=role!=='admin';
       if(role==='admin') await loadVisitorsList();
+      showPanel(window.location.hash.slice(1));
     }
   }catch(e){showError($('#loginError'),e.message)}}
 }
@@ -1298,7 +1340,8 @@ const navIconMap={
   fontes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4-6.5 4V5a1 1 0 0 1 1-1Z"/></svg>',
   lugares:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>',
   configuracoes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 3.5v2.3M12 18.2v2.3M4.6 7.3l2 1.2M17.4 15.5l2 1.2M4.6 16.7l2-1.2M17.4 8.5l2-1.2M3.5 12h2.3M18.2 12h2.3"/></svg>',
-  usuarios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.1"/><path d="M3.8 19.5c0-3 2.3-5.2 5.3-5.2 2 0 3.7.9 4.6 2.4"/><path d="M13 19.5c.2-2.5 2-4.3 4.4-4.3 2.4 0 4.4 2 4.4 4.3"/></svg>'
+  usuarios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.1"/><path d="M3.8 19.5c0-3 2.3-5.2 5.3-5.2 2 0 3.7.9 4.6 2.4"/><path d="M13 19.5c.2-2.5 2-4.3 4.4-4.3 2.4 0 4.4 2 4.4 4.3"/></svg>',
+  visitantes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.1"/><path d="M3.8 19.5c0-3 2.3-5.2 5.3-5.2 2 0 3.7.9 4.6 2.4"/><path d="M13 19.5c.2-2.5 2-4.3 4.4-4.3 2.4 0 4.4 2 4.4 4.3"/></svg>'
 };
 document.querySelectorAll('.nav-item').forEach(a=>{
   const id=a.getAttribute('href').slice(1);
@@ -1318,18 +1361,28 @@ function setSidebarCollapsed(collapsed){
 sidebarCollapseBtn.addEventListener('click',()=>setSidebarCollapsed(!sidebarEl.classList.contains('collapsed')));
 try{ if(localStorage.getItem('sidebarCollapsed')==='1') setSidebarCollapsed(true); }catch{}
 
-/* ---------- Destaque da seção atual no menu (scroll-spy) ---------- */
+/* ---------- Navegação por painel único ----------
+   Cada item do menu mostra SÓ o seu painel (como um app de verdade, com
+   telas), em vez de empilhar as 13 seções e rolar até a certa — o antigo
+   comportamento (scroll-spy com IntersectionObserver) forçava passar por
+   todas as tabelas de todo mundo pra chegar em qualquer uma. */
 const navMap=new Map([...document.querySelectorAll('.nav-item')].map(a=>[a.getAttribute('href').slice(1),a]));
+const PANEL_IDS=[...document.querySelectorAll('.panel[id]')].map(p=>p.id);
 function setActiveNav(id){
   document.querySelectorAll('.nav-item.active').forEach(a=>a.classList.remove('active'));
   navMap.get(id)?.classList.add('active');
 }
-document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{toggleSidebar(false); setActiveNav(a.getAttribute('href').slice(1));}));
-const sectionSpy=new IntersectionObserver((entries)=>{
-  const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);
-  if(visible.length) setActiveNav(visible[0].target.id);
-},{rootMargin:'-10% 0px -75% 0px',threshold:0});
-document.querySelectorAll('.panel[id]').forEach(s=>sectionSpy.observe(s));
+function showPanel(id){
+  const isHome=!PANEL_IDS.includes(id);
+  const heroCard=document.querySelector('#dashboard .hero-card');
+  const statsGrid=document.querySelector('#dashboard .stats-grid');
+  if(heroCard) heroCard.hidden=!isHome;
+  if(statsGrid) statsGrid.hidden=!isHome;
+  document.querySelectorAll('.panel[id]').forEach(p=>{ p.hidden=isHome||p.id!==id; });
+  setActiveNav(isHome?'dashboard':id);
+}
+document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>toggleSidebar(false)));
+window.addEventListener('hashchange',()=>showPanel(window.location.hash.slice(1)));
 
 /* ---------- Aviso de confirmação (toast) ---------- */
 let toastTimer=null;
@@ -1338,6 +1391,25 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
 }
+
+/* ---------- Tamanho de página lembrado ----------
+   Todas as 12 tabelas do painel nasciam com "5 por página" como padrão —
+   punia justamente a ação mais comum (procurar um registro) num acervo que
+   pode ter centenas deles. Agora o padrão é 15, e a última escolha do
+   usuário em QUALQUER tabela vale pra todas as outras também (é uma
+   preferência de "como eu gosto de navegar", não por tabela). */
+(function(){
+  const KEY='admin_pageSize';
+  const selects=[...document.querySelectorAll('select[id$="PageSize"]')];
+  let saved=null;
+  try{ saved=localStorage.getItem(KEY); }catch{}
+  if(saved && selects.some(s=>[...s.options].some(o=>o.value===saved))){
+    selects.forEach(s=>{ if([...s.options].some(o=>o.value===saved)) s.value=saved; });
+  }
+  selects.forEach(s=>s.addEventListener('change',()=>{
+    try{ localStorage.setItem(KEY,s.value); }catch{}
+  }));
+})();
 
 /* ---------- Acessibilidade de modais: foco automático, Tab-trap, Esc, clique fora ---------- */
 let lastFocusedBeforeModal=null;
@@ -3284,10 +3356,18 @@ $('#savePrivacyBtn').addEventListener('click',async()=>{
   const isPrivate=$('#sitePrivacySelect').value==='true';
   // Muda o jogo pra qualquer visitante do site — confirma antes, não deixa
   // mudar sem querer (ex.: clique errado no seletor + Salvar sem reparar).
-  const msg=isPrivate
-    ?'Tem certeza que quer tornar o site PRIVADO? Qualquer visitante sem login (usuário comum cadastrado) vai deixar de ver o site.'
-    :'Tem certeza que quer tornar o site PÚBLICO? Qualquer pessoa na internet vai poder ver o site, sem precisar de login.';
-  if(!confirm(msg)) return;
+  // Usa o modal do próprio app (não window.confirm()) — é o único lugar do
+  // painel que ainda quebrava esse padrão, bem na ação mais arriscada dele.
+  const confirmed=await confirmAction({
+    eyebrow:'CONFIRMAR MUDANÇA',
+    title:isPrivate?'Tornar o site privado?':'Tornar o site público?',
+    message:isPrivate
+      ?'Qualquer visitante sem login (usuário comum cadastrado) vai deixar de ver o site.'
+      :'Qualquer pessoa na internet vai poder ver o site, sem precisar de login.',
+    confirmLabel:isPrivate?'Tornar privado':'Tornar público',
+    danger:false
+  });
+  if(!confirmed) return;
   const {error}=await client.from('site_config').update({is_private:isPrivate}).eq('id',currentBranding.id);
   if(error){ showError($('#privacyFormError'),error.message); return }
   currentBranding.is_private=isPrivate;
@@ -3452,13 +3532,7 @@ async function renderDashboardLimits(){
 const OPERADOR_PANELS=['configuracoes','usuarios'];
 function setupOperadorView(){
   document.querySelectorAll('.nav-item').forEach(a=>{ a.hidden=!OPERADOR_PANELS.includes(a.getAttribute('href').slice(1)); });
-  // #configuracoes/#usuarios (como todo painel) ficam DENTRO de #dashboard —
-  // não dá pra esconder o #dashboard inteiro, só o que é conteúdo próprio
-  // dele (hero + cartões de número) e os demais painéis, um a um.
-  document.querySelector('#dashboard .hero-card')?.setAttribute('hidden','');
-  document.querySelector('#dashboard .stats-grid')?.setAttribute('hidden','');
-  document.querySelectorAll('.panel[id]').forEach(s=>{ s.hidden=!OPERADOR_PANELS.includes(s.id); });
-  setActiveNav('configuracoes');
+  showPanel('configuracoes');
   $('#planSection').hidden=false;
   loadUsersList();
 }
