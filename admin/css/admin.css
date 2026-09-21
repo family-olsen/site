@@ -230,7 +230,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 .support-card strong{display:flex;align-items:center;gap:8px}
 .support-card .whatsapp-icon{width:20px;height:20px;flex:none;color:#25d366}
 
-/* ---------- Menu flutuante de ações (tabelas de Usuários) ---------- */
+/* ---------- Menu flutuante de ações (todas as tabelas do painel) ---------- */
 .action-menu{position:relative;display:inline-block}
 .action-menu-btn{background:#eef1f7;border:0;border-radius:7px;width:34px;height:34px;font-size:18px;line-height:1;cursor:pointer;color:#5c6580}
 .action-menu-btn:hover{background:#e3e7fb}
