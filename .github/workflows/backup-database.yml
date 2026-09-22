@@ -31,7 +31,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Instalar cliente do Postgres
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        # O pacote padrao do Ubuntu instala o cliente 16, mas o Supabase
+        # roda Postgres 17 -- pg_dump recusa rodar contra um servidor
+        # mais novo que ele mesmo. Usa o repositorio oficial do
+        # PostgreSQL (PGDG) pra instalar a versao 17 certinha.
+        run: |
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
 
       - name: Instalar rclone
         run: curl https://rclone.org/install.sh | sudo bash
@@ -40,9 +47,15 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -euo pipefail
           mkdir -p backup
           FILENAME="backup/olsenbellotoleal-$(date +%Y-%m-%d).sql.gz"
           pg_dump "$DATABASE_URL" --no-owner --no-privileges | gzip > "$FILENAME"
+          SIZE=$(stat -c%s "$FILENAME")
+          if [ "$SIZE" -lt 1000 ]; then
+            echo "Backup suspeito demais pequeno ($SIZE bytes) -- alguma coisa deu errado."
+            exit 1
+          fi
           echo "Backup gerado: $FILENAME ($(du -h "$FILENAME" | cut -f1))"
           echo "BACKUP_FILE=$FILENAME" >> "$GITHUB_ENV"
 

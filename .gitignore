@@ -8,3 +8,11 @@ node_modules/
 .DS_Store
 Thumbs.db
 .netlify/
+
+# Chaves e credenciais baixadas do Google Cloud/Supabase -- nunca
+# devem entrar no repo (esse e publico). Ficam so como secrets do
+# GitHub Actions.
+client_secret_*.json
+*-sa-key.json
+legado-digital-backups*.json
+*.sql.gz
