@@ -1,8 +1,9 @@
-name: Backup do banco de dados
+name: Backup do banco de dados e do Storage
 
-# Faz um dump completo do banco (schema + dados) uma vez por mes e
-# envia pro Google Drive da familia -- NAO commita no repo, porque
-# este repositorio e publico e o dump inclui gente marcada como
+# Faz um dump completo do banco (schema + dados) e baixa tudo dos
+# buckets de Storage (fotos e documentos), uma vez por mes, e envia
+# pro Google Drive da familia -- NAO commita no repo, porque este
+# repositorio e publico e o dump inclui gente marcada como
 # privada/nao publicada, que a RLS do site nunca mostraria.
 #
 # Autentica no Drive como o usuario de verdade (olsen.leal.belloto),
@@ -61,6 +62,42 @@ jobs:
           echo "Backup gerado: $FILENAME ($(du -h "$FILENAME" | cut -f1))"
           echo "BACKUP_FILE=$FILENAME" >> "$GITHUB_ENV"
 
+      - name: Baixar fotos e documentos do Storage
+        # Os buckets "photos" e "documents" sao publicos (o site
+        # precisa deles pra mostrar as imagens), entao a chave
+        # publishable ja basta pra listar e baixar tudo -- nao precisa
+        # de secret novo nenhum.
+        env:
+          SUPABASE_URL: https://igglfuatavmxabffaflb.supabase.co
+          SUPABASE_KEY: sb_publishable_Kj1x2hJwqDpmTtni-6SxVg_qxKGOIze
+        run: |
+          set -euo pipefail
+          mkdir -p storage_backup
+
+          list_and_download() {
+            local bucket="$1" prefix="$2" dest="$3"
+            local response
+            response=$(curl -sS -X POST "$SUPABASE_URL/storage/v1/object/list/$bucket" \
+              -H "apikey: $SUPABASE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"prefix\":\"$prefix\",\"limit\":1000,\"sortBy\":{\"column\":\"name\",\"order\":\"asc\"}}")
+            echo "$response" | jq -c '.[]' | while read -r item; do
+              name=$(echo "$item" | jq -r '.name')
+              id=$(echo "$item" | jq -r '.id')
+              if [ "$id" = "null" ]; then
+                list_and_download "$bucket" "${prefix}${name}/" "$dest"
+              else
+                mkdir -p "$dest/$(dirname "${prefix}${name}")"
+                curl -sS -o "$dest/${prefix}${name}" "$SUPABASE_URL/storage/v1/object/public/$bucket/${prefix}${name}"
+              fi
+            done
+          }
+
+          list_and_download "photos" "" "storage_backup/photos"
+          list_and_download "documents" "" "storage_backup/documents"
+          echo "Baixados: $(find storage_backup -type f | wc -l) arquivos ($(du -sh storage_backup | cut -f1))"
+
       - name: Configurar acesso ao Google Drive
         env:
           GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
@@ -78,6 +115,8 @@ jobs:
             echo "root_folder_id = 1WPZ-TJVVoE8mSViD_2ZiO016P7TaGiof"
           } > ~/.config/rclone/rclone.conf
 
-      - name: Enviar backup pro Google Drive
+      - name: Enviar backups pro Google Drive
         run: |
           rclone copy "$BACKUP_FILE" gdrive: -v
+          rclone copy storage_backup/photos gdrive:fotos-e-documentos/photos -v
+          rclone copy storage_backup/documents gdrive:fotos-e-documentos/documents -v
