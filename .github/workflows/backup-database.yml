@@ -5,14 +5,22 @@ name: Backup do banco de dados
 # este repositorio e publico e o dump inclui gente marcada como
 # privada/nao publicada, que a RLS do site nunca mostraria.
 #
-# Precisa de dois secrets configurados no repo (Settings > Secrets and
-# variables > Actions):
-#   DATABASE_URL  - connection string do Supabase (Project Settings >
-#                   Database > Connection string > Session pooler).
-#   GDRIVE_SA_KEY - conteudo inteiro do arquivo .json da conta de
-#                   servico do Google Cloud (legado-digital-backups),
-#                   que tem acesso de Editor na pasta "Backups do
-#                   Site" do Google Drive.
+# Autentica no Drive como o usuario de verdade (olsen.leal.belloto),
+# nao uma conta de servico -- contas de servico nao tem cota de
+# armazenamento propria em contas Google pessoais (sem Workspace),
+# entao nao conseguem criar arquivo nem em pasta compartilhada como
+# Editor. Autorizado uma vez via `rclone authorize`.
+#
+# Precisa de quatro secrets configurados no repo (Settings > Secrets
+# and variables > Actions):
+#   DATABASE_URL         - connection string do Supabase (Project
+#                           Settings > Database > Connection string >
+#                           Session pooler).
+#   GDRIVE_CLIENT_ID      - ID do cliente OAuth (Google Cloud Console >
+#                           APIs e servicos > Credenciais).
+#   GDRIVE_CLIENT_SECRET  - chave secreta desse mesmo cliente OAuth.
+#   GDRIVE_TOKEN          - token gerado rodando localmente:
+#                           rclone authorize "drive" "<client_id>" "<client_secret>"
 on:
   schedule:
     - cron: '0 13 1 * *' # dia 1 de cada mes, 13h UTC (10h de Brasilia)
@@ -40,22 +48,21 @@ jobs:
 
       - name: Configurar acesso ao Google Drive
         env:
-          GDRIVE_SA_KEY: ${{ secrets.GDRIVE_SA_KEY }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_TOKEN: ${{ secrets.GDRIVE_TOKEN }}
         run: |
           mkdir -p ~/.config/rclone
-          echo "$GDRIVE_SA_KEY" > /tmp/gdrive-sa.json
-          cat > ~/.config/rclone/rclone.conf <<'EOF'
-          [gdrive]
-          type = drive
-          scope = drive
-          service_account_file = /tmp/gdrive-sa.json
-          root_folder_id = 1WPZ-TJVVoE8mSViD_2ZiO016P7TaGiof
-          EOF
+          {
+            echo "[gdrive]"
+            echo "type = drive"
+            echo "scope = drive"
+            echo "client_id = $GDRIVE_CLIENT_ID"
+            echo "client_secret = $GDRIVE_CLIENT_SECRET"
+            echo "token = $GDRIVE_TOKEN"
+            echo "root_folder_id = 1WPZ-TJVVoE8mSViD_2ZiO016P7TaGiof"
+          } > ~/.config/rclone/rclone.conf
 
       - name: Enviar backup pro Google Drive
         run: |
           rclone copy "$BACKUP_FILE" gdrive: -v
-
-      - name: Limpar a chave temporaria
-        if: always()
-        run: rm -f /tmp/gdrive-sa.json
