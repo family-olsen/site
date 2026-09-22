@@ -53,7 +53,8 @@ jobs:
           EOF
 
       - name: Enviar backup pro Google Drive
-        run: rclone copy "$BACKUP_FILE" gdrive: -v
+        run: |
+          rclone copy "$BACKUP_FILE" gdrive: -v
 
       - name: Limpar a chave temporaria
         if: always()
