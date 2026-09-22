@@ -50,7 +50,9 @@ jobs:
           set -euo pipefail
           mkdir -p backup
           FILENAME="backup/olsenbellotoleal-$(date +%Y-%m-%d).sql.gz"
-          pg_dump "$DATABASE_URL" --no-owner --no-privileges | gzip > "$FILENAME"
+          # Caminho explicito do binario -- o "pg_dump" generico do PATH
+          # continua apontando pro 16 que a imagem do runner ja trazia.
+          /usr/lib/postgresql/17/bin/pg_dump "$DATABASE_URL" --no-owner --no-privileges | gzip > "$FILENAME"
           SIZE=$(stat -c%s "$FILENAME")
           if [ "$SIZE" -lt 1000 ]; then
             echo "Backup suspeito demais pequeno ($SIZE bytes) -- alguma coisa deu errado."
