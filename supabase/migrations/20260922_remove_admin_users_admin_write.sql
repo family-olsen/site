@@ -1,0 +1,19 @@
+-- =============================================================================
+-- Achado na auditoria de segurança: a policy "admin_users_admin_write" dava a
+-- qualquer usuário com role "admin" permissão de INSERT/UPDATE/DELETE na
+-- tabela admin_users INTEIRA (RLS não restringe coluna, só linha — mesma
+-- classe de bug já corrigida uma vez pro operador em
+-- 20260919_fix_admin_users_operador_scope.sql). Na prática, um admin podia
+-- chamar a API REST do Supabase direto (fora da UI) e trocar o próprio role
+-- pra "operador" — o papel que controla a plataforma inteira — ou apagar/
+-- editar o cadastro de outro admin.
+--
+-- Nada no painel depende desse acesso: toda escrita em admin_users já passa
+-- pelas Edge Functions (create-admin-user, set-user-password), que exigem
+-- role "operador" e rodam com a service role key. O único UPDATE direto pelo
+-- cliente (toggleUserActive, em admin.js) é feito pelo operador e já está
+-- coberto pela policy "admin_users_operador_toggle_active" + o trigger de
+-- escopo. Por isso a policy do admin pode ser removida sem quebrar nada —
+-- admin continua podendo LER o próprio cadastro via "admin_users_self_read".
+-- =============================================================================
+drop policy if exists admin_users_admin_write on public.admin_users;
