@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/png" sizes="16x16" href="Assents/Logos-web/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="Assents/Logos-web/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="Assents/Logos-web/favicon-48.png">
+<link rel="apple-touch-icon" href="Assents/Logos-web/apple-touch-icon.png">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://igglfuatavmxabffaflb.supabase.co; connect-src 'self' https://igglfuatavmxabffaflb.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Manual do painel — Olsen · Belloto · Leal</title>
+<meta name="description" content="Manual completo do painel administrativo: como cadastrar pessoas, famílias, histórias, fotos e todo o resto do acervo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css?v=5">
+<script src="js/branding-boot.js"></script>
+<style>
+  .tour-nav{display:flex;flex-wrap:wrap;gap:8px;margin:clamp(24px,3vw,32px) 0 0}
+  .tour-nav a.tag{cursor:pointer;transition:color .15s ease,border-color .15s ease}
+  .tour-nav a.tag:hover{color:var(--gold);border-color:var(--line-gold)}
+  .tour-block{padding:clamp(40px,6vw,64px) 0;border-top:1px solid var(--line-2)}
+  .tour-block:first-of-type{border-top:0}
+  .tour-text{max-width:680px;margin:0 auto clamp(24px,3vw,30px);text-align:center}
+  .tour-text .kicker{font-size:var(--fs-micro);letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin:0 0 10px}
+  .tour-text h2{font-family:var(--serif);font-weight:300;font-size:clamp(24px,3vw,32px);line-height:1.25;margin:0 0 12px;letter-spacing:-.01em}
+  .tour-text p{font-size:15px;line-height:1.7;color:var(--muted-2);margin:0}
+  .tour-shot{border-radius:16px;border:1px solid var(--line-2);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35);max-width:760px;margin:0 auto}
+  .tour-shot img{width:100%;display:block}
+  .tour-shot + .tour-shot{margin-top:16px}
+  .tour-note{max-width:640px;margin:clamp(40px,6vw,64px) auto 0;text-align:center;font-size:14px;line-height:1.7;color:var(--muted)}
+  .group-label{max-width:680px;margin:clamp(56px,7vw,80px) auto 0;text-align:center}
+  .group-label .kicker{font-size:var(--fs-micro);letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin:0 0 10px}
+  .group-label h2{font-family:var(--serif);font-weight:300;font-size:clamp(28px,4vw,40px);line-height:1.2;margin:0 0 12px;letter-spacing:-.01em}
+  .group-label p{font-size:15px;line-height:1.7;color:var(--muted-2);margin:0 auto;max-width:560px}
+  .steps{max-width:680px;margin:0 auto clamp(28px,3.5vw,36px);counter-reset:step;list-style:none;padding:0}
+  .steps li{position:relative;padding:0 0 0 44px;margin:0 0 20px;font-size:15px;line-height:1.7;color:var(--muted-2)}
+  .steps li:last-child{margin-bottom:0}
+  .steps li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--bg-3);border:1px solid var(--line-gold);color:var(--gold);font-family:var(--sans);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center}
+  .steps li strong{color:var(--text)}
+  .field-note{max-width:680px;margin:0 auto clamp(28px,3.5vw,36px);padding:18px 20px;border-radius:14px;background:var(--bg-3);border:1px solid var(--line-2);font-size:14px;line-height:1.7;color:var(--muted-2)}
+  .field-note strong{color:var(--text)}
+  .ref-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,540px),1fr));gap:clamp(20px,3vw,28px);max-width:1080px;margin:clamp(32px,4vw,44px) auto 0}
+  .ref-card{background:var(--bg-3);border:1px solid var(--line-2);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+  .ref-card .tour-shot{border-radius:0;border:0;border-bottom:1px solid var(--line-2);box-shadow:none;max-width:none}
+  .ref-card .ref-body{padding:20px 22px 24px}
+  .ref-card .kicker{font-size:var(--fs-micro);letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 8px}
+  .ref-card h3{font-family:var(--serif);font-weight:300;font-size:20px;line-height:1.3;margin:0 0 10px;letter-spacing:-.01em}
+  .ref-card p{font-size:14px;line-height:1.7;color:var(--muted-2);margin:0 0 10px}
+  .ref-card p:last-child{margin-bottom:0}
+  .ref-card .fields{font-size:13px;color:var(--muted)}
+  .ref-card .fields strong{color:var(--muted-2)}
+</style>
+</head>
+<body>
+<main>
+  <div class="section-tight" style="padding-top:clamp(10px,1.5vw,20px)">
+    <div class="wrap-narrow">
+      <p class="eyebrow-gold">Manual do painel</p>
+      <h1 style="font-family:var(--serif);font-weight:300;font-size:clamp(34px,6vw,64px);margin:0 0 14px;letter-spacing:-.02em">Como administrar o site</h1>
+      <p style="font-size:15px;line-height:1.7;color:var(--muted-2);max-width:600px;margin:0">Este é o manual de quem cuida do acervo por trás das telas: como entrar no painel, cadastrar pessoas e famílias, montar o livro, subir fotos e histórias, e ajustar as configurações do site.</p>
+      <nav class="tour-nav" aria-label="Ir direto para uma seção">
+        <a class="tag" href="#comecando">Começando</a>
+        <a class="tag" href="#pessoas">Pessoas</a>
+        <a class="tag" href="#familias">Famílias</a>
+        <a class="tag" href="#genealogia">Genealogia</a>
+        <a class="tag" href="#livro">Livro</a>
+        <a class="tag" href="#historias">Histórias</a>
+        <a class="tag" href="#fotos">Fotos</a>
+        <a class="tag" href="#albuns">Álbuns</a>
+        <a class="tag" href="#eventos">Eventos</a>
+        <a class="tag" href="#documentos">Documentos</a>
+        <a class="tag" href="#fontes">Fontes</a>
+        <a class="tag" href="#lugares">Lugares</a>
+        <a class="tag" href="#configuracoes">Configurações</a>
+        <a class="tag" href="#usuarios">Usuários e visitantes</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="section-tight">
+    <div class="wrap">
+
+      <section class="tour-block" id="comecando">
+        <div class="tour-text">
+          <p class="kicker">Começando</p>
+          <h2>Entrando no painel</h2>
+          <p>O painel fica em <strong>/admin</strong>, separado do site público. Entre com o e-mail e a senha do seu acesso — se esqueceu a senha, use "Esqueci minha senha" na própria tela de login, que manda um link de redefinição por e-mail.</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/00-login.webp" alt="Tela de login do painel administrativo" loading="lazy"></div>
+        <p class="tour-note">Depois de logado, o painel abre direto no Dashboard: uma visão geral com o total cadastrado em cada seção do acervo (pessoas, famílias, fotos, histórias e assim por diante) e o quanto ainda falta pro limite do seu plano.</p>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/25-dashboard.webp" alt="Dashboard do painel, com os cartões de contagem de cada seção do acervo" loading="lazy"></div>
+      </section>
+
+      <div class="group-label">
+        <p class="kicker">Tutorial completo</p>
+        <h2>Pessoas, passo a passo</h2>
+        <p>Pessoas é o coração do acervo — praticamente tudo (famílias, histórias, fotos, eventos) se conecta a uma pessoa cadastrada aqui. Por isso vale entender esse fluxo com calma: os outros cadastros funcionam de um jeito bem parecido.</p>
+      </div>
+
+      <section class="tour-block" id="pessoas">
+        <div class="tour-text">
+          <p class="kicker">Pessoas · Lista</p>
+          <h2>A lista de pessoas cadastradas</h2>
+          <p>No menu lateral, clique em <strong>Pessoas</strong>. A lista mostra nome, nascimento, falecimento e status de cada uma. Use a busca por nome pra achar rápido, e o botão <strong>+ Nova pessoa</strong>, no canto superior direito, pra começar um cadastro novo.</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/01-pessoas-lista.webp" alt="Lista de pessoas cadastradas no painel" loading="lazy"></div>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Pessoas · Novo cadastro</p>
+          <h2>Preenchendo os dados</h2>
+          <p>O formulário de "Nova pessoa" abre em uma janela. Os campos de cima são os essenciais:</p>
+        </div>
+        <ol class="steps">
+          <li><strong>Nome</strong> e <strong>Sobrenome</strong> — os dois formam o nome completo exibido no site. Só o Nome é obrigatório.</li>
+          <li><strong>Apelido</strong> — opcional, pra quem é mais conhecido por um apelido do que pelo nome.</li>
+          <li><strong>Data de nascimento</strong> e <strong>Data de falecimento</strong> — se a pessoa for viva, deixe a segunda em branco.</li>
+          <li><strong>Gênero</strong> e <strong>Vivo(a) ou falecido(a)</strong> — os dois são obrigatórios e entram na biografia automática (explicada mais abaixo).</li>
+        </ol>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/02-pessoas-novo-topo.webp" alt="Formulário de nova pessoa, campos de nome e datas" loading="lazy"></div>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Pessoas · Novo cadastro</p>
+          <h2>Local, foto e biografia</h2>
+        </div>
+        <ol class="steps">
+          <li><strong>Local de nascimento</strong> e <strong>Local de falecimento</strong> — opcionais. Comece a digitar o nome de uma cidade já cadastrada em Lugares; se não encontrar, você pode cadastrar o lugar na hora.</li>
+          <li><strong>Foto de perfil</strong> — opcional. Aparece na árvore genealógica e na listagem; sem foto, mostra as iniciais do nome.</li>
+          <li><strong>Biografia (complemento manual)</strong> — um texto livre pra histórias, curiosidades e memórias que não vêm dos dados cadastrais.</li>
+          <li><strong>Publicar no site</strong> — marcado por padrão. Desmarque se quiser guardar o cadastro sem mostrá-lo publicamente ainda.</li>
+        </ol>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/03-pessoas-novo-baixo.webp" alt="Formulário de nova pessoa, campos de local, foto e biografia" loading="lazy"></div>
+        <p class="tour-note">Clique em <strong>Salvar</strong> pra concluir. A pessoa já aparece na lista na hora.</p>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Pessoas · Ações</p>
+          <h2>Editando ou excluindo alguém</h2>
+          <p>Em cada linha da lista, o menu <strong>⋮</strong> (à direita) abre as ações disponíveis: <strong>Editar</strong> e <strong>Excluir</strong>. Esse mesmo menu de três pontinhos se repete em todas as listagens do painel — é sempre por ali que se edita ou apaga um registro.</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/04-pessoas-menu-acoes.webp" alt="Menu de ações aberto em uma pessoa da lista, com as opções Editar e Excluir" loading="lazy"></div>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Pessoas · Editar</p>
+          <h2>O formulário de edição é o mesmo de cadastro</h2>
+          <p>Clicando em Editar, a mesma janela de "Nova pessoa" abre preenchida com os dados atuais — agora com o título "Editar pessoa". Mude o que precisar e salve.</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/05-pessoas-editar-topo.webp" alt="Formulário de edição de pessoa, com os campos já preenchidos" loading="lazy"></div>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Pessoas · Biografia automática</p>
+          <h2>Um texto que se escreve sozinho</h2>
+          <p>Rolando a edição pra baixo, aparece a <strong>pré-visualização automática</strong>: um parágrafo montado sozinho a partir dos dados cadastrados (nascimento, pais, casamento, filhos, falecimento). É esse texto — mais o que você escrever no campo "Biografia (complemento manual)" — que forma o perfil público da pessoa no site.</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/06-pessoas-editar-biografia.webp" alt="Pré-visualização automática da biografia de uma pessoa, gerada a partir dos dados cadastrados" loading="lazy"></div>
+        <p class="tour-note">Por isso, quanto mais completos os cadastros de família (união, filhos) e datas, mais rica fica a biografia automática — sem precisar escrever nada a mais.</p>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Pessoas · Excluir</p>
+          <h2>Excluindo com segurança</h2>
+          <p>Ao clicar em Excluir, um aviso confirma a ação e lembra que histórias, fotos, eventos e relações de parentesco vinculados àquela pessoa também podem ser afetados. Essa confirmação existe em toda ação de excluir no painel — e nenhuma delas pode ser desfeita depois.</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/07-pessoas-confirmar-exclusao.webp" alt="Janela de confirmação de exclusão de uma pessoa" loading="lazy"></div>
+      </section>
+
+      <div class="group-label">
+        <p class="kicker">Referência rápida</p>
+        <h2>As outras seções do acervo</h2>
+        <p>O resto do painel segue o mesmo padrão de Pessoas: uma lista com busca, um botão pra criar, o menu ⋮ pra editar ou excluir. Aqui vai o que cada seção cadastra e o que tem de especial em cada uma.</p>
+      </div>
+
+      <div class="ref-grid">
+
+        <section class="ref-card" id="familias">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/08-familias-lista.webp" alt="Lista de uniões familiares" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Famílias</p>
+            <h3>Uniões e filhos</h3>
+            <p>Cada linha é uma união entre duas pessoas já cadastradas (Pessoa A e Pessoa B), com tipo (casamento, união estável...), datas de início e fim, e observações.</p>
+            <p>No menu ⋮ de cada união tem uma terceira opção além de Editar/Excluir: <strong>Filhos</strong> — abre uma janela pra vincular os filhos daquela união, buscando pelo nome de uma pessoa já cadastrada.</p>
+            <p class="fields">É essa teia de uniões e filhos que desenha a árvore genealógica automaticamente.</p>
+          </div>
+        </section>
+
+        <section class="ref-card" id="genealogia">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/12-genealogia.webp" alt="Árvore genealógica interativa no painel" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Genealogia</p>
+            <h3>A árvore, de forma visual</h3>
+            <p>Não é bem um cadastro — é a árvore genealógica renderizada a partir dos dados de Pessoas e Famílias, com busca por nome, zoom e navegação clicando de pessoa em pessoa.</p>
+            <p>Dá pra adicionar cônjuge ou filho direto por aqui também, com os botões <strong>+ Adicionar cônjuge</strong> e <strong>+ Adicionar filho</strong> que aparecem ao lado de cada pessoa — um atalho pro mesmo cadastro de Famílias.</p>
+          </div>
+        </section>
+
+        <section class="ref-card" id="livro">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/13-livro-lista.webp" alt="Lista de livros cadastrados" loading="lazy"></div>
+          <div class="tour-shot"><img src="Assents/manual-admin-web/15-livro-add-capitulo.webp" alt="Formulário de adicionar capítulo ao livro, com editor de texto e vínculo de fotos e fontes" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Livro</p>
+            <h3>Capítulos e seções, em texto corrido</h3>
+            <p>Um livro tem capítulos, e cada capítulo tem uma ou mais seções de texto. Clicando no livro da lista, abre o índice de capítulos e seções já escritas — cada uma com seu próprio menu ⋮.</p>
+            <p>Ao adicionar uma seção nova, o editor de texto tem formatação simples (negrito, itálico) e permite vincular fotos e fontes que já existem no acervo — elas passam a aparecer ilustrando aquele trecho do livro.</p>
+          </div>
+        </section>
+
+        <section class="ref-card" id="historias">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/16-historias-novo.webp" alt="Formulário de nova história" loading="lazy"></div>
+          <div class="tour-shot"><img src="Assents/manual-admin-web/17-historias-relacionados.webp" alt="Campos de pessoas, fotos e fontes relacionadas em uma história" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Histórias</p>
+            <h3>Relatos, causos e memórias</h3>
+            <p>Título, local, um resumo curto e o texto completo da história. O endereço (slug) é gerado sozinho a partir do título, mas pode ser ajustado.</p>
+            <p>Mais abaixo dá pra vincular <strong>pessoas relacionadas</strong> (marcando o papel de cada uma, como "Protagonista"), <strong>fotos relacionadas</strong> e <strong>fontes relacionadas</strong> — buscando pelo que já existe, ou cadastrando um item novo sem sair da janela.</p>
+          </div>
+        </section>
+
+        <section class="ref-card" id="fotos">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/18-fotos-novo.webp" alt="Formulário de nova foto" loading="lazy"></div>
+          <div class="tour-shot"><img src="Assents/manual-admin-web/19-fotos-relacionados.webp" alt="Campos de coleção, pessoas e histórias vinculadas a uma foto" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Fotos</p>
+            <h3>O arquivo fotográfico</h3>
+            <p>Título, data, local, legenda e descrição, além da própria imagem — que é otimizada automaticamente ao enviar. Toda foto precisa pertencer a pelo menos uma <strong>coleção</strong> (um álbum já cadastrado em Álbuns).</p>
+            <p>Dá pra marcar quem aparece na foto (Pessoas na foto) e quais histórias se relacionam a ela. O checkbox "Ocultar da galeria de fotos" tira a foto do carrossel público sem apagá-la — ela continua podendo aparecer em perfis e histórias.</p>
+          </div>
+        </section>
+
+        <section class="ref-card" id="albuns">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/20-albuns-novo.webp" alt="Formulário de novo álbum" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Álbuns</p>
+            <h3>As coleções que organizam as fotos</h3>
+            <p>Título, data, local e descrição de uma coleção. Cadastre o álbum primeiro — depois, ao subir fotos, é nele que elas vão entrar.</p>
+          </div>
+        </section>
+
+        <section class="ref-card" id="eventos">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/21-eventos-novo.webp" alt="Formulário de novo evento" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Eventos</p>
+            <h3>Os marcos da linha do tempo</h3>
+            <p>Título, tipo (nascimento, casamento, migração e outros), data (com a opção de marcar se é exata ou aproximada) e, se for um período, início e fim.</p>
+            <p class="fields">É o cadastro de Eventos que alimenta a Linha do tempo pública do site, em ordem cronológica.</p>
+          </div>
+        </section>
+
+        <section class="ref-card" id="documentos">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/22-documentos-novo.webp" alt="Formulário de novo documento" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Documentos</p>
+            <h3>Certidões, cartas e arquivos digitalizados</h3>
+            <p>Título, tipo (certidão e outros), data do documento (exata ou aproximada), local e o próprio arquivo — aceita PDF ou imagem.</p>
+          </div>
+        </section>
+
+        <section class="ref-card" id="fontes">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/23-fontes-novo.webp" alt="Formulário de nova fonte" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Fontes</p>
+            <h3>Referências, links e vídeos</h3>
+            <p>Uma fonte pode ser um link externo (vídeo, site, referência) — basta preencher o Endereço (URL) — ou apontar pra um documento já cadastrado em Documentos.</p>
+            <p>Os checkboxes <strong>"Aparece na página de Vídeos"</strong> e <strong>"Aparece em destaque na Home"</strong> controlam se aquela fonte some publicamente em destaque, além de ficar disponível pra vincular em histórias e capítulos do livro.</p>
+          </div>
+        </section>
+
+        <section class="ref-card" id="lugares">
+          <div class="tour-shot"><img src="Assents/manual-admin-web/24-lugares-novo.webp" alt="Formulário de novo lugar" loading="lazy"></div>
+          <div class="ref-body">
+            <p class="kicker">Lugares</p>
+            <h3>As cidades e locais do acervo</h3>
+            <p>Nome, tipo (cidade e outros), cidade, país, coordenadas (latitude/longitude, opcionais) e descrição. É essa lista que alimenta os campos de "buscar cidade" espalhados pelo resto do painel — em Pessoas, Histórias, Eventos e Documentos.</p>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="group-label" id="configuracoes">
+        <p class="kicker">Conta e ajustes</p>
+        <h2>Configurações</h2>
+        <p>É aqui que fica tudo que não é conteúdo do acervo em si: quem pode ver o site, a identidade visual e quem tem acesso ao painel.</p>
+      </div>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Configurações · Conta</p>
+          <h2>Sua conta e o acesso ao site</h2>
+          <p>No topo, um resumo da sua conta (e-mail, papel, plano atual). Logo abaixo, o controle de <strong>Visibilidade</strong>: deixar o site público pra qualquer pessoa, ou restrito só a quem tem um login de visitante cadastrado (seção Usuários).</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/26-config-conta-privacidade.webp" alt="Seção de conta e privacidade nas Configurações" loading="lazy"></div>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Configurações · Identidade visual</p>
+          <h2>Título, logo, favicon e fotos de capa</h2>
+          <p>O título do site, o número de WhatsApp de contato, o logo (aparece no cabeçalho) e o favicon (ícone da aba do navegador) são todos opcionais — sem eles, o site usa apenas o nome e um ícone padrão.</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/27-config-identidade-logo.webp" alt="Campos de título, logo e favicon nas Configurações" loading="lazy"></div>
+        <p class="tour-note">Logo abaixo ficam as 4 fotos de capa da seção "Comece por aqui" da página inicial (Livro, Árvore, Pessoas e Arquivo) — cada uma pode ser trocada por uma imagem própria, ou voltar pra foto padrão do modelo a qualquer momento.</p>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Configurações · Cores</p>
+          <h2>A paleta de cores do site</h2>
+          <p>Escolha um dos modelos prontos ou marque "Personalizado" pra editar cada cor manualmente (fundo, fundo dos cartões, texto, texto secundário e a cor de destaque usada em botões e links). A prévia logo abaixo mostra o resultado antes de salvar.</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/28-config-paleta-cores.webp" alt="Seletor de paleta de cores com prévia, nas Configurações" loading="lazy"></div>
+      </section>
+
+      <div class="group-label" id="usuarios">
+        <p class="kicker">Acessos</p>
+        <h2>Usuários e visitantes</h2>
+        <p>O painel distingue dois tipos de login bem diferentes: quem administra o site (Usuários) e quem só pode vê-lo quando ele estiver marcado como privado (Visitantes).</p>
+      </div>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Usuários</p>
+          <h2>Criando acesso para outro administrador</h2>
+          <p>Em <strong>Usuários</strong>, o formulário "Criar acesso admin" cadastra outra pessoa com acesso ao painel. Preencha nome, e-mail e uma senha (ou gere uma automática), e escolha entre duas formas de criar:</p>
+        </div>
+        <ol class="steps">
+          <li><strong>Enviar convite por e-mail</strong> — manda um link pra pessoa definir a própria senha e ativar o acesso.</li>
+          <li><strong>Criar usuário com essa senha</strong> — cria o acesso na hora, com a senha que você definiu ou gerou. Útil quando quer passar o login diretamente, sem depender de e-mail.</li>
+        </ol>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/29-usuarios-criar.webp" alt="Formulário de criar acesso admin" loading="lazy"></div>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Usuários · Lista e ações</p>
+          <h2>Gerenciando quem já tem acesso</h2>
+          <p>Abaixo do formulário fica a lista de usuários cadastrados, com busca, filtro por papel e paginação. O menu ⋮ de cada linha abre três ações:</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/30-usuarios-lista.webp" alt="Lista de usuários cadastrados com acesso ao painel" loading="lazy"></div>
+        <ol class="steps">
+          <li><strong>Desativar</strong> (ou Ativar) — bloqueia o login sem excluir o cadastro. Reversível a qualquer momento.</li>
+          <li><strong>Reset de senha por e-mail</strong> — manda um link pra pessoa escolher uma senha nova.</li>
+          <li><strong>Definir senha temporária</strong> — você define uma senha na hora, sem depender de e-mail.</li>
+        </ol>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/31-usuarios-menu-acoes.webp" alt="Menu de ações de um usuário, com as opções Desativar, Reset de senha por e-mail e Definir senha temporária" loading="lazy"></div>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Visitantes</p>
+          <h2>Acesso de leitura, pra quando o site é privado</h2>
+          <p>A aba <strong>Usuários</strong> também cadastra o acesso de visitante — um login "comum", que só serve pra ver o site quando a Visibilidade estiver marcada como privada em Configurações. Não abre o painel administrativo.</p>
+        </div>
+        <div class="field-note">Esse cadastro é flexível de propósito. Pra <strong>criar na mão</strong>, preencha nome, login e senha. Pra <strong>só convidar por e-mail</strong> — útil quando você tem uma lista de e-mails pra convidar de uma vez — basta preencher o e-mail; nome e login ficam em branco até a própria pessoa entrar e completar o cadastro.</div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/32-visitantes-criar.webp" alt="Formulário de criar acesso de visitante" loading="lazy"></div>
+      </section>
+
+      <section class="tour-block">
+        <div class="tour-text">
+          <p class="kicker">Visitantes · Lista</p>
+          <h2>A lista de visitantes</h2>
+          <p>Mesma lógica de Usuários: lista com busca e paginação, e o menu ⋮ com as mesmas ações de ativar/desativar e redefinir senha.</p>
+        </div>
+        <div class="tour-shot"><img src="Assents/manual-admin-web/33-visitantes-lista.webp" alt="Lista de visitantes cadastrados, incluindo um convite pendente só com e-mail" loading="lazy"></div>
+      </section>
+
+      <p class="tour-note">O painel muda aos poucos, conforme o acervo cresce. Se alguma tela parecer um pouco diferente do que está aqui, é sinal de que ela evoluiu desde a última atualização deste manual — o funcionamento no geral continua o mesmo.</p>
+    </div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0"></script>
+<script src="js/config.js"></script>
+<script src="js/site.js?v=8"></script>
+<script>
+renderHeader(); renderFooter();
+if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  revealWords($('main .eyebrow-gold'),{baseDelay:0,stagger:30});
+  revealWords($('main h1'),{baseDelay:150,stagger:35});
+  initScrollReveal('.tour-block',{stagger:0});
+  initScrollReveal('.ref-card',{stagger:60});
+}
+</script>
+</body>
+</html>
